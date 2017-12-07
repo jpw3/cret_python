@@ -50,7 +50,7 @@ def loadAllBlocks(subid):
     return blocks #return the loaded blocks as a list for later purposes..
 
 #define functions to get subject specific blocks and aggregate blocks together for analysis, respectively
-def getAllSubjectBlocks(ids):
+def getAllSubjectBlocks():
     blocks = [[] for i in range(len(ids))]; #create a list of empty lists to append the individual blocks to
     for i,sub_id in enumerate(ids):
         blocks[i] = loadAllBlocks(sub_id);
@@ -71,31 +71,45 @@ class Block(object):
 		self.sub_id = str(matStructure.sub_id);
 		self.sp = matStructure.sp;
 		self.dp = matStructure.dp;
-		self.trials = [trial(trialData,self.block_type,self.sub_id) for trialData in  matStructure.trial_data];
+		self.trials = [trial(trialData) for trialData in matStructure.trial_data];
 
 #define a Trial object that will hold the individual trial data 
 class trial(object):
 	#object being passed into this Trial instance should be a dictionary corresponding to the trial data for this given trial
-	def __init__(self, trialData, block_type, sub_id):
-		self.sub_id = saved_id;
+	def __init__(self, trialData):
+		self.sub_id = str(trialData.saved_id);
 		self.block_nr = trialData.block_nr;
 		self.trial_nr = trialData.trial_nr;
 		self.trial_type = trialData.trial_type; #determines the pictures that were presented
 		self.response_time = trialData.trial_times.response_time*1000; #put reaction time into seconds
-		self.alcohol_pref = trialData.alcohol_pref;
-		self.cigarette_pref = trialData.cigarette_pref;
+		self.alcohol_pref = str(trialData.alcohol_pref);
+		self.cigarette_pref = str(trialData.cigarette_pref);
 		self.presented_pics = trialData.corresponding_names;
 		self.picture_order = trialData.picture_ordering;
-		self.presented_up = trialData.presented_up;
-		self.presented_left = trialData.presented_left;
-		self.presented_right = trialData.presented_right;		
+		self.presented_up = str(trialData.presented_up);
+		self.presented_left = str(trialData.presented_left);
+		self.presented_right = str(trialData.presented_right);		
 		#response and results
 		self.reponse = str(trialData.response); #letter corresponding to presented
-		self.selected_type = trialData.selected_type; 
-		self.preferred_item = trialData.preferred_item;
+		self.selected_loc = trialData.selected_loc; 
+		self.preferred_item = str(trialData.preferred_item);
 		#finally, eye position and pupil size information
-		self.eyeX = trialData.eyeX;
-		self.eyeY = trialData.eyeY;
-		self.p_size = trialData.pSize;
-		self.sample_times = trialData.sampleTimes;
 		self.drift_shift = trialData.drift_shift;
+		# get the step needed to downsample the data to 500 Htz
+		
+		#need to fix this still...
+		
+		
+		all_sample_times = trialData.sampleTimes-trialData.sampleTimes[0]; #get sample times
+		desired_sampling_rate = 500; #this is the desired sampling rate
+		nr_samples = len(all_sample_times); #get nr of samples
+		iniTrialTime = all_sample_times[-1]-all_sample_times[0]; #get the trial time
+		inisamplingRate = round(nr_samples/iniTrialTime); #get the sampling rate		
+		sampStep = int(round(inisamplingRate/desired_sampling_rate)); #here, grab the sampling rate and use this step variable to downsample using array[::sampStep]
+		#get the data together	
+		self.sample_times = all_sample_times[::sampStep];
+		self.eyeX = trialData.eyeX[::sampStep];
+		self.eyeY = trialData.eyeY[::sampStep];
+		self.p_size = trialData.pSize[::sampStep];
+		
+		

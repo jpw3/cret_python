@@ -7,6 +7,7 @@ from scipy import stats
 from glob import glob #for use in searching for/ finding data files
 import random #general purpose
 import pandas as pd
+import math
 
 datapath = '/Users/james/Documents/MATLAB/data/CRET/'; #
 savepath =  '/Users/james/Documents/Python/CRET/data/';
@@ -112,6 +113,12 @@ class trial(object):
 				continue;
 			else:
 				samp_times.append(time);
+				#check if the sample was very large (e.g., blink or look away) and set the corresponding values to NaNs
+				if (abs(x_pos)>100)|(abs(y_pos)>100):
+					x_pos = nan; y_pos = nan; pup_s = nan;
+					self.dropped_sample = 1;
+				else:
+					self.dropped_sample = 0;
 				eyeX.append(x_pos);
 				eyeY.append(y_pos);
 				pSize.append(pup_s);
@@ -127,5 +134,4 @@ class trial(object):
 		self.eyeX = array(eyeX); #[::sampStep];
 		self.eyeY = array(eyeY); #[::sampStep];
 		self.p_size = array(pSize); #[::sampStep];
-		
-		
+	

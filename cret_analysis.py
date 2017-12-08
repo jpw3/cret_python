@@ -101,15 +101,31 @@ class trial(object):
 		
 		
 		all_sample_times = trialData.sampleTimes-trialData.sampleTimes[0]; #get sample times
-		desired_sampling_rate = 500; #this is the desired sampling rate
-		nr_samples = len(all_sample_times); #get nr of samples
-		iniTrialTime = all_sample_times[-1]-all_sample_times[0]; #get the trial time
-		inisamplingRate = round(nr_samples/iniTrialTime); #get the sampling rate		
-		sampStep = int(round(inisamplingRate/desired_sampling_rate)); #here, grab the sampling rate and use this step variable to downsample using array[::sampStep]
+		
+		#loop through to get only unique samples, e.g. sampling at 1000 Hz 
+		
+		prev_time = -1;
+		eyeX = []; eyeY = []; pSize = []; samp_times = [];
+		
+		for time,x_pos,y_pos,pup_s in zip(all_sample_times,trialData.eyeX,trialData.eyeY,trialData.pSize):
+			if time==prev_time:
+				continue;
+			else:
+				samp_times.append(time);
+				eyeX.append(x_pos);
+				eyeY.append(y_pos);
+				pSize.append(pup_s);
+				prev_time = time;
+			
+		# desired_sampling_rate = 500; #this is the desired sampling rate
+		# nr_samples = len(all_sample_times); #get nr of samples
+		# iniTrialTime = all_sample_times[-1]-all_sample_times[0]; #get the trial time
+		# inisamplingRate = round(nr_samples/iniTrialTime); #get the sampling rate		
+		# sampStep = int(round(inisamplingRate/desired_sampling_rate)); #here, grab the sampling rate and use this step variable to downsample using array[::sampStep]
 		#get the data together	
-		self.sample_times = all_sample_times[::sampStep];
-		self.eyeX = trialData.eyeX[::sampStep];
-		self.eyeY = trialData.eyeY[::sampStep];
-		self.p_size = trialData.pSize[::sampStep];
+		self.sample_times = array(samp_times); #[::sampStep];
+		self.eyeX = array(eyeX); #[::sampStep];
+		self.eyeY = array(eyeY); #[::sampStep];
+		self.p_size = array(pSize); #[::sampStep];
 		
 		

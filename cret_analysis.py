@@ -26,7 +26,7 @@ left_pic_coors = array([-5.20,-3.0]); #in dva
 right_pic_coors = array([5.20,-3]);
 up_pic_coors = array([0,6]);
 
-distance_threshold = image_size[0]; #threshold for how far away eye position can be from the coordinates to be considered looking at that item
+distance_threshold = 4; #threshold for how far away eye position can be from the coordinates to be considered looking at that item
 
 #define the possible filenames for each class of pictures
 alcohol_filenames = ['bacardi','brandy','budweiser','captainmorgan','corona','greygoose','heineken','jackdaniels','jimbeam','josecuervo','kahlua','naturallight','newamsterdam','skyy','smirnoff','sutter'];

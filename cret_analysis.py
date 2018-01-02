@@ -28,8 +28,8 @@ display_size = array([22.80, 17.10]); #width, height of the screen used to prese
 
 #define the possible filenames for each class of pictures
 alcohol_filenames = ['bacardi','brandy','budweiser','captainmorgan','corona','greygoose','heineken','jackdaniels','jimbeam','josecuervo','kahlua','naturallight','newamsterdam','skyy','smirnoff','sutter'];
-cigarette_filenames = ['americanspirit','camelcrush','luckstrike','newport','marlboro'];
-neutral_filenames = ['seltzer','waterbottle','waterglass'];
+cigarette_filenames = ['americanspirit','camelcrush','luckystrike','newport','marlboro'];
+neutral_filenames = ['selzter','waterbottle','waterglass']; #note the incorrect spelling in the filename.. this is consistent with what the file name actully is
 
 ############################################
 ## Data Analysis ##
@@ -110,9 +110,27 @@ class trial(object):
 		self.presented_up = str(trialData.presented_up)[:-23]; #slice the string to cut off the '_grayscaled_resizde.png' portion of the string
 		self.presented_left = str(trialData.presented_left)[:-23];
 		self.presented_right = str(trialData.presented_right)[:-23];
-		# self.alcohol_loc = 
-		# self.cigarette_loc = 
-		# self.neutral_loc = 
+		#conditionals to define where each item was stored
+		if self.presented_up in alcohol_filenames:
+			self.alcohol_loc = 'up';
+		elif self.presented_up in cigarette_filenames:
+			self.cigarette_loc = 'up';
+		elif self.presented_up in neutral_filenames:
+			self.neutral_loc = 'up';
+			
+		if self.presented_left in alcohol_filenames:
+			self.alcohol_loc = 'left';
+		elif self.presented_left in cigarette_filenames:
+			self.cigarette_loc = 'left';
+		elif self.presented_left in neutral_filenames:
+			self.neutral_loc = 'left';
+			
+		if self.presented_right in alcohol_filenames:
+			self.alcohol_loc = 'right';
+		elif self.presented_right in cigarette_filenames:
+			self.cigarette_loc = 'right';
+		elif self.presented_right in neutral_filenames:
+			self.neutral_loc = 'right';			
 		
 		#response and results
 		self.reponse = str(trialData.response); #letter corresponding to presented

@@ -18,17 +18,19 @@ savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/D
 
 ids=['cret01','cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11'];
 
+display_size = array([22.80, 17.10]); #width, height of the screen used to present the images in degrees of visual angle
+
 image_size = array([6,6]); #width, and height of the presented images in degress of visual angle
 
 left_pic_coors = array([-5.20,-3.0]); #in dva
 right_pic_coors = array([5.20,-3]);
 up_pic_coors = array([0,6]);
 
-display_size = array([22.80, 17.10]); #width, height of the screen used to present the images in degrees of visual angle
+distance_threshold = image_size[0]; #threshold for how far away eye position can be from the coordinates to be considered looking at that item
 
 #define the possible filenames for each class of pictures
 alcohol_filenames = ['bacardi','brandy','budweiser','captainmorgan','corona','greygoose','heineken','jackdaniels','jimbeam','josecuervo','kahlua','naturallight','newamsterdam','skyy','smirnoff','sutter'];
-cigarette_filenames = ['americanspirit','camelcrush','luckystrike','newport','marlboro'];
+cigarette_filenames = ['americanspirit','camelcrush','luckystrike','newport','marlboro','maverick'];
 neutral_filenames = ['selzter','waterbottle','waterglass']; #note the incorrect spelling in the filename.. this is consistent with what the file name actully is
 
 ############################################
@@ -143,6 +145,7 @@ class trial(object):
 		all_sample_times = trialData.sampleTimes-trialData.sampleTimes[0]; #get sample times
 		prev_time = -1;
 		eyeX = []; eyeY = []; pSize = []; samp_times = [];
+		self.dropped_sample = 0; #pre-allocate this and change it if I find one
 		
 		for time,x_pos,y_pos,pup_s in zip(all_sample_times,trialData.eyeX,trialData.eyeY,trialData.pSize):
 			if time==prev_time:
@@ -153,8 +156,6 @@ class trial(object):
 				if (abs(x_pos)>100)|(abs(y_pos)>100):
 					x_pos = nan; y_pos = nan; pup_s = nan;
 					self.dropped_sample = 1;
-				else:
-					self.dropped_sample = 0;
 				eyeX.append(x_pos);
 				eyeY.append(y_pos);
 				pSize.append(pup_s);
@@ -166,18 +167,55 @@ class trial(object):
 		self.eyeY = array(eyeY); #[::sampStep];
 		self.p_size = array(pSize); #[::sampStep];
 		
+		self.get_ET_data(); #call this method... see if it works
+		
 	#define a function that takes a trial object and determines the proportion of time was looking at each item
 	#this should find arrays of length(trial time) for each item/location, marking a 0 if not looking at that loc
 	#and a 1 if it is. also should aggregate this together in a succint manner (e.g., proportion of trial spent looking at each item)
 	#will call this in the Trial definition function
 
 	def get_ET_data(self):
-		self.lookedAtAlcohol = zeros(len(self.sample_times)); #truth arrays 
-		self.lookedAtCigarette = zeros(len(self.sample_times));
-		self.lookedAtNeutal = zeros(len(self.sample_times));
+		lookedUp = zeros(len(self.sample_times)); #truth arrays
+		lookedLeft = zeros(len(self.sample_times));
+		lookedRight = zeros(len(self.sample_times));
 		
-		#now loop through the 
+		#now loop through the time points and determine whether they were looking at each item at each time point
 		
+		for i,data in enumerate(zip(self.sample_times,self.eyeX,self.eyeY)):
+
+			time = data[0]; xx = data[1]; yy = data[2]; #pull out the data from the data tuple
+			
+			#conditional to check if eye position was within the threshold for each image loc			
+			if sqrt((xx-up_pic_coors[0])**2 + (yy-up_pic_coors[1])**2)<distance_threshold:
+				lookedUp[i] = 1;
+			elif sqrt((xx-left_pic_coors[0])**2 + (yy-left_pic_coors[1])**2)<distance_threshold:	
+				lookedLeft[i] = 1;
+			elif sqrt((xx-right_pic_coors[0])**2 + (yy-right_pic_coors[1])**2)<distance_threshold:	
+				lookedRight[i] = 1;
+				
+		#now assign the truth arrays to the appropriate image type.		
+				
+		if self.alcohol_loc ==  'up':
+			self.lookedAtAlcohol = lookedUp;
+		elif self.alcohol_loc == 'left':
+			self.lookedAtAlcohol = lookedLeft;
+		elif self.alcohol_loc == 'right':
+			self.lookedAtAlcohol = lookedRight;
+
+		if self.cigarette_loc ==  'up':
+			self.lookedAtCigarette = lookedUp;
+		elif self.cigarette_loc == 'left':
+			self.lookedAtCigarette = lookedLeft;
+		elif self.cigarette_loc == 'right':
+			self.lookedAtCigarette = lookedRight;			
+			
+		if self.neutral_loc ==  'up':
+			self.lookedAtNeutral = lookedUp;
+		elif self.neutral_loc == 'left':
+			self.lookedAtNeutral = lookedLeft;
+		elif self.neutral_loc == 'right':
+			self.lookedAtNeutral = lookedRight;			 
+
 		
 		
 		

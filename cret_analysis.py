@@ -216,8 +216,3 @@ class trial(object):
 			self.lookedAtNeutral = lookedLeft;
 		elif self.neutral_loc == 'right':
 			self.lookedAtNeutral = lookedRight;			 
-
-		
-		
-		
-	

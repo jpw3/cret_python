@@ -20,12 +20,23 @@ ids=['cret01','cret03','cret04','cret05','cret06','cret07','cret08','cret09','cr
 
 image_size = array([6,6]); #width, and height of the presented images in degress of visual angle
 
+left_pic_coors = array([-5.20,-3.0]); #in dva
+right_pic_coors = array([5.20,-3]);
+up_pic_coors = array([0,6]);
+
 display_size = array([22.80, 17.10]); #width, height of the screen used to present the images in degrees of visual angle
 
+#define the possible filenames for each class of pictures
+alcohol_filenames = ['bacardi','brandy','budweiser','captainmorgan','corona','greygoose','heineken','jackdaniels','jimbeam','josecuervo','kahlua','naturallight','newamsterdam','skyy','smirnoff','sutter'];
+cigarette_filenames = ['americanspirit','camelcrush','luckstrike','newport','marlboro'];
+neutral_filenames = ['seltzer','waterbottle','waterglass'];
 
 ############################################
 ## Data Analysis ##
 ############################################
+
+
+
 
 
 
@@ -94,26 +105,24 @@ class trial(object):
 		self.response_time = trialData.trial_times.response_time*1000; #put reaction time into seconds
 		self.alcohol_pref = str(trialData.alcohol_pref);
 		self.cigarette_pref = str(trialData.cigarette_pref);
-		self.presented_pics = trialData.corresponding_names;
+		self.presented_pics = [str(t)[:-23] for t in trialData.corresponding_names];
 		self.picture_order = trialData.picture_ordering;
-		self.presented_up = str(trialData.presented_up);
-		self.presented_left = str(trialData.presented_left);
-		self.presented_right = str(trialData.presented_right);		
+		self.presented_up = str(trialData.presented_up)[:-23]; #slice the string to cut off the '_grayscaled_resizde.png' portion of the string
+		self.presented_left = str(trialData.presented_left)[:-23];
+		self.presented_right = str(trialData.presented_right)[:-23];
+		# self.alcohol_loc = 
+		# self.cigarette_loc = 
+		# self.neutral_loc = 
+		
 		#response and results
 		self.reponse = str(trialData.response); #letter corresponding to presented
 		self.selected_loc = trialData.selected_loc; 
 		self.preferred_item = str(trialData.preferred_item);
 		#finally, eye position and pupil size information
 		self.drift_shift = trialData.drift_shift;
-		# get the step needed to downsample the data to 500 Htz
-		
-		#need to fix this still...
-		
-		
-		all_sample_times = trialData.sampleTimes-trialData.sampleTimes[0]; #get sample times
-		
+
 		#loop through to get only unique samples, e.g. sampling at 1000 Hz 
-		
+		all_sample_times = trialData.sampleTimes-trialData.sampleTimes[0]; #get sample times
 		prev_time = -1;
 		eyeX = []; eyeY = []; pSize = []; samp_times = [];
 		
@@ -133,14 +142,25 @@ class trial(object):
 				pSize.append(pup_s);
 				prev_time = time;
 			
-		# desired_sampling_rate = 500; #this is the desired sampling rate
-		# nr_samples = len(all_sample_times); #get nr of samples
-		# iniTrialTime = all_sample_times[-1]-all_sample_times[0]; #get the trial time
-		# inisamplingRate = round(nr_samples/iniTrialTime); #get the sampling rate		
-		# sampStep = int(round(inisamplingRate/desired_sampling_rate)); #here, grab the sampling rate and use this step variable to downsample using array[::sampStep]
 		#get the data together	
 		self.sample_times = array(samp_times); #[::sampStep];
 		self.eyeX = array(eyeX); #[::sampStep];
 		self.eyeY = array(eyeY); #[::sampStep];
 		self.p_size = array(pSize); #[::sampStep];
+		
+	#define a function that takes a trial object and determines the proportion of time was looking at each item
+	#this should find arrays of length(trial time) for each item/location, marking a 0 if not looking at that loc
+	#and a 1 if it is. also should aggregate this together in a succint manner (e.g., proportion of trial spent looking at each item)
+	#will call this in the Trial definition function
+
+	def get_ET_data(self):
+		self.lookedAtAlcohol = zeros(len(self.sample_times)); #truth arrays 
+		self.lookedAtCigarette = zeros(len(self.sample_times));
+		self.lookedAtNeutal = zeros(len(self.sample_times));
+		
+		#now loop through the 
+		
+		
+		
+		
 	

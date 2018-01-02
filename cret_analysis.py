@@ -195,6 +195,7 @@ class trial(object):
 				
 		#now assign the truth arrays to the appropriate image type.		
 				
+				
 		if self.alcohol_loc ==  'up':
 			self.lookedAtAlcohol = lookedUp;
 		elif self.alcohol_loc == 'left':

@@ -1,5 +1,5 @@
 #Data anlaysis code for CRET study collaboration with CAAS
-#Author: James Wilmott, Winter 2017
+#Author: James Wilmott, Fall/Winter 2017-18
 
 from pylab import *
 from scipy.io import loadmat #used to load .mat files in as dictionaries
@@ -9,10 +9,19 @@ import random #general purpose
 import pandas as pd
 import math
 
-datapath = '/Users/james/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/james/Documents/Python/CRET/data/';
+############################################
+## Specify some universal parameters ##
+############################################
 
-ids=['cret01','cret03','cret04','cret05'];
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Users/james/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+
+ids=['cret01','cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11'];
+
+image_size = array([6,6]); #width, and height of the presented images in degress of visual angle
+
+display_size = array([22.80, 17.10]); #width, height of the screen used to present the images in degrees of visual angle
+
 
 ############################################
 ## Data Analysis ##

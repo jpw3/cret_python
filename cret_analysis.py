@@ -34,7 +34,7 @@ cigarette_filenames = ['americanspirit','camelcrush','luckystrike','newport','ma
 neutral_filenames = ['selzter','waterbottle','waterglass']; #note the incorrect spelling in the filename.. this is consistent with what the file name actully is
 
 ############################################
-## Data Analysis ##
+## Data Analysis Methods ##
 ############################################
 
 
@@ -50,14 +50,14 @@ neutral_filenames = ['selzter','waterbottle','waterglass']; #note the incorrect 
 
 
 ############################################
-## Data Importing Methods ##
+## Data Importing Functions ##
 ############################################
 
 #define a function to import individual .mat data files
 def loadBlock(subid,block_type,block_nr):
 	#returns a single Block object corresponding to the block number and subject id
 	#block type should be a string corresponding to the task type(e.g. 'Discrim')
-	filename = glob(datapath+'%s'%subid+'/'+'*_%s_%d.mat'%(subid,block_nr)); #Not sure if this regex will work here, must check
+	filename = glob(datapath+'%s'%subid+'/'+'*_%s_%d.mat'%(subid,block_nr)); #use Regular expressions to find the filename
 	matdata = loadmat(filename[0],struct_as_record=False,squeeze_me=True)['block']; #use scipy loadmat() to load in the files
 	block=Block(matdata); #here, create Block object with dictionary of trial data in matdata
 	return block;
@@ -241,6 +241,40 @@ class trial(object):
 			self.percentageTimeLookingAtPreferred = self.percentageTimeLookingAtNeutral;
 			
 		#4. Determine which item was looked at last (alcohol, neutral, or cigarette)
-			
-			
+		#4.0 get the latest time point that each item was looked at (alcohol, cigarette, and neutral)
+		#use a conditional to catch trials where the item wasn't looked at at all. If so, then the
+		#Lookedat*item* array will be all zeros and the resultant truth array for greater than 0 will be empty
+		if sum(self.lookedAtAlcohol) == 0:
+			latestAlc = -1;
+		else:
+			latestAlc = max(where(self.lookedAtAlcohol > 0)[0]);
+		if sum(self.lookedAtCigarette) == 0:
+			latestCig = -1;
+		else:
+			latestCig = max(where(self.lookedAtCigarette > 0)[0]);
+		if sum(self.lookedAtNeutral) == 0:	
+			latestNeu = -1;
+		else:
+			latestNeu = max(where(self.lookedAtNeutral > 0)[0]);
+		
+		#get the ranking of the values. The last rank (3) will be the largest value, and correspond the latest item looked at
+		ranks = stats.rankdata(array([latestAlc, latestCig, latestNeu]), method = 'min'); #method = min assures that a value of 1 is asigned to all ranks if the items tie (for example, when no items were looked at)
+		
+		#conditional to determine which item had the largest rank and thus latest time in the trial it was looked at
+		if ranks[0] == 3:
+			self.lastCategoryLookedAt = 'alcohol';
+			self.lastItemLookedAt = self.presented_pics[where([name in alcohol_filenames for name in self.presented_pics])[0][0]];
+			self.timeLastItemLookedAt = self.sample_times[latestAlc];
+		elif ranks[1] == 3:
+			self.lastCategoryLookedAt = 'cigarette';
+			self.lastItemLookedAt = self.presented_pics[where([name in cigarette_filenames for name in self.presented_pics])[0][0]];
+			self.timeLastItemLookedAt = self.sample_times[latestCig];
+		elif ranks[2] == 3:
+			self.lastCategoryLookedAt = 'neutral';
+			self.lastItemLookedAt = self.presented_pics[where([name in neutral_filenames for name in self.presented_pics])[0][0]];
+			self.timeLastItemLookedAt = self.sample_times[latestNeu];
+		else:
+			self.lastCategoryLookedAt = 'none';
+			self.lastItemLookedAt = 'none';
+			self.timeLastItemLookedAt = -1;
 			

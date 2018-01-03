@@ -137,7 +137,7 @@ class trial(object):
 		#response and results
 		self.reponse = str(trialData.response); #letter corresponding to presented
 		self.selected_loc = trialData.selected_loc; 
-		self.preferred_item = str(trialData.preferred_item);
+		self.preferred_item = str(trialData.preferred_item)[:-23];
 		#finally, eye position and pupil size information
 		self.drift_shift = trialData.drift_shift;
 
@@ -194,8 +194,7 @@ class trial(object):
 				lookedRight[i] = 1;
 				
 		#now assign the truth arrays to the appropriate image type.		
-				
-				
+							
 		if self.alcohol_loc ==  'up':
 			self.lookedAtAlcohol = lookedUp;
 		elif self.alcohol_loc == 'left':
@@ -215,4 +214,19 @@ class trial(object):
 		elif self.neutral_loc == 'left':
 			self.lookedAtNeutral = lookedLeft;
 		elif self.neutral_loc == 'right':
-			self.lookedAtNeutral = lookedRight;			 
+			self.lookedAtNeutral = lookedRight;
+			
+		#now assign the array that corresponded to the chosen item to a unique array	
+			
+		if self.preferred_item in alcohol_filenames:
+			self.lookedAtPreferred = self.lookedAtAlcohol;
+		elif self.preferred_item in cigarette_filenames:
+			self.lookedAtPreferred = self.lookedAtCigarette;
+		elif self.preferred_item in neutral_filenames:
+			self.lookedAtPreferred = self.lookedAtNeutral;
+			
+			
+			
+			
+			
+			

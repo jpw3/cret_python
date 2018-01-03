@@ -179,7 +179,7 @@ class trial(object):
 		lookedLeft = zeros(len(self.sample_times));
 		lookedRight = zeros(len(self.sample_times));
 		
-		#now loop through the time points and determine whether they were looking at each item at each time point
+		#0. loop through the time points and determine whether they were looking at each item at each time point
 		
 		for i,data in enumerate(zip(self.sample_times,self.eyeX,self.eyeY)):
 
@@ -193,7 +193,7 @@ class trial(object):
 			elif sqrt((xx-right_pic_coors[0])**2 + (yy-right_pic_coors[1])**2)<distance_threshold:	
 				lookedRight[i] = 1;
 				
-		#now assign the truth arrays to the appropriate image type.		
+		#1.0 assign the truth arrays to the appropriate image type.		
 							
 		if self.alcohol_loc ==  'up':
 			self.lookedAtAlcohol = lookedUp;
@@ -216,17 +216,31 @@ class trial(object):
 		elif self.neutral_loc == 'right':
 			self.lookedAtNeutral = lookedRight;
 			
-		#now assign the array that corresponded to the chosen item to a unique array	
+		#2. compute the amount and percentage of time spent looking at each item in each trial
+		
+		self.timeLookingAtAlcohol = sum(self.lookedAtAlcohol);
+		self.percentageTimeLookingAtAlcohol = sum(self.lookedAtAlcohol)/float(len(self.lookedAtAlcohol));		
+		self.timeLookingAtCigarette = sum(self.lookedAtCigarette);
+		self.percentageTimeLookingAtCigarette = sum(self.lookedAtCigarette)/float(len(self.lookedAtCigarette));
+		self.timeLookingAtNeutral = sum(self.lookedAtNeutral);
+		self.percentageTimeLookingAtNeutral = sum(self.lookedAtNeutral)/float(len(self.lookedAtNeutral));
+		
+		#3. assign the array and stats that corresponded to the chosen item to a unique array	
 			
 		if self.preferred_item in alcohol_filenames:
 			self.lookedAtPreferred = self.lookedAtAlcohol;
+			self.timeLookingAtPreferred = self.timeLookingAtAlcohol;
+			self.percentageTimeLookingAtPreferred = self.percentageTimeLookingAtAlcohol;
 		elif self.preferred_item in cigarette_filenames:
 			self.lookedAtPreferred = self.lookedAtCigarette;
+			self.timeLookingAtPreferred = self.timeLookingAtCigarette;
+			self.percentageTimeLookingAtPreferred = self.percentageTimeLookingAtCigarette;
 		elif self.preferred_item in neutral_filenames:
-			self.lookedAtPreferred = self.lookedAtNeutral;
+			self.lookedAtPreferred = self.lookedAtNeutral;			
+			self.timeLookingAtPreferred = self.timeLookingAtNeutral;
+			self.percentageTimeLookingAtPreferred = self.percentageTimeLookingAtNeutral;
 			
-			
-			
+		#4. Determine which item was looked at last (alcohol, neutral, or cigarette)
 			
 			
 			

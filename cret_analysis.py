@@ -13,8 +13,8 @@ import math
 ## Specify some universal parameters ##
 ############################################
 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Users/james/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+datapath = '/Users/james/Documents/MATLAB/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
 
 ids=['cret01','cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11'];
 
@@ -42,6 +42,26 @@ neutral_filenames = ['selzter','waterbottle','waterglass']; #note the incorrect 
 #assign each subject's data to a .csv and save it, and then campute the averages and plot for my use.
 
 def computePercentageLookingTimes(blocks):
+	##Build a trial by trial instance of each value for each subject for all trials
+	all_data = pd.DataFrame(columns = ['sub_id','trial_type','time_looking_at_pref','percentage_looking_at_pref','time_looking_at_alc','percentage_looking_at_alc',
+											 'time_looking_at_cig','percentage_looking_at_cig','time_looking_at_neu','percentage_looking_at_neu', 'response_time',
+											 'last_item_looked_at','last_category_looked_at','time_last_item_looked_at','selected_item','alcohol_pref','cig_pref']);
+	#store all the trial data for each subject in a master DB
+	index_counter = 0;
+	for trials in trial_matrix:
+		for t in trials:
+			if t.dropped_sample == 0:
+				all_data.loc[index_counter] = [t.sub_id, t.trial_type, t.timeLookingAtPreferred, t.percentageTimeLookingAtPreferred,
+											   t.timeLookingAtAlcohol, t.percentageTimeLookingAtAlcohol, t.timeLookingAtCigarette,
+											   t.percentageTimeLookingAtCigarette, t.timeLookingAtNeutral, t.percentageTimeLookingAtNeutral,
+											   t.response_time, t.lastItemLookedAt, t.lastCategoryLookedAt, t.timeLastItemLookedAt,
+											   t.preferred_item, t.alcohol_pref, t.cigarette_pref];
+				index_counter+=1;
+
+	#write the csv file
+	all_data.to_csv(savepath+'individual_subject_all_trials_trial_by_trial_data.csv',index=False); #got to make sure if this works		
+	
+	#now build a .csv with the averages for each subject 	
 	all_trial_data = pd.DataFrame(columns = ['sub_id','avg_time_looking_at_pref','avg_percentage_looking_at_pref','avg_time_looking_at_alc','avg_percentage_looking_at_alc',
 											 'avg_time_looking_at_cig','avg_percentage_looking_at_cig','avg_time_looking_at_neu','avg_percentage_looking_at_neu', 'avg_response_time']);
 	individual_preferred_percentages = []; #preallocate a list to store the percentages of time spent looking at the preferred items
@@ -94,25 +114,6 @@ def computePercentageLookingTimes(blocks):
 		
 	#write the csv file
 	high_preference_trials_data.to_csv(savepath+'individual_subject_high_pref_trials_mean_preference_data.csv',index=False); #got to make sure if this works
-		
-	##Build a trial by trial instance of each value for each subject for all trials
-	all_data = pd.DataFrame(columns = ['sub_id','trial_type','time_looking_at_pref','percentage_looking_at_pref','time_looking_at_alc','percentage_looking_at_alc',
-											 'time_looking_at_cig','percentage_looking_at_cig','time_looking_at_neu','percentage_looking_at_neu', 'response_time',
-											 'last_item_looked_at','last_category_looked_at','time_last_item_looked_at','selected_item','alcohol_pref','cig_pref']);
-	#store all the trial data for each subject in a master DB
-	index_counter = 0;
-	for trials in trial_matrix:
-		for t in trials:
-			if t.dropped_sample == 0:
-				all_data.loc[index_counter] = [t.sub_id, t.trial_type, t.timeLookingAtPreferred, t.percentageTimeLookingAtPreferred,
-											   t.timeLookingAtAlcohol, t.percentageTimeLookingAtAlcohol, t.timeLookingAtCigarette,
-											   t.percentageTimeLookingAtCigarette, t.timeLookingAtNeutral, t.percentageTimeLookingAtNeutral,
-											   t.response_time, t.lastItemLookedAt, t.lastCategoryLookedAt, t.timeLastItemLookedAt,
-											   t.preferred_item, t.alcohol_pref, t.cigarette_pref];
-				index_counter+=1;
-
-	#write the csv file
-	all_data.to_csv(savepath+'individual_subject_all_trials_trial_by_trial_data.csv',index=False); #got to make sure if this works	
 	
 	
 	
@@ -284,14 +285,31 @@ class trial(object):
 		elif self.neutral_loc == 'right':
 			self.lookedAtNeutral = lookedRight;
 			
+		#1.1 find the timepoints where the subject wasn't looking at any item and replace it with nan
+		
+		notLookingAtAnyItem = where((self.lookedAtAlcohol==0)&(self.lookedAtCigarette==0)&(self.lookedAtNeutral==0))[0]; #this is an array of indices where the overlap between arrays exists
+		self.lookedAtAlcohol[notLookingAtAnyItem] = nan;
+		self.lookedAtCigarette[notLookingAtAnyItem] = nan;
+		self.lookedAtNeutral[notLookingAtAnyItem] = nan;
+			
 		#2. compute the amount and percentage of time spent looking at each item in each trial
 		
-		self.timeLookingAtAlcohol = sum(self.lookedAtAlcohol);
-		self.percentageTimeLookingAtAlcohol = sum(self.lookedAtAlcohol)/float(len(self.lookedAtAlcohol));		
-		self.timeLookingAtCigarette = sum(self.lookedAtCigarette);
-		self.percentageTimeLookingAtCigarette = sum(self.lookedAtCigarette)/float(len(self.lookedAtCigarette));
-		self.timeLookingAtNeutral = sum(self.lookedAtNeutral);
-		self.percentageTimeLookingAtNeutral = sum(self.lookedAtNeutral)/float(len(self.lookedAtNeutral));
+		self.timeLookingAtAlcohol = nansum(self.lookedAtAlcohol);
+		self.percentageTimeLookingAtAlcohol = nansum(self.lookedAtAlcohol)/float(len(self.lookedAtAlcohol)-len(notLookingAtAnyItem));
+		if isnan(self.percentageTimeLookingAtAlcohol): self.percentageTimeLookingAtAlcohol = 0.0; #conditional in case the subject never looked at any of the items
+		self.timeLookingAtCigarette = nansum(self.lookedAtCigarette);
+		self.percentageTimeLookingAtCigarette = nansum(self.lookedAtCigarette)/float(len(self.lookedAtCigarette)-len(notLookingAtAnyItem));
+		if isnan(self.percentageTimeLookingAtCigarette): self.percentageTimeLookingAtCigarette = 0.0;
+		self.timeLookingAtNeutral = nansum(self.lookedAtNeutral);
+		self.percentageTimeLookingAtNeutral = nansum(self.lookedAtNeutral)/float(len(self.lookedAtNeutral)-len(notLookingAtAnyItem));
+		if isnan(self.percentageTimeLookingAtNeutral): self.percentageTimeLookingAtNeutral = 0.0;
+		
+		#2.1 Flag if the subject didn't looked at any of the items in the trial
+		
+		if (self.percentageTimeLookingAtAlcohol+self.percentageTimeLookingAtCigarette+self.percentageTimeLookingAtNeutral == 0):
+			self.didntLookAtAnyItems = 1;
+		else:
+			self.didntLookAtAnyItems = 0;
 		
 		#3. assign the array and stats that corresponded to the chosen item to a unique array	
 			
@@ -312,15 +330,15 @@ class trial(object):
 		#4.0 get the latest time point that each item was looked at (alcohol, cigarette, and neutral)
 		#use a conditional to catch trials where the item wasn't looked at at all. If so, then the
 		#Lookedat*item* array will be all zeros and the resultant truth array for greater than 0 will be empty
-		if sum(self.lookedAtAlcohol) == 0:
+		if nansum(self.lookedAtAlcohol) == 0:
 			latestAlc = -1;
 		else:
 			latestAlc = max(where(self.lookedAtAlcohol > 0)[0]);
-		if sum(self.lookedAtCigarette) == 0:
+		if nansum(self.lookedAtCigarette) == 0:
 			latestCig = -1;
 		else:
 			latestCig = max(where(self.lookedAtCigarette > 0)[0]);
-		if sum(self.lookedAtNeutral) == 0:	
+		if nansum(self.lookedAtNeutral) == 0:	
 			latestNeu = -1;
 		else:
 			latestNeu = max(where(self.lookedAtNeutral > 0)[0]);
@@ -345,4 +363,6 @@ class trial(object):
 			self.lastCategoryLookedAt = 'none';
 			self.lastItemLookedAt = 'none';
 			self.timeLastItemLookedAt = -1;
+			
+			
 			

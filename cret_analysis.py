@@ -50,7 +50,7 @@ def computePercentageLookingTimes(blocks):
 	index_counter = 0;
 	for trials in trial_matrix:
 		for t in trials:
-			if t.dropped_sample == 0:
+			if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0):
 				all_data.loc[index_counter] = [t.sub_id, t.trial_type, t.timeLookingAtPreferred, t.percentageTimeLookingAtPreferred,
 											   t.timeLookingAtAlcohol, t.percentageTimeLookingAtAlcohol, t.timeLookingAtCigarette,
 											   t.percentageTimeLookingAtCigarette, t.timeLookingAtNeutral, t.percentageTimeLookingAtNeutral,
@@ -68,15 +68,15 @@ def computePercentageLookingTimes(blocks):
 	#loop through and get all the trials for each subject
 	trial_matrix = [[tee for b in bl for tee in b.trials] for bl in blocks];
 	#apply a filter to get only the trials where there are nop dropped samples (i.e., no blinks)
-	times_looking_at_preferred = [[t.timeLookingAtPreferred for t in trials if t.dropped_sample == 0] for trials in trial_matrix];
-	percs_looking_at_preferred = [[t.percentageTimeLookingAtPreferred for t in trials if t.dropped_sample == 0] for trials in trial_matrix];
-	times_looking_at_alcohol = [[t.timeLookingAtAlcohol for t in trials if t.dropped_sample == 0] for trials in trial_matrix];
-	percs_looking_at_alcohol = [[t.percentageTimeLookingAtAlcohol for t in trials if t.dropped_sample == 0] for trials in trial_matrix];
-	times_looking_at_cig = [[t.timeLookingAtCigarette for t in trials if t.dropped_sample == 0] for trials in trial_matrix];
-	percs_looking_at_cig = [[t.percentageTimeLookingAtCigarette for t in trials if t.dropped_sample == 0] for trials in trial_matrix];
-	times_looking_at_neutral = [[t.timeLookingAtNeutral for t in trials if t.dropped_sample == 0] for trials in trial_matrix];
-	percs_looking_at_neutral = [[t.percentageTimeLookingAtNeutral for t in trials if t.dropped_sample == 0] for trials in trial_matrix];
-	response_times = [[t.response_time for t in trials if t.dropped_sample == 0] for trials in trial_matrix];
+	times_looking_at_preferred = [[t.timeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	percs_looking_at_preferred = [[t.percentageTimeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	times_looking_at_alcohol = [[t.timeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	percs_looking_at_alcohol = [[t.percentageTimeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	times_looking_at_cig = [[t.timeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	percs_looking_at_cig = [[t.percentageTimeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	times_looking_at_neutral = [[t.timeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	percs_looking_at_neutral = [[t.percentageTimeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	response_times = [[t.response_time for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
 	index_counter = 0;
 	#now go through and find the means of the times and percentages looking at the items
 	for id,tp,pp,ta,pa,tc,pc,tn,pn,rt in zip(ids, times_looking_at_preferred, percs_looking_at_preferred, times_looking_at_alcohol,
@@ -94,15 +94,15 @@ def computePercentageLookingTimes(blocks):
 											 'avg_time_looking_at_cig','avg_percentage_looking_at_cig','avg_time_looking_at_neu','avg_percentage_looking_at_neu', 'avg_response_time']);
 	hp_individual_preferred_percentages = []; #preallocate a list to store the percentages of time spent looking at the preferred items
 	#apply a filter to get only the trials where there are nop dropped samples (i.e., no blinks)
-	hp_times_looking_at_preferred = [[t.timeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_percs_looking_at_preferred = [[t.percentageTimeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_times_looking_at_alcohol = [[t.timeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_percs_looking_at_alcohol = [[t.percentageTimeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_times_looking_at_cig = [[t.timeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_percs_looking_at_cig = [[t.percentageTimeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_times_looking_at_neutral = [[t.timeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_percs_looking_at_neutral = [[t.percentageTimeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_response_times = [[t.response_time for t in trials if (t.dropped_sample == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	hp_times_looking_at_preferred = [[t.timeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	hp_percs_looking_at_preferred = [[t.percentageTimeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	hp_times_looking_at_alcohol = [[t.timeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	hp_percs_looking_at_alcohol = [[t.percentageTimeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	hp_times_looking_at_cig = [[t.timeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	hp_percs_looking_at_cig = [[t.percentageTimeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	hp_times_looking_at_neutral = [[t.timeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	hp_percs_looking_at_neutral = [[t.percentageTimeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	hp_response_times = [[t.response_time for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
 	index_counter = 0;
 	#now go through and find the means of the times and percentages looking at the items
 	for id,tp,pp,ta,pa,tc,pc,tn,pn,rt in zip(ids, hp_times_looking_at_preferred, hp_percs_looking_at_preferred, hp_times_looking_at_alcohol,

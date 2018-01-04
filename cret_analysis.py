@@ -42,6 +42,9 @@ neutral_filenames = ['selzter','waterbottle','waterglass']; #note the incorrect 
 #assign each subject's data to a .csv and save it, and then campute the averages and plot for my use.
 
 def computePercentageLookingTimes(blocks):
+	#loop through and get all the trials for each subject
+	trial_matrix = [[tee for b in bl for tee in b.trials] for bl in blocks];
+	
 	##Build a trial by trial instance of each value for each subject for all trials
 	all_data = pd.DataFrame(columns = ['sub_id','trial_type','time_looking_at_pref','percentage_looking_at_pref','time_looking_at_alc','percentage_looking_at_alc',
 											 'time_looking_at_cig','percentage_looking_at_cig','time_looking_at_neu','percentage_looking_at_neu', 'response_time',
@@ -65,8 +68,6 @@ def computePercentageLookingTimes(blocks):
 	all_trial_data = pd.DataFrame(columns = ['sub_id','avg_time_looking_at_pref','avg_percentage_looking_at_pref','avg_time_looking_at_alc','avg_percentage_looking_at_alc',
 											 'avg_time_looking_at_cig','avg_percentage_looking_at_cig','avg_time_looking_at_neu','avg_percentage_looking_at_neu', 'avg_response_time']);
 	individual_preferred_percentages = []; #preallocate a list to store the percentages of time spent looking at the preferred items
-	#loop through and get all the trials for each subject
-	trial_matrix = [[tee for b in bl for tee in b.trials] for bl in blocks];
 	#apply a filter to get only the trials where there are nop dropped samples (i.e., no blinks)
 	times_looking_at_preferred = [[t.timeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
 	percs_looking_at_preferred = [[t.percentageTimeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
@@ -115,7 +116,7 @@ def computePercentageLookingTimes(blocks):
 	#write the csv file
 	high_preference_trials_data.to_csv(savepath+'individual_subject_high_pref_trials_mean_preference_data.csv',index=False); #got to make sure if this works
 	
-	
+	1/0;
 	
 
 ############################################

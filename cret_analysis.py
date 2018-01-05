@@ -2,6 +2,7 @@
 #Author: James Wilmott, Fall/Winter 2017-18
 
 from pylab import *
+import shelve #for database writing and reading
 from scipy.io import loadmat #used to load .mat files in as dictionaries
 from scipy import stats
 from glob import glob #for use in searching for/ finding data files
@@ -15,6 +16,9 @@ import math
 
 datapath = '/Users/james/Documents/MATLAB/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
 savepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+
+subject_data = shelve.open(shelvepath+'data');
 
 ids=['cret01','cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11'];
 
@@ -48,7 +52,7 @@ def computePercentageLookingTimes(blocks):
 	##Build a trial by trial instance of each value for each subject for all trials
 	all_data = pd.DataFrame(columns = ['sub_id','trial_type','time_looking_at_pref','percentage_looking_at_pref','time_looking_at_alc','percentage_looking_at_alc',
 											 'time_looking_at_cig','percentage_looking_at_cig','time_looking_at_neu','percentage_looking_at_neu', 'response_time',
-											 'last_item_looked_at','last_category_looked_at','time_last_item_looked_at','selected_item','alcohol_pref','cig_pref']);
+											 'last_item_looked_at','last_category_looked_at','time_last_item_looked_at','selected_item','selected_category','alcohol_pref','cig_pref']);
 	#store all the trial data for each subject in a master DB
 	index_counter = 0;
 	for trials in trial_matrix:
@@ -58,66 +62,69 @@ def computePercentageLookingTimes(blocks):
 											   t.timeLookingAtAlcohol, t.percentageTimeLookingAtAlcohol, t.timeLookingAtCigarette,
 											   t.percentageTimeLookingAtCigarette, t.timeLookingAtNeutral, t.percentageTimeLookingAtNeutral,
 											   t.response_time, t.lastItemLookedAt, t.lastCategoryLookedAt, t.timeLastItemLookedAt,
-											   t.preferred_item, t.alcohol_pref, t.cigarette_pref];
+											   t.preferred_item, t.preferred_category, t.alcohol_pref, t.cigarette_pref];
 				index_counter+=1;
-
-	#write the csv file
-	all_data.to_csv(savepath+'individual_subject_all_trials_trial_by_trial_data.csv',index=False); #got to make sure if this works		
 	
-	#now build a .csv with the averages for each subject 	
-	all_trial_data = pd.DataFrame(columns = ['sub_id','avg_time_looking_at_pref','avg_percentage_looking_at_pref','avg_time_looking_at_alc','avg_percentage_looking_at_alc',
-											 'avg_time_looking_at_cig','avg_percentage_looking_at_cig','avg_time_looking_at_neu','avg_percentage_looking_at_neu', 'avg_response_time']);
-	individual_preferred_percentages = []; #preallocate a list to store the percentages of time spent looking at the preferred items
-	#apply a filter to get only the trials where there are nop dropped samples (i.e., no blinks)
-	times_looking_at_preferred = [[t.timeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
-	percs_looking_at_preferred = [[t.percentageTimeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
-	times_looking_at_alcohol = [[t.timeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
-	percs_looking_at_alcohol = [[t.percentageTimeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
-	times_looking_at_cig = [[t.timeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
-	percs_looking_at_cig = [[t.percentageTimeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
-	times_looking_at_neutral = [[t.timeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
-	percs_looking_at_neutral = [[t.percentageTimeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
-	response_times = [[t.response_time for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
-	index_counter = 0;
-	#now go through and find the means of the times and percentages looking at the items
-	for id,tp,pp,ta,pa,tc,pc,tn,pn,rt in zip(ids, times_looking_at_preferred, percs_looking_at_preferred, times_looking_at_alcohol,
-									   percs_looking_at_alcohol, times_looking_at_cig, percs_looking_at_cig,
-									   times_looking_at_neutral, percs_looking_at_neutral, response_times):
-		individual_preferred_percentages.append(mean(pp)); #append the pecentages of time spejt looking at preferred item
-		all_trial_data.loc[index_counter] = [id, mean(tp), mean(pp), mean(ta), mean(pa), mean(tc), mean(pc), mean(tn), mean(pn), mean(rt)];
-		index_counter+=1;		
-
 	#write the csv file
-	all_trial_data.to_csv(savepath+'individual_subject_all_trials_mean_preference_data.csv',index=False); #got to make sure if this works
+	all_data.to_csv(savepath+'individual_subject_all_trials_trial_by_trial_data.csv',index=False); #got to make sure if this works
 	
-	#### Now do this for the trials where the two preferred substances were present (e.g., trial type 1)
-	high_preference_trials_data = pd.DataFrame(columns = ['sub_id','avg_time_looking_at_pref','avg_percentage_looking_at_pref','avg_time_looking_at_alc','avg_percentage_looking_at_alc',
-											 'avg_time_looking_at_cig','avg_percentage_looking_at_cig','avg_time_looking_at_neu','avg_percentage_looking_at_neu', 'avg_response_time']);
-	hp_individual_preferred_percentages = []; #preallocate a list to store the percentages of time spent looking at the preferred items
-	#apply a filter to get only the trials where there are nop dropped samples (i.e., no blinks)
-	hp_times_looking_at_preferred = [[t.timeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_percs_looking_at_preferred = [[t.percentageTimeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_times_looking_at_alcohol = [[t.timeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_percs_looking_at_alcohol = [[t.percentageTimeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_times_looking_at_cig = [[t.timeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_percs_looking_at_cig = [[t.percentageTimeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_times_looking_at_neutral = [[t.timeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_percs_looking_at_neutral = [[t.percentageTimeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	hp_response_times = [[t.response_time for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
-	index_counter = 0;
-	#now go through and find the means of the times and percentages looking at the items
-	for id,tp,pp,ta,pa,tc,pc,tn,pn,rt in zip(ids, hp_times_looking_at_preferred, hp_percs_looking_at_preferred, hp_times_looking_at_alcohol,
-									   hp_percs_looking_at_alcohol, hp_times_looking_at_cig, hp_percs_looking_at_cig,
-									   hp_times_looking_at_neutral, hp_percs_looking_at_neutral, hp_response_times):
-		hp_individual_preferred_percentages.append(mean(pp)); #append the pecentages of time spejt looking at preferred item
-		high_preference_trials_data.loc[index_counter] = [id, mean(tp), mean(pp), mean(ta), mean(pa), mean(tc), mean(pc), mean(tn), mean(pn), mean(rt)];
-		index_counter+=1;
+	
+	##Build an average database instance of each value for each subject for high vs low preferred trials and the subsets of high preferred trials
+	high_vs_other_pref_data = pd.DataFrame(columns = ['sub_id','trial_type','mean_time_looking_at_pref','mean_percentage_looking_at_pref', 'mean_response_time']);
+	high_pref_only_data = pd.DataFrame(columns = ['sub_id','preferred_pic','mean_time_looking_at_pref','mean_percentage_looking_at_pref', 'mean_response_time']);
+	
+	#store all the trial data for each subject in a master DB
+	hl_index_counter = 0;
+	all_high_index_counter = 0;
+	for high_pref_trial,name in zip([0,1],['non_high_pref','high_pref']):
+		time_at_pref = [mean([tee.timeLookingAtPreferred for tee in subj
+				   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];
+		perc_time_at_pref = [mean([tee.percentageTimeLookingAtPreferred for tee in subj
+				   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];					
+		rts = [mean([tee.response_time for tee in subj
+				   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];
+		db['%s_%s_mean_time_at_pref'%('agg',name)] = nanmean(time_at_pref); db['%s_%s_bs_sems_time_at_pref'%('agg',name)] = compute_BS_SEM(time_at_pref);
+		db['%s_%s_mean_perc_time_at_pref'%('agg',name)] = nanmean(perc_time_at_pref); db['%s_%s_bs_sems_perc_time_at_pref'%('agg',name)] = compute_BS_SEM(perc_time_at_pref);
+		db['%s_%s_mean_rt'%('agg',name)] = nanmean(rts); db['%s_%s_bs_sems_rt'%('agg',name)] = compute_BS_SEM(rts);
 		
-	#write the csv file
-	high_preference_trials_data.to_csv(savepath+'individual_subject_high_pref_trials_mean_preference_data.csv',index=False); #got to make sure if this works
-	
-	1/0;
-	
+		for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
+			#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats
+			data.loc[hl_index_counter] = [id,name,nanmean(time_at_pref),nanmean(perc_time_at_pref),nanmean(rts),];
+			hl_index_counter+=1;
+		#cycle through the different types of high preference trials (where each one could be selected):
+		#1. all high-pref trials, 2. all not high pref trials, 3. alcohol high pref trials
+		#4. cigarette high pref trials, and 5. neutral high pref trials
+		if high_pref_trial==1:
+			for pref_category in ['alcohol','cigarette','neutral']:
+				time_at_pref = [mean([tee.timeLookingAtPreferred for tee in subj
+						   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];
+				perc_time_at_pref = [mean([tee.percentageTimeLookingAtPreferred for tee in subj
+						   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];					
+				rts = [mean([tee.response_time for tee in subj
+						   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];	
+				
+				db['%s_high_pref_%s_mean_time_at_pref'%('agg',pref_category)] = nanmean(time_at_pref); db['%s_%s_bs_sems_time_at_pref'%('agg',pref_category)] = compute_BS_SEM(time_at_pref);
+				db['%s_high_pref_%s_mean_perc_time_at_pref'%('agg',pref_category)] = nanmean(perc_time_at_pref); db['%s_%s_bs_sems_perc_time_at_pref'%('agg',pref_category)] = compute_BS_SEM(perc_time_at_pref);
+				db['%s_high_pref_%s_mean_rt'%('agg',pref_category)] = nanmean(rts); db['%s_%s_bs_sems_rt'%('agg', pref_category)] = compute_BS_SEM(rts);
+				
+				for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
+					#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats
+					data.loc[hl_index_counter] = [id,pref_category,nanmean(time_at_pref),nanmean(perc_time_at_pref),nanmean(rts),];
+					all_high_index_counter+=1;	
+
+
+
+def compute_BS_SEM(data_matrix):
+    #calculate the between-subjects standard error of the mean. trial_matrix should be matrix of trials including each subject
+    #should only pass trials matrix into this function after segmenting into relevant conditions
+	n = len(data_matrix);	
+	grand_mew = mean(data_matrix); 
+	err = data_matrix - grand_mew;
+	squared_err = err**2;
+	MSE = sum(squared_err)/(n-1);	
+	denom = sqrt(n);
+	standard_error_estimate=sqrt(MSE)/float(denom);
+	return standard_error_estimate;
 
 ############################################
 ## Data Importing Functions ##
@@ -315,14 +322,17 @@ class trial(object):
 		#3. assign the array and stats that corresponded to the chosen item to a unique array	
 			
 		if self.preferred_item in alcohol_filenames:
+			self.preferred_category = 'alcohol';
 			self.lookedAtPreferred = self.lookedAtAlcohol;
 			self.timeLookingAtPreferred = self.timeLookingAtAlcohol;
 			self.percentageTimeLookingAtPreferred = self.percentageTimeLookingAtAlcohol;
 		elif self.preferred_item in cigarette_filenames:
+			self.preferred_category = 'cigarette';
 			self.lookedAtPreferred = self.lookedAtCigarette;
 			self.timeLookingAtPreferred = self.timeLookingAtCigarette;
 			self.percentageTimeLookingAtPreferred = self.percentageTimeLookingAtCigarette;
 		elif self.preferred_item in neutral_filenames:
+			self.preferred_category = 'neutral';
 			self.lookedAtPreferred = self.lookedAtNeutral;			
 			self.timeLookingAtPreferred = self.timeLookingAtNeutral;
 			self.percentageTimeLookingAtPreferred = self.percentageTimeLookingAtNeutral;
@@ -365,5 +375,60 @@ class trial(object):
 			self.lastItemLookedAt = 'none';
 			self.timeLastItemLookedAt = -1;
 			
+	
+## Legacy code for parsing percentage of looking time at preferred items
+	# 
+	# 
+	# #now build a .csv with the averages for each subject 	
+	# all_trial_data = pd.DataFrame(columns = ['sub_id','avg_time_looking_at_pref','avg_percentage_looking_at_pref','avg_time_looking_at_alc','avg_percentage_looking_at_alc',
+	# 										 'avg_time_looking_at_cig','avg_percentage_looking_at_cig','avg_time_looking_at_neu','avg_percentage_looking_at_neu', 'avg_response_time']);
+	# individual_preferred_percentages = []; #preallocate a list to store the percentages of time spent looking at the preferred items
+	# #apply a filter to get only the trials where there are nop dropped samples (i.e., no blinks)
+	# times_looking_at_preferred = [[t.timeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	# percs_looking_at_preferred = [[t.percentageTimeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	# times_looking_at_alcohol = [[t.timeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	# percs_looking_at_alcohol = [[t.percentageTimeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	# times_looking_at_cig = [[t.timeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	# percs_looking_at_cig = [[t.percentageTimeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	# times_looking_at_neutral = [[t.timeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	# percs_looking_at_neutral = [[t.percentageTimeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	# response_times = [[t.response_time for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)] for trials in trial_matrix];
+	# index_counter = 0;
+	# #now go through and find the means of the times and percentages looking at the items
+	# for id,tp,pp,ta,pa,tc,pc,tn,pn,rt in zip(ids, times_looking_at_preferred, percs_looking_at_preferred, times_looking_at_alcohol,
+	# 								   percs_looking_at_alcohol, times_looking_at_cig, percs_looking_at_cig,
+	# 								   times_looking_at_neutral, percs_looking_at_neutral, response_times):
+	# 	individual_preferred_percentages.append(mean(pp)); #append the pecentages of time spejt looking at preferred item
+	# 	all_trial_data.loc[index_counter] = [id, mean(tp), mean(pp), mean(ta), mean(pa), mean(tc), mean(pc), mean(tn), mean(pn), mean(rt)];
+	# 	index_counter+=1;		
+	# 
+	# #write the csv file
+	# all_trial_data.to_csv(savepath+'individual_subject_all_trials_mean_preference_data.csv',index=False); #got to make sure if this works
+	# 
+	# #### Now do this for the trials where the two preferred substances were present (e.g., trial type 1)
+	# high_preference_trials_data = pd.DataFrame(columns = ['sub_id','avg_time_looking_at_pref','avg_percentage_looking_at_pref','avg_time_looking_at_alc','avg_percentage_looking_at_alc',
+	# 										 'avg_time_looking_at_cig','avg_percentage_looking_at_cig','avg_time_looking_at_neu','avg_percentage_looking_at_neu', 'avg_response_time']);
+	# hp_individual_preferred_percentages = []; #preallocate a list to store the percentages of time spent looking at the preferred items
+	# #apply a filter to get only the trials where there are nop dropped samples (i.e., no blinks)
+	# hp_times_looking_at_preferred = [[t.timeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	# hp_percs_looking_at_preferred = [[t.percentageTimeLookingAtPreferred for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	# hp_times_looking_at_alcohol = [[t.timeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	# hp_percs_looking_at_alcohol = [[t.percentageTimeLookingAtAlcohol for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	# hp_times_looking_at_cig = [[t.timeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	# hp_percs_looking_at_cig = [[t.percentageTimeLookingAtCigarette for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	# hp_times_looking_at_neutral = [[t.timeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	# hp_percs_looking_at_neutral = [[t.percentageTimeLookingAtNeutral for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	# hp_response_times = [[t.response_time for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == 1)] for trials in trial_matrix];
+	# index_counter = 0;
+	# #now go through and find the means of the times and percentages looking at the items
+	# for id,tp,pp,ta,pa,tc,pc,tn,pn,rt in zip(ids, hp_times_looking_at_preferred, hp_percs_looking_at_preferred, hp_times_looking_at_alcohol,
+	# 								   hp_percs_looking_at_alcohol, hp_times_looking_at_cig, hp_percs_looking_at_cig,
+	# 								   hp_times_looking_at_neutral, hp_percs_looking_at_neutral, hp_response_times):
+	# 	hp_individual_preferred_percentages.append(mean(pp)); #append the pecentages of time spejt looking at preferred item
+	# 	high_preference_trials_data.loc[index_counter] = [id, mean(tp), mean(pp), mean(ta), mean(pa), mean(tc), mean(pc), mean(tn), mean(pn), mean(rt)];
+	# 	index_counter+=1;
+	# 	
+	# #write the csv file
+	# high_preference_trials_data.to_csv(savepath+'individual_subject_high_pref_trials_mean_preference_data.csv',index=False); #got to make sure if this works
 			
 			

@@ -104,9 +104,9 @@ def computePercentageLookingTimes(blocks):
 						   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];					
 				rts = [mean([tee.response_time for tee in subj
 						   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];					
-				db['%s_high_pref_%s_mean_time_at_pref'%('agg',pref_category)] = nanmean(time_at_pref); db['%s_%s_bs_sems_time_at_pref'%('agg',pref_category)] = compute_BS_SEM(time_at_pref);
-				db['%s_high_pref_%s_mean_perc_time_at_pref'%('agg',pref_category)] = nanmean(perc_time_at_pref); db['%s_%s_bs_sems_perc_time_at_pref'%('agg',pref_category)] = compute_BS_SEM(perc_time_at_pref);
-				db['%s_high_pref_%s_mean_rt'%('agg',pref_category)] = nanmean(rts); db['%s_%s_bs_sems_rt'%('agg', pref_category)] = compute_BS_SEM(rts);
+				db['%s_high_pref_%s_mean_time_at_pref'%('agg',pref_category)] = nanmean(time_at_pref); db['%s_high_pref_%s_bs_sems_time_at_pref'%('agg',pref_category)] = compute_BS_SEM(time_at_pref);
+				db['%s_high_pref_%s_mean_perc_time_at_pref'%('agg',pref_category)] = nanmean(perc_time_at_pref); db['%s_high_pref_%s_bs_sems_perc_time_at_pref'%('agg',pref_category)] = compute_BS_SEM(perc_time_at_pref);
+				db['%s_high_pref_%s_mean_rt'%('agg',pref_category)] = nanmean(rts); db['%s_high_pref_%s_bs_sems_rt'%('agg', pref_category)] = compute_BS_SEM(rts);
 				
 				for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
 					#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats

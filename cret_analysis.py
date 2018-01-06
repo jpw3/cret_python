@@ -190,6 +190,7 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 		
 		
 		
+		
 		1/0;
 		
 		for subj in trial_matrix:

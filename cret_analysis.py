@@ -37,6 +37,17 @@ alcohol_filenames = ['bacardi','brandy','budweiser','captainmorgan','corona','gr
 cigarette_filenames = ['americanspirit','camelcrush','luckystrike','newport','marlboro','maverick'];
 neutral_filenames = ['selzter','waterbottle','waterglass']; #note the incorrect spelling in the filename.. this is consistent with what the file name actully is
 
+time_bin_spacing = 0.001;
+time_duration = 1.0;
+
+#set parameters for plots
+matplotlib.rcParams['ytick.labelsize']=20; matplotlib.rcParams['xtick.labelsize']=20;
+matplotlib.rcParams['xtick.major.width']=2.0; matplotlib.rcParams['ytick.major.width']=2.0;
+matplotlib.rcParams['xtick.major.size']=10.0; matplotlib.rcParams['ytick.major.size']=10.0;
+matplotlib.rcParams['hatch.linewidth'] = 9.0; #set the hatch width to larger than the default case
+matplotlib.rcParams['hatch.color'] = 'black';
+matplotlib.pyplot.rc('font',weight='bold');
+
 ############################################
 ## Data Analysis Methods ##
 ############################################
@@ -176,25 +187,39 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 	
 	#loop through and get all the trials for each subject
 	trial_matrix = [[tee for b in bl for tee in b.trials] for bl in blocks];
-	
-	
-	
+
 	#at some point store this data into a database/csv
-	
-	for high_pref_trial,name in zip([0,1],['non_high_pref','high_pref']):
-		#define an array the length of the longest RT for this condition
-		#this will all me to store the corresponding time points from the time
-		#of decision backwards and incorporate it for all trials
-		all_rts = [len(t.sample_times) for trials in trial_matrix for t in trials if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial)];
-		max_nr_samples = max(all_rts); #get the max; this is how long I need the arrays to be
-		
-		
-		
-		
-		1/0;
-		
+	colors = ['red','blue'];
+	for high_pref_trial,name,c in zip([0,1],['non_high_pref','high_pref'], colors):
+		#define an array the length 1000 ms (for one second before the decision)
+		gaze_array = zeros(time_duration/time_bin_spacing);
+		counts = zeros(shape(gaze_array));
+		#iterate through the trials for each subject, getting the average temporal gaze profile for each subject 
 		for subj in trial_matrix:
-			1==0;
+			#define arrays for this subject
+			# subj_gaze_array = zeros(shape(gaze_array));
+			# subj_counts = zeros(shape(counts));
+			#cycle throuhg each trial for this subject
+			for t in subj:
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial)):
+					#cycle throgh each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
+					for i in (arange(1000)+1):
+						if (i>len(t.lookedAtPreferred)):
+							continue;
+						elif (isnan(t.lookedAtPreferred[-i])):
+							continue;
+						gaze_array[-i] += t.lookedAtPreferred[-i];
+						counts[-i] += 1;
+			#plot(linspace(1,1000,1000), subj_gaze_array/subj_counts);
+		fig = figure(); ax1 = gca();
+		ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
+		plot(linspace(0,1000,1000), gaze_array/counts, lw = 4.0, color = c);
+		ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+		ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+		ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+		title('Average Temporal Gaze Profile, %s Trials'%name, fontsize = 22);
+		
+	show();
 
 
 

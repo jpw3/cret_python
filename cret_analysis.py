@@ -9,6 +9,7 @@ from glob import glob #for use in searching for/ finding data files
 import random #general purpose
 import pandas as pd
 import math
+import matplotlib.lines as mlines
 
 ############################################
 ## Specify some universal parameters ##
@@ -189,8 +190,14 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 	trial_matrix = [[tee for b in bl for tee in b.trials] for bl in blocks];
 
 	#at some point store this data into a database/csv
-	colors = ['red','blue'];
-	for high_pref_trial,name,c in zip([0,1],['non_high_pref','high_pref'], colors):
+	
+	fig = figure(); ax1 = gca();
+	ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
+	ax1.set_ylabel('Likelihood of fixating preferred item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=15);
+	ax1.set_xticks([0,200,400,600,800,1000]);
+	ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
+	colors = ['red','blue']; legend_lines = [];
+	for high_pref_trial,name,c,lab in zip([0,1],['non_high_pref','high_pref'], colors, ['All Other Trials','PAPC Trials']):
 		#define an array the length 1000 ms (for one second before the decision)
 		gaze_array = zeros(time_duration/time_bin_spacing);
 		counts = zeros(shape(gaze_array));
@@ -210,14 +217,44 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 							continue;
 						gaze_array[-i] += t.lookedAtPreferred[-i];
 						counts[-i] += 1;
-			#plot(linspace(1,1000,1000), subj_gaze_array/subj_counts);
-		fig = figure(); ax1 = gca();
-		ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
-		plot(linspace(0,1000,1000), gaze_array/counts, lw = 4.0, color = c);
-		ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
-		ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
-		ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
-		title('Average Temporal Gaze Profile, %s Trials'%name, fontsize = 22);
+		ax1.plot(linspace(0,1000,1000), gaze_array/counts, lw = 6.0, color = c);
+		legend_lines.append(mlines.Line2D([],[],color=c,lw=6, label=lab));
+	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	ax1.legend(handles=[legend_lines[0],legend_lines[1]],loc = 'best',ncol=1,fontsize = 14);
+	title('Average Temporal Gaze Profile, \n Preferred Alcohol/Preferred Ciagerte Trials vs. Not Trials', fontsize = 22);
+		
+		
+	#now run the temporal gaze analysis for the three types of trials for the high pref trials
+	#plot them all together for this...		
+	fig = figure(); ax1 = gca();
+	ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
+	ax1.set_ylabel('Likelihood of fixating preferred item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=15);
+	ax1.set_xticks([0,200,400,600,800,1000]);
+	ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
+	color = 'blue'; alphas = [1.0, 0.67, 0.33]; legend_lines = [];
+	for pref_category,a in zip(['alcohol','cigarette','neutral'],alphas):
+		gaze_array = zeros(time_duration/time_bin_spacing);
+		counts = zeros(shape(gaze_array));		
+		for subj in trial_matrix:		
+			for t in subj:
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&(t.preferred_category == pref_category)):
+					#cycle throgh each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
+					for i in (arange(1000)+1):
+						if (i>len(t.lookedAtPreferred)):
+							continue;
+						elif (isnan(t.lookedAtPreferred[-i])):
+							continue;
+						gaze_array[-i] += t.lookedAtPreferred[-i];
+						counts[-i] += 1;
+		ax1.plot(linspace(0,1000,1000), gaze_array/counts, lw = 6.0, color = color, alpha = a);
+		legend_lines.append(mlines.Line2D([],[],color=color,lw=6,alpha = a, label='chose '+pref_category));
+	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	ax1.legend(handles=[legend_lines[0],legend_lines[1],legend_lines[2]],loc = 'best',ncol=1,fontsize = 14);
+	title('Average Temporal Gaze Profile, \n Preferred Alcohol/Preferred Cigarette Trials', fontsize = 22);		
 		
 	show();
 

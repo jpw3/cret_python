@@ -62,25 +62,35 @@ def computePercentageLookingTimes(blocks, id = 'agg'):
 	#loop through and get all the trials for each subject
 	trial_matrix = [[tee for b in bl for tee in b.trials] for bl in blocks];
 	
-	##Build a trial by trial instance of each value for each subject for all trials
-	all_data = pd.DataFrame(columns = ['sub_id','trial_type','time_looking_at_pref','percentage_looking_at_pref','time_looking_at_alc','percentage_looking_at_alc',
-											 'time_looking_at_cig','percentage_looking_at_cig','time_looking_at_neu','percentage_looking_at_neu', 'response_time',
-											 'last_item_looked_at','last_category_looked_at','time_last_item_looked_at','selected_item','selected_category','alcohol_pref','cig_pref']);
-	#store all the trial data for each subject in a master DB
-	index_counter = 0;
-	for trials in trial_matrix:
-		for t in trials:
-			if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0):
-				all_data.loc[index_counter] = [t.sub_id, t.trial_type, t.timeLookingAtPreferred, t.percentageTimeLookingAtPreferred,
-											   t.timeLookingAtAlcohol, t.percentageTimeLookingAtAlcohol, t.timeLookingAtCigarette,
-											   t.percentageTimeLookingAtCigarette, t.timeLookingAtNeutral, t.percentageTimeLookingAtNeutral,
-											   t.response_time, t.lastItemLookedAt, t.lastCategoryLookedAt, t.timeLastItemLookedAt,
-											   t.preferred_item, t.preferred_category, t.alcohol_pref, t.cigarette_pref];
-				index_counter+=1;
+	# ##Build a trial by trial instance of each value for each subject for all trials
+	# all_data = pd.DataFrame(columns = ['sub_id','trial_type','time_looking_at_pref','percentage_looking_at_pref','time_looking_at_alc','percentage_looking_at_alc',
+	# 										 'time_looking_at_cig','percentage_looking_at_cig','time_looking_at_neu','percentage_looking_at_neu', 'response_time',
+	# 										 'last_item_looked_at','last_category_looked_at','time_last_item_looked_at','selected_item','selected_category','alcohol_pref','cig_pref']);
+	# #store all the trial data for each subject in a master DB
+	# index_counter = 0;
+	# for trials in trial_matrix:
+	# 	for t in trials:
+	# 		if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0):
+	# 			all_data.loc[index_counter] = [t.sub_id, t.trial_type, t.timeLookingAtPreferred, t.percentageTimeLookingAtPreferred,
+	# 										   t.timeLookingAtAlcohol, t.percentageTimeLookingAtAlcohol, t.timeLookingAtCigarette,
+	# 										   t.percentageTimeLookingAtCigarette, t.timeLookingAtNeutral, t.percentageTimeLookingAtNeutral,
+	# 										   t.response_time, t.lastItemLookedAt, t.lastCategoryLookedAt, t.timeLastItemLookedAt,
+	# 										   t.preferred_item, t.preferred_category, t.alcohol_pref, t.cigarette_pref];
+	# 			index_counter+=1;
+	# 
+	# #write the csv file
+	# all_data.to_csv(savepath+'individual_subject_all_trials_trial_by_trial_data.csv',index=False); 
 	
-	#write the csv file
-	all_data.to_csv(savepath+'individual_subject_all_trials_trial_by_trial_data.csv',index=False); #got to make sure if this works
+	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
+	all_substances = [[t.preferred_category for t in subject if (((t.preferred_category=='alcohol')|(t.preferred_category=='cigarette'))
+		&(tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == 1))] for subject in trial_matrix]; #first get all the selected categories
+	prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
+	prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
+	#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
+	subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig) ];
 	
+	
+	1/0;
 	
 	##Build an average database instance of each value for each subject for high vs low preferred trials and the subsets of high preferred trials
 	high_vs_other_pref_data = pd.DataFrame(columns = ['sub_id','trial_type','mean_time_looking_at_pref','mean_percentage_looking_at_pref', 'mean_response_time']);

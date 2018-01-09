@@ -21,7 +21,7 @@ shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james
 
 subject_data = shelve.open(shelvepath+'data');
 
-ids=['cret01','cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11'];
+ids=['cret01','cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11']; #
 
 display_size = array([22.80, 17.10]); #width, height of the screen used to present the images in degrees of visual angle
 
@@ -173,7 +173,7 @@ def computeLastItemLookedAt(blocks, eyed = 'agg'):
 	prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
 	prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
 	#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
-	subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];	
+	subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];
 	
 	high_vs_other_pref_data = pd.DataFrame(columns = ['sub_id','trial_type','percentage_last_fixated_item_was_selected', 'mean_response_time']);
 	high_pref_only_data = pd.DataFrame(columns = ['sub_id','preferred_pic','percentage_last_fixated_item_was_selected', 'mean_response_time']);

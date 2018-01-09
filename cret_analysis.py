@@ -15,9 +15,9 @@ import matplotlib.lines as mlines
 ## Specify some universal parameters ##
 ############################################
 
-datapath = '/Users/james/Documents/MATLAB/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
-shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Users/james/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
 
 subject_data = shelve.open(shelvepath+'data');
 
@@ -328,11 +328,14 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 	ax1.set_ylabel('Likelihood of fixating preferred item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=15);
 	ax1.set_xticks([0,200,400,600,800,1000]);
 	ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
-	colors = ['red','black']; alphas = [1.0, 1.0]; legend_lines = [];					
+	colors = ['red','black']; alphas = [1.0, 1.0]; legend_lines = [];		count = 0;			
 	for cue_or_not, cue_name, c, a in zip([1,0],['cue','not_cue'], colors, alphas):		
 		gaze_array = zeros(time_duration/time_bin_spacing);
+		subject_means_array = [[] for i in range(1000)]; #use this to store each individual subjects' mean for each time point
 		counts = zeros(shape(gaze_array));		
-		for subj,cue in zip(trial_matrix, subject_cues):		
+		for subj,cue in zip(trial_matrix, subject_cues):
+			individ_subject_sum = zeros(time_duration/time_bin_spacing);
+			individ_subject_counts = zeros(time_duration/time_bin_spacing);
 			for t in subj:		
 				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&((t.preferred_category == cue)==cue_or_not)
 					&((t.preferred_category == 'alcohol')|(t.preferred_category == 'cigarette'))):
@@ -344,6 +347,17 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 							continue;
 						gaze_array[-i] += t.lookedAtPreferred[-i];
 						counts[-i] += 1;
+						#put the individual subject data together
+						individ_subject_sum[-i] += t.lookedAtPreferred[-i];
+						individ_subject_counts[-i] += 1;
+			individ_subject_mean = [su/float(ct) for su,ct in zip(individ_subject_sum,individ_subject_counts)];	#calculate the mean for this subject at each time point
+			[subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),individ_subject_mean)]; #append this to the array for each subject     if(not(isnan(ind_mew)))
+			count+=1;
+			if count > 1:
+				1/0
+		#at this point I need to calculate the standard error for each time point
+		
+		
 		ax1.plot(linspace(0,1000,1000), gaze_array/counts, lw = 6.0, color = c, alpha = a);
 		legend_lines.append(mlines.Line2D([],[],color=c,lw=6,alpha = a, label='chose '+cue_name));
 	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);

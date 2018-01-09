@@ -328,7 +328,38 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 	ax1.set_ylabel('Likelihood of fixating preferred item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=15);
 	ax1.set_xticks([0,200,400,600,800,1000]);
 	ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
-	colors = ['red','black']; alphas = [1.0, 1.0]; legend_lines = [];		count = 0;			
+	colors = ['red','blue']; alphas = [1.0, 1.0]; legend_lines = [];		count = 0;
+	# 
+	# subject_means_array = [[] for i in range(1000)];
+	# #now neutral selected trials
+	# for subj,cue in zip(trial_matrix, subject_cues):
+	# 	individ_subject_sum = zeros(time_duration/time_bin_spacing);
+	# 	individ_subject_counts = zeros(time_duration/time_bin_spacing);
+	# 	for t in subj:		
+	# 		if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&(t.preferred_category == 'neutral')):
+	# 			#cycle throgh each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
+	# 			for i in (arange(1000)+1):
+	# 				if (i>len(t.lookedAtPreferred)):
+	# 					continue;
+	# 				elif (isnan(t.lookedAtPreferred[-i])):
+	# 					continue;
+	# 				# gaze_array[-i] += t.lookedAtPreferred[-i];
+	# 				# counts[-i] += 1;
+	# 				#put the individual subject data together
+	# 				individ_subject_sum[-i] += t.lookedAtPreferred[-i];
+	# 				individ_subject_counts[-i] += 1;
+	# 
+	# 	individ_subject_mean = individ_subject_sum/individ_subject_counts; #calculate the mean for this subject at each time point
+	# 	[subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),individ_subject_mean)]; #append this to the array for each subject 
+	# 
+	# mews = array([nanmean(subj) for subj in subject_means_array]); # gaze_array/counts
+	# sems = array([compute_BS_SEM(subj) for subj in subject_means_array]);
+	# ax1.plot(linspace(0,1000,1000), mews, lw = 6.0, color = 'black', alpha = 1.0);
+	# #plot the errorbars
+	# #for x,m,s in zip(linspace(0,1000,1000),mews,sems):
+	# ax1.fill_between(linspace(0,1000,1000), mews-sems, mews+sems, color = 'gray', alpha = 0.33);
+	# legend_lines.append(mlines.Line2D([],[],color='black',lw=6,alpha = a, label='chose neutral'));		
+
 	for cue_or_not, cue_name, c, a in zip([1,0],['cue','not_cue'], colors, alphas):
 		#not sure whether the appropriate way to calculate this it to take the namean of the means for each subject, or else to
 		#treat all subjects equally as one 'subject' and aggregate across all data points. Have to figure this out still
@@ -377,11 +408,12 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 		#for x,m,s in zip(linspace(0,1000,1000),mews,sems):
 		ax1.fill_between(linspace(0,1000,1000), mews-sems, mews+sems, color = c, alpha = 0.33);
 		
-		legend_lines.append(mlines.Line2D([],[],color=c,lw=6,alpha = a, label='chose '+cue_name));
+		legend_lines.append(mlines.Line2D([],[],color=c,lw=6,alpha = a, label='chose '+cue_name));	
+		
 	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
 	ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
 	ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
-	ax1.legend(handles=[legend_lines[0],legend_lines[1]],loc = 'best',ncol=1,fontsize = 14);
+	ax1.legend(handles=[legend_lines[0],legend_lines[1]],loc = 'best',ncol=1,fontsize = 14); #, legend_lines[2]
 	title('Average Temporal Gaze Profile, \n Preferred Alcohol/Preferred Cigarette Trials', fontsize = 22);			
 		
 	show();

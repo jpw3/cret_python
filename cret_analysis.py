@@ -259,72 +259,178 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 
 	# #at some point store this data into a database/csv
 		
-		
-	#now run this analysis for the trials where the subject selected the cue item, as defined above, vs the non cued item 		
-	fig = figure(); ax1 = gca();
-	ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
-	ax1.set_ylabel('Likelihood of fixating selected item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=11);
-	ax1.set_xticks([0,200,400,600,800,1000]);
-	ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
-	colors = ['red','blue']; alphas = [1.0, 1.0]; legend_lines = [];		count = 0;
-	# Plotting of the nuetral items is stored below under the section 'Plot temporal gaze profile of neutral items'
-
-	for cue_or_not, cue_name, c, a in zip([1,0],['cue','not_cue'], colors, alphas):
-		#not sure whether the appropriate way to calculate this it to take the nanmean of the means for each subject, or else to
-		#treat all subjects equally as one 'subject' and aggregate across all data points. Have to figure this out still
-		#for now, using the nanmean of the means across each subject
-		gaze_array = zeros(time_duration/time_bin_spacing);
-		counts = zeros(shape(gaze_array));	
-		subject_means_array = [[] for i in range(1000)]; #use this to store each individual subjects' mean for each time point
-		# subject_counts = [[] for i in range(1000)];
-		# subject_sums = [[] for i in range(1000)];	
+	#calculate the temporal gaze profiles for each subset of rials: selected the cue, selected the not cue, and selected the neutral
+	#then for each of these subsets, find and plot the probability of looking at each item through the trial
+	for cue_or_not, selected_item in zip([1,0,0],['cue','not_cue','neutral']):
+		fig = figure(); ax1 = gca();
+		ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
+		ax1.set_ylabel('Likelihood of fixating',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=11);
+		ax1.set_xticks([0,200,400,600,800,1000]);
+		ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
+		colors = ['red','blue', 'green']; alphas = [1.0, 1.0, 1.0]; legend_lines = [];		count = 0;
+		#define arrays for the neutral, cue, and not_cue items
+		neu_gaze_array = zeros(time_duration/time_bin_spacing);
+		neu_counts = zeros(shape(neu_gaze_array));
+		neu_subject_means_array = [[] for i in range(1000)]; #use this to store each individual subjects' mean for each time point			
+		cue_gaze_array = zeros(time_duration/time_bin_spacing);
+		cue_counts = zeros(shape(cue_gaze_array));
+		cue_subject_means_array = [[] for i in range(1000)]; 		
+		not_cue_gaze_array = zeros(time_duration/time_bin_spacing);
+		not_cue_counts = zeros(shape(not_cue_gaze_array));
+		not_cue_subject_means_array = [[] for i in range(1000)]; 		
 		for subj,cue in zip(trial_matrix, subject_cues):
-			individ_subject_sum = zeros(time_duration/time_bin_spacing);
-			individ_subject_counts = zeros(time_duration/time_bin_spacing);
-			for t in subj:		
-				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&((t.preferred_category == cue)==cue_or_not)
-					&((t.preferred_category == 'alcohol')|(t.preferred_category == 'cigarette'))):
-					#cycle throgh each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
+			neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+			neu_individ_subject_counts = zeros(time_duration/time_bin_spacing);
+			cue_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+			cue_individ_subject_counts = zeros(time_duration/time_bin_spacing);
+			not_cue_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+			not_cue_individ_subject_counts = zeros(time_duration/time_bin_spacing);	
+			for t in subj:
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&((t.preferred_category == cue)==cue_or_not)):
+					#neutral is always the same...
+					#cycle through each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
 					for i in (arange(1000)+1):
-						if (i>len(t.lookedAtPreferred)):
+						if (i>len(t.lookedAtNeutral)):
 							continue;
-						elif (isnan(t.lookedAtPreferred[-i])):
+						elif (isnan(t.lookedAtNeutral[-i])):
 							continue;
-						gaze_array[-i] += t.lookedAtPreferred[-i];
-						counts[-i] += 1;
+						neu_gaze_array[-i] += t.lookedAtNeutral[-i];
+						neu_counts[-i] += 1;
 						#put the individual subject data together
-						individ_subject_sum[-i] += t.lookedAtPreferred[-i];
-						individ_subject_counts[-i] += 1;
+						neu_individ_subject_sum[-i] += t.lookedAtNeutral[-i];
+						neu_individ_subject_counts[-i] += 1;
+					if cue=='alcohol':
+						for i in (arange(1000)+1):
+							if (i>len(t.lookedAtAlcohol)):
+								continue;
+							elif (isnan(t.lookedAtAlcohol[-i])):
+								continue;
+							#store the alcohol gaze patterns as the cue item
+							cue_gaze_array[-i] += t.lookedAtAlcohol[-i];
+							cue_counts[-i] += 1;
+							#put the individual subject data together
+							cue_individ_subject_sum[-i] += t.lookedAtAlcohol[-i];
+							cue_individ_subject_counts[-i] += 1;
+							
+							#and store the cigarette items as the not_cue item
+							not_cue_gaze_array[-i] += t.lookedAtCigarette[-i];
+							not_cue_counts[-i] += 1;
+							#put the individual subject data together
+							not_cue_individ_subject_sum[-i] += t.lookedAtCigarette[-i];
+							not_cue_individ_subject_counts[-i] += 1;
+						
+					elif cue=='cigarette':
+						for i in (arange(1000)+1):
+							if (i>len(t.lookedAtAlcohol)):
+								continue;
+							elif (isnan(t.lookedAtAlcohol[-i])):
+								continue;							
+							#store the cigarette items as the not_cue item
+							cue_gaze_array[-i] += t.lookedAtCigarette[-i];
+							cue_counts[-i] += 1;
+							#put the individual subject data together
+							cue_individ_subject_sum[-i] += t.lookedAtCigarette[-i];
+							cue_individ_subject_counts[-i] += 1;							
 
-			individ_subject_mean = individ_subject_sum/individ_subject_counts; #calculate the mean for this subject at each time point
-			[subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),individ_subject_mean)]; #append this to the array for each subject     if(not(isnan(ind_mew)))
-			# for index,ind_mew in zip(arange(1000),individ_subject_mean):
-			# 	if isnan(ind_mew):
-			# 		subject_means_array[index].append(0);
-			# 	else:
-			# 		subject_means_array[index].append(ind_mew)			
-			# [subject_counts[index].append(ct) for index,ct in zip(arange(1000), individ_subject_counts)];
-			# [subject_sums[index].append(su) for index,su in zip(arange(1000), individ_subject_sum)];
-			#count+=1;
-			#if count > 1:
-			#	1/0
-		#at this point I need to calculate the standard error for each time point
+							#and store the alcohol gaze patterns as the cue item
+							not_cue_gaze_array[-i] += t.lookedAtAlcohol[-i];
+							not_cue_counts[-i] += 1;
+							#put the individual subject data together
+							not_cue_individ_subject_sum[-i] += t.lookedAtAlcohol[-i];
+							not_cue_individ_subject_counts[-i] += 1;
+							
+			neu_individ_subject_mean = neu_individ_subject_sum/neu_individ_subject_counts; #calculate the mean for this subject at each time point
+			[neu_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),neu_individ_subject_mean)]; #append this to the array for each subject   			
+			cue_individ_subject_mean = cue_individ_subject_sum/cue_individ_subject_counts; #calculate the mean for this subject at each time point
+			[cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),cue_individ_subject_mean)]; #append this to the array for each subject
+			not_cue_individ_subject_mean = not_cue_individ_subject_sum/not_cue_individ_subject_counts; #calculate the mean for this subject at each time point
+			[not_cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),not_cue_individ_subject_mean)]; #append this to the array for each subject   					
+							
+		#plot each likelihood looking at items				
+		for  subj_ms, cue_name, c, a in zip([cue_subject_means_array, not_cue_subject_means_array, neu_subject_means_array], ['cue','not_cue','neutral'], colors, alphas):							
+			mews = array([nanmean(subj) for subj in subj_ms]); # gaze_array/counts
+			sems = array([compute_BS_SEM(subj) for subj in subj_ms]);
+			ax1.plot(linspace(0,1000,1000), mews, lw = 6.0, color = c, alpha = a);
+			#plot the errorbars
+			#for x,m,s in zip(linspace(0,1000,1000),mews,sems):
+			ax1.fill_between(linspace(0,1000,1000), mews-sems, mews+sems, color = c, alpha = a*0.4);
+			legend_lines.append(mlines.Line2D([],[],color=c,lw=6,alpha = a, label='likelihood(time looking at %s) '%cue_name));
+		agg = [(nanmean(a)+nanmean(b)+nanmean(c)) for a,b,c in zip(cue_subject_means_array, not_cue_subject_means_array, neu_subject_means_array)];
+		ax1.plot(linspace(0,1000,1000),agg,color = 'orange', lw = 3.0);
+		legend_lines.append(mlines.Line2D([],[],color='orange',lw=6, alpha = 1.0, label='sum of all'));	
+		ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+		ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+		ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+		ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2], legend_lines[3]],loc = 2,ncol=1,fontsize = 14); #, legend_lines[2]
+		title('Average Temporal Gaze Profile, \n Chose %s Trials'%(selected_item), fontsize = 22);
+		1/0
 		
-		mews = array([nanmean(subj) for subj in subject_means_array]); # gaze_array/counts
-		sems = array([compute_BS_SEM(subj) for subj in subject_means_array]);
-		ax1.plot(linspace(0,1000,1000), mews, lw = 6.0, color = c, alpha = a);
-		#plot the errorbars
-		#for x,m,s in zip(linspace(0,1000,1000),mews,sems):
-		ax1.fill_between(linspace(0,1000,1000), mews-sems, mews+sems, color = c, alpha = 0.33);
-		
-		legend_lines.append(mlines.Line2D([],[],color=c,lw=6,alpha = a, label='chose '+cue_name));	
-		
-	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
-	ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
-	ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
-	ax1.legend(handles=[legend_lines[0],legend_lines[1]],loc = 'best',ncol=1,fontsize = 14); #, legend_lines[2]
-	title('Average Temporal Gaze Profile, \n Preferred Alcohol/Preferred Cigarette Trials', fontsize = 22);			
-		
+	# 	
+	# #now run this analysis for the trials where the subject selected the cue item, as defined above, vs the non cued item 		
+	# fig = figure(); ax1 = gca();
+	# ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
+	# ax1.set_ylabel('Likelihood of fixating selected item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=11);
+	# ax1.set_xticks([0,200,400,600,800,1000]);
+	# ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
+	# colors = ['red','blue']; alphas = [1.0, 1.0]; legend_lines = [];		count = 0;
+	# # Plotting of the nuetral items is stored below under the section 'Plot temporal gaze profile of neutral items'
+	# 
+	# for cue_or_not, cue_name, c, a in zip([1,0],['cue','not_cue'], colors, alphas):
+	# 	#not sure whether the appropriate way to calculate this it to take the nanmean of the means for each subject, or else to
+	# 	#treat all subjects equally as one 'subject' and aggregate across all data points. Have to figure this out still
+	# 	#for now, using the nanmean of the means across each subject
+	# 	gaze_array = zeros(time_duration/time_bin_spacing);
+	# 	counts = zeros(shape(gaze_array));	
+	# 	subject_means_array = [[] for i in range(1000)]; #use this to store each individual subjects' mean for each time point
+	# 	# subject_counts = [[] for i in range(1000)];
+	# 	# subject_sums = [[] for i in range(1000)];	
+	# 	for subj,cue in zip(trial_matrix, subject_cues):
+	# 		individ_subject_sum = zeros(time_duration/time_bin_spacing);
+	# 		individ_subject_counts = zeros(time_duration/time_bin_spacing);
+	# 		for t in subj:		
+	# 			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&((t.preferred_category == cue)==cue_or_not)
+	# 				&((t.preferred_category == 'alcohol')|(t.preferred_category == 'cigarette'))):
+	# 				#cycle throgh each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
+	# 				for i in (arange(1000)+1):
+	# 					if (i>len(t.lookedAtPreferred)):
+	# 						continue;
+	# 					elif (isnan(t.lookedAtPreferred[-i])):
+	# 						continue;
+	# 					gaze_array[-i] += t.lookedAtPreferred[-i];
+	# 					counts[-i] += 1;
+	# 					#put the individual subject data together
+	# 					individ_subject_sum[-i] += t.lookedAtPreferred[-i];
+	# 					individ_subject_counts[-i] += 1;
+	# 
+	# 		individ_subject_mean = individ_subject_sum/individ_subject_counts; #calculate the mean for this subject at each time point
+	# 		[subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),individ_subject_mean)]; #append this to the array for each subject     if(not(isnan(ind_mew)))
+	# 		# for index,ind_mew in zip(arange(1000),individ_subject_mean):
+	# 		# 	if isnan(ind_mew):
+	# 		# 		subject_means_array[index].append(0);
+	# 		# 	else:
+	# 		# 		subject_means_array[index].append(ind_mew)			
+	# 		# [subject_counts[index].append(ct) for index,ct in zip(arange(1000), individ_subject_counts)];
+	# 		# [subject_sums[index].append(su) for index,su in zip(arange(1000), individ_subject_sum)];
+	# 		#count+=1;
+	# 		#if count > 1:
+	# 		#	1/0
+	# 	#at this point I need to calculate the standard error for each time point
+	# 	
+	# 	mews = array([nanmean(subj) for subj in subject_means_array]); # gaze_array/counts
+	# 	sems = array([compute_BS_SEM(subj) for subj in subject_means_array]);
+	# 	ax1.plot(linspace(0,1000,1000), mews, lw = 6.0, color = c, alpha = a);
+	# 	#plot the errorbars
+	# 	#for x,m,s in zip(linspace(0,1000,1000),mews,sems):
+	# 	ax1.fill_between(linspace(0,1000,1000), mews-sems, mews+sems, color = c, alpha = 0.33);
+	# 	
+	# 	legend_lines.append(mlines.Line2D([],[],color=c,lw=6,alpha = a, label='chose '+cue_name));	
+	# 	
+	# ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	# ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	# ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	# ax1.legend(handles=[legend_lines[0],legend_lines[1]],loc = 'best',ncol=1,fontsize = 14); #, legend_lines[2]
+	# title('Average Temporal Gaze Profile, \n Preferred Alcohol/Preferred Cigarette Trials', fontsize = 22);			
+	# 	
 	show();
 
 

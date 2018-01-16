@@ -10,18 +10,20 @@ import random #general purpose
 import pandas as pd
 import math
 import matplotlib.lines as mlines
+import scipy.signal as ssignal
+from mpl_toolkits.axes_grid.inset_locator import inset_axes
 
 ############################################
 ## Specify some universal parameters ##
 ############################################
 
-datapath = '/Users/james/Documents/MATLAB/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
-shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Users/james/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
 
 subject_data = shelve.open(shelvepath+'data');
 
-ids=['cret01','cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11']; #
+ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11']; #'cret01',
 
 display_size = array([22.80, 17.10]); #width, height of the screen used to present the images in degrees of visual angle
 
@@ -559,13 +561,29 @@ class trial(object):
 		
 		#find when the subject was saccading in each trial
 		#first use a differentiation method to define the velocity (eye position change/time change) for each time point in the trial
-		timeChange = diff(self.sample_times); #difference in time, in seconds 0.001; #
+		timeChange = 0.001; #diff(self.sample_times); #difference in time, in seconds 
 		xChange = -diff(self.eyeX);
 		yChange = -diff(self.eyeY);
 		totalChange = sqrt(xChange**2+yChange**2);
 		temp = totalChange/timeChange; #calculate the velocity for each time point
-		self.velocity = insert(temp,0,0); #insert a 0 at the beginning of the array for the first time point
-		1/0;
+		self.velocities = insert(temp,0,0); #insert a 0 at the beginning of the array for the first time point
+		
+		#Next filter the velocities... this may or may not be necessary/advisable
+		#get params for a butterworth filter and bandpass it at 10 Hz
+		trialTime = self.sample_times[-1]-self.sample_times[0]; #get total time for the trial
+		samplingRate = 1000.0; #round(len(self.sample_times)/float(trialTime)); #get the downsampled sampling rate
+		halfSRate = samplingRate/2; freqCut = 10; 
+		butterwindow = freqCut/halfSRate; nthOrder = 2; #defining parameters for the butterworth filter
+		[b,a] = ssignal.butter(nthOrder,butterwindow); #fit the butterworth filter
+		y = ssignal.filtfilt(b,a,self.velocities,padtype='odd'); #get the filtered velocity data		
+		self.filtered_velocities = y; #append the filtered velocities to this trial instance
+		
+		#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
+		self.saccadeCriterion = 30; #degrees/sec
+		self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
+		
+		if self.dropped_sample < 1:
+			self.plotSaccadeDebug();
 		
 		
 		
@@ -575,6 +593,70 @@ class trial(object):
 	#this should find arrays of length(trial time) for each item/location, marking a 0 if not looking at that loc
 	#and a 1 if it is. also should aggregate this together in a succint manner (e.g., proportion of trial spent looking at each item)
 	#will call this in the Trial definition function
+	
+	def plotSaccadeDebug(self):
+	#plots the different saccades for the given trial for use in debugging	
+		fig = figure(figsize = (12.8,7.64)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]);
+		ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
+		legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue'];
+		#first plot the eye traces with respect to the velocity data
+		#if the eye is in movements, use the color array above. otheriwse use black to denote fixation
+		saccade_counter = 0; nr_saccades = 0;
+		for i,xx,yy,issac in zip(range(len(self.sample_times)),
+											 self.eyeX, self.eyeY, self.isSaccade):
+			#plot the eye trace in black if not saccading
+			if issac < 1:
+				ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
+				#conditional to switch to the next saccade color
+				#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
+				if self.isSaccade[i-1]==True:
+					nr_saccades+=1
+					legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));					
+					saccade_counter+=1;
+					if saccade_counter > len(colors):
+						saccade_counter=0;
+			else:
+				ax.plot(xx, yy, color = colors[saccade_counter], marker = 'o', ms = 4);
+				
+		ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+		ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+		ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+		ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
+		title('Eye Trace and Position Velocity, Degrees per Second,\nSubject %s, Block %s, Trial %s'%(self.sub_id, self.block_nr, self.trial_nr), fontsize = 22);
+		
+		#now plot the velocity data in an inset plot
+		
+		ia = inset_axes(ax, width="30%", # width = 30% of parent_bbox
+                    height="30%", # height : 1 inch
+                    loc=1);
+		
+		saccade_counter = 0; nr_saccades = 0;
+		for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),
+											 self.filtered_velocities, self.velocities, self.isSaccade):
+			#plot the eye trace in black if not saccading
+			plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
+			if issac < 1:
+				plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);
+				#conditional to switch to the next saccade color
+				#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
+				if self.isSaccade[i-1]==1:
+					nr_saccades+=1				
+					saccade_counter+=1;
+					if saccade_counter > len(colors):
+						saccade_counter=0;
+			else:
+				plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);		
+		
+		plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(self.saccadeCriterion,self.saccadeCriterion+0.01,len(self.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
+		
+		ia.set_xlabel('Velocity', fontsize = 14); ia.set_ylabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
+		bool = raw_input();
+		
+		close('all');
+		
+		
+		#filt_vel,orig_vel in self.filtered_velocities, self.velocities,
+	
 
 	def get_ET_data(self):
 		lookedUp = zeros(len(self.sample_times)); #truth arrays

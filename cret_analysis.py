@@ -15,9 +15,9 @@ import matplotlib.lines as mlines
 ## Specify some universal parameters ##
 ############################################
 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Users/james/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+datapath = '/Users/james/Documents/MATLAB/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
 
 subject_data = shelve.open(shelvepath+'data');
 
@@ -325,7 +325,7 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 	#now run this analysis for the trials where the subject selected the cue item, as defined above, vs the non cued item 		
 	fig = figure(); ax1 = gca();
 	ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
-	ax1.set_ylabel('Likelihood of fixating preferred item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=15);
+	ax1.set_ylabel('Likelihood of fixating selected item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=11);
 	ax1.set_xticks([0,200,400,600,800,1000]);
 	ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
 	colors = ['red','blue']; alphas = [1.0, 1.0]; legend_lines = [];		count = 0;
@@ -361,9 +361,9 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 	# legend_lines.append(mlines.Line2D([],[],color='black',lw=6,alpha = a, label='chose neutral'));		
 
 	for cue_or_not, cue_name, c, a in zip([1,0],['cue','not_cue'], colors, alphas):
-		#not sure whether the appropriate way to calculate this it to take the namean of the means for each subject, or else to
+		#not sure whether the appropriate way to calculate this it to take the nanmean of the means for each subject, or else to
 		#treat all subjects equally as one 'subject' and aggregate across all data points. Have to figure this out still
-		#for now, using the namean of the mans across each subject
+		#for now, using the nanmean of the means across each subject
 		gaze_array = zeros(time_duration/time_bin_spacing);
 		counts = zeros(shape(gaze_array));	
 		subject_means_array = [[] for i in range(1000)]; #use this to store each individual subjects' mean for each time point
@@ -557,7 +557,19 @@ class trial(object):
 		self.eyeY = array(eyeY); #[::sampStep];
 		self.p_size = array(pSize); #[::sampStep];
 		
-		self.get_ET_data(); #call this method... see if it works
+		#find when the subject was saccading in each trial
+		#first use a differentiation method to define the velocity (eye position change/time change) for each time point in the trial
+		timeChange = diff(self.sample_times); #difference in time, in seconds 0.001; #
+		xChange = -diff(self.eyeX);
+		yChange = -diff(self.eyeY);
+		totalChange = sqrt(xChange**2+yChange**2);
+		temp = totalChange/timeChange; #calculate the velocity for each time point
+		self.velocity = insert(temp,0,0); #insert a 0 at the beginning of the array for the first time point
+		1/0;
+		
+		
+		
+		self.get_ET_data(); #call this method defined below
 		
 	#define a function that takes a trial object and determines the proportion of time was looking at each item
 	#this should find arrays of length(trial time) for each item/location, marking a 0 if not looking at that loc

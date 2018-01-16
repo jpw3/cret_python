@@ -258,71 +258,7 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 	subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];		
 
 	# #at some point store this data into a database/csv
-	# 
-	# fig = figure(); ax1 = gca();
-	# ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
-	# ax1.set_ylabel('Likelihood of fixating preferred item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=15);
-	# ax1.set_xticks([0,200,400,600,800,1000]);
-	# ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
-	# colors = ['red','blue']; legend_lines = [];
-	# for high_pref_trial,name,c,lab in zip([0,1],['non_high_pref','high_pref'], colors, ['All Other Trials','PAPC Trials']):
-	# 	#define an array the length 1000 ms (for one second before the decision)
-	# 	gaze_array = zeros(time_duration/time_bin_spacing);
-	# 	counts = zeros(shape(gaze_array));
-	# 	#iterate through the trials for each subject, getting the average temporal gaze profile for each subject 
-	# 	for subj in trial_matrix:
-	# 		#define arrays for this subject
-	# 		# subj_gaze_array = zeros(shape(gaze_array));
-	# 		# subj_counts = zeros(shape(counts));
-	# 		#cycle throuhg each trial for this subject
-	# 		for t in subj:
-	# 			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial)):
-	# 				#cycle throgh each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
-	# 				for i in (arange(1000)+1):
-	# 					if (i>len(t.lookedAtPreferred)):
-	# 						continue;
-	# 					elif (isnan(t.lookedAtPreferred[-i])):
-	# 						continue;
-	# 					gaze_array[-i] += t.lookedAtPreferred[-i];
-	# 					counts[-i] += 1;
-	# 	ax1.plot(linspace(0,1000,1000), gaze_array/counts, lw = 6.0, color = c);
-	# 	legend_lines.append(mlines.Line2D([],[],color=c,lw=6, label=lab));
-	# ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
-	# ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
-	# ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
-	# ax1.legend(handles=[legend_lines[0],legend_lines[1]],loc = 'best',ncol=1,fontsize = 14);
-	# title('Average Temporal Gaze Profile, \n Preferred Alcohol/Preferred Ciagerte Trials vs. Not Trials', fontsize = 22);
-	# 	
-	# 	
-	# #now run the temporal gaze analysis for the three types of trials for the high pref trials
-	# #plot them all together for this...		
-	# fig = figure(); ax1 = gca();
-	# ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
-	# ax1.set_ylabel('Likelihood of fixating preferred item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=15);
-	# ax1.set_xticks([0,200,400,600,800,1000]);
-	# ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
-	# color = 'blue'; alphas = [1.0, 0.67, 0.33]; legend_lines = [];
-	# for pref_category,a in zip(['alcohol','cigarette','neutral'],alphas):
-	# 	gaze_array = zeros(time_duration/time_bin_spacing);
-	# 	counts = zeros(shape(gaze_array));		
-	# 	for subj in trial_matrix:		
-	# 		for t in subj:
-	# 			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&(t.preferred_category == pref_category)):
-	# 				#cycle throgh each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
-	# 				for i in (arange(1000)+1):
-	# 					if (i>len(t.lookedAtPreferred)):
-	# 						continue;
-	# 					elif (isnan(t.lookedAtPreferred[-i])):
-	# 						continue;
-	# 					gaze_array[-i] += t.lookedAtPreferred[-i];
-	# 					counts[-i] += 1;
-	# 	ax1.plot(linspace(0,1000,1000), gaze_array/counts, lw = 6.0, color = color, alpha = a);
-	# 	legend_lines.append(mlines.Line2D([],[],color=color,lw=6,alpha = a, label='chose '+pref_category));
-	# ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
-	# ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
-	# ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
-	# ax1.legend(handles=[legend_lines[0],legend_lines[1],legend_lines[2]],loc = 'best',ncol=1,fontsize = 14);
-	# title('Average Temporal Gaze Profile, \n Preferred Alcohol/Preferred Cigarette Trials', fontsize = 22);		
+		
 		
 	#now run this analysis for the trials where the subject selected the cue item, as defined above, vs the non cued item 		
 	fig = figure(); ax1 = gca();
@@ -331,36 +267,7 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 	ax1.set_xticks([0,200,400,600,800,1000]);
 	ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
 	colors = ['red','blue']; alphas = [1.0, 1.0]; legend_lines = [];		count = 0;
-	# 
-	# subject_means_array = [[] for i in range(1000)];
-	# #now neutral selected trials
-	# for subj,cue in zip(trial_matrix, subject_cues):
-	# 	individ_subject_sum = zeros(time_duration/time_bin_spacing);
-	# 	individ_subject_counts = zeros(time_duration/time_bin_spacing);
-	# 	for t in subj:		
-	# 		if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&(t.preferred_category == 'neutral')):
-	# 			#cycle throgh each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
-	# 			for i in (arange(1000)+1):
-	# 				if (i>len(t.lookedAtPreferred)):
-	# 					continue;
-	# 				elif (isnan(t.lookedAtPreferred[-i])):
-	# 					continue;
-	# 				# gaze_array[-i] += t.lookedAtPreferred[-i];
-	# 				# counts[-i] += 1;
-	# 				#put the individual subject data together
-	# 				individ_subject_sum[-i] += t.lookedAtPreferred[-i];
-	# 				individ_subject_counts[-i] += 1;
-	# 
-	# 	individ_subject_mean = individ_subject_sum/individ_subject_counts; #calculate the mean for this subject at each time point
-	# 	[subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),individ_subject_mean)]; #append this to the array for each subject 
-	# 
-	# mews = array([nanmean(subj) for subj in subject_means_array]); # gaze_array/counts
-	# sems = array([compute_BS_SEM(subj) for subj in subject_means_array]);
-	# ax1.plot(linspace(0,1000,1000), mews, lw = 6.0, color = 'black', alpha = 1.0);
-	# #plot the errorbars
-	# #for x,m,s in zip(linspace(0,1000,1000),mews,sems):
-	# ax1.fill_between(linspace(0,1000,1000), mews-sems, mews+sems, color = 'gray', alpha = 0.33);
-	# legend_lines.append(mlines.Line2D([],[],color='black',lw=6,alpha = a, label='chose neutral'));		
+	# Plotting of the nuetral items is stored below under the section 'Plot temporal gaze profile of neutral items'
 
 	for cue_or_not, cue_name, c, a in zip([1,0],['cue','not_cue'], colors, alphas):
 		#not sure whether the appropriate way to calculate this it to take the nanmean of the means for each subject, or else to
@@ -582,11 +489,9 @@ class trial(object):
 		self.saccadeCriterion = 30; #degrees/sec
 		self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
 		
-		if self.dropped_sample < 1:
-			self.plotSaccadeDebug();
-		
-		
-		
+		# if self.dropped_sample < 1:
+		# 	self.plotSaccadeDebug();
+				
 		self.get_ET_data(); #call this method defined below
 		
 	#define a function that takes a trial object and determines the proportion of time was looking at each item
@@ -624,12 +529,8 @@ class trial(object):
 		ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
 		title('Eye Trace and Position Velocity, Degrees per Second,\nSubject %s, Block %s, Trial %s'%(self.sub_id, self.block_nr, self.trial_nr), fontsize = 22);
 		
-		#now plot the velocity data in an inset plot
-		
-		ia = inset_axes(ax, width="30%", # width = 30% of parent_bbox
-                    height="30%", # height : 1 inch
-                    loc=1);
-		
+		#now plot the velocity data in an inset plot	
+		ia = inset_axes(ax, width="30%", height="30%", loc=1); #set the inset axes as percentages of the original axis size
 		saccade_counter = 0; nr_saccades = 0;
 		for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),
 											 self.filtered_velocities, self.velocities, self.isSaccade):
@@ -646,17 +547,12 @@ class trial(object):
 						saccade_counter=0;
 			else:
 				plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);		
-		
+		#plot the velocity trheshold and set labels
 		plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(self.saccadeCriterion,self.saccadeCriterion+0.01,len(self.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
-		
 		ia.set_xlabel('Velocity', fontsize = 14); ia.set_ylabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
-		bool = raw_input();
 		
-		close('all');
-		
-		
-		#filt_vel,orig_vel in self.filtered_velocities, self.velocities,
-	
+		bool = raw_input();	#wait for the button press to move to next trial
+		close('all');	
 
 	def get_ET_data(self):
 		lookedUp = zeros(len(self.sample_times)); #truth arrays
@@ -781,7 +677,12 @@ class trial(object):
 			self.lastCategoryLookedAt = 'none';
 			self.lastItemLookedAt = 'none';
 			self.timeLastItemLookedAt = -1;
-			
+
+
+
+############################################
+## Previous code that may be useful but not using currently ###
+############################################			
 	
 ## Legacy code for parsing percentage of looking time at preferred items
 	# 
@@ -837,5 +738,102 @@ class trial(object):
 	# 	
 	# #write the csv file
 	# high_preference_trials_data.to_csv(savepath+'individual_subject_high_pref_trials_mean_preference_data.csv',index=False); #got to make sure if this works
-			
-			
+
+## Plot temporal gaze profile of neutral items			
+	# subject_means_array = [[] for i in range(1000)];
+	# #now neutral selected trials
+	# for subj,cue in zip(trial_matrix, subject_cues):
+	# 	individ_subject_sum = zeros(time_duration/time_bin_spacing);
+	# 	individ_subject_counts = zeros(time_duration/time_bin_spacing);
+	# 	for t in subj:		
+	# 		if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&(t.preferred_category == 'neutral')):
+	# 			#cycle throgh each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
+	# 			for i in (arange(1000)+1):
+	# 				if (i>len(t.lookedAtPreferred)):
+	# 					continue;
+	# 				elif (isnan(t.lookedAtPreferred[-i])):
+	# 					continue;
+	# 				# gaze_array[-i] += t.lookedAtPreferred[-i];
+	# 				# counts[-i] += 1;
+	# 				#put the individual subject data together
+	# 				individ_subject_sum[-i] += t.lookedAtPreferred[-i];
+	# 				individ_subject_counts[-i] += 1;
+	# 
+	# 	individ_subject_mean = individ_subject_sum/individ_subject_counts; #calculate the mean for this subject at each time point
+	# 	[subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),individ_subject_mean)]; #append this to the array for each subject 
+	# 
+	# mews = array([nanmean(subj) for subj in subject_means_array]); # gaze_array/counts
+	# sems = array([compute_BS_SEM(subj) for subj in subject_means_array]);
+	# ax1.plot(linspace(0,1000,1000), mews, lw = 6.0, color = 'black', alpha = 1.0);
+	# #plot the errorbars
+	# #for x,m,s in zip(linspace(0,1000,1000),mews,sems):
+	# ax1.fill_between(linspace(0,1000,1000), mews-sems, mews+sems, color = 'gray', alpha = 0.33);
+	# legend_lines.append(mlines.Line2D([],[],color='black',lw=6,alpha = a, label='chose neutral'));
+	
+## Plot temporal gaze profile whether they selected alcohol, cigarettes, or nrutral
+## do so for all trials and then for high-preference trials only
+	# 
+	# fig = figure(); ax1 = gca();
+	# ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
+	# ax1.set_ylabel('Likelihood of fixating preferred item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=15);
+	# ax1.set_xticks([0,200,400,600,800,1000]);
+	# ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
+	# colors = ['red','blue']; legend_lines = [];
+	# for high_pref_trial,name,c,lab in zip([0,1],['non_high_pref','high_pref'], colors, ['All Other Trials','PAPC Trials']):
+	# 	#define an array the length 1000 ms (for one second before the decision)
+	# 	gaze_array = zeros(time_duration/time_bin_spacing);
+	# 	counts = zeros(shape(gaze_array));
+	# 	#iterate through the trials for each subject, getting the average temporal gaze profile for each subject 
+	# 	for subj in trial_matrix:
+	# 		#define arrays for this subject
+	# 		# subj_gaze_array = zeros(shape(gaze_array));
+	# 		# subj_counts = zeros(shape(counts));
+	# 		#cycle throuhg each trial for this subject
+	# 		for t in subj:
+	# 			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial)):
+	# 				#cycle throgh each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
+	# 				for i in (arange(1000)+1):
+	# 					if (i>len(t.lookedAtPreferred)):
+	# 						continue;
+	# 					elif (isnan(t.lookedAtPreferred[-i])):
+	# 						continue;
+	# 					gaze_array[-i] += t.lookedAtPreferred[-i];
+	# 					counts[-i] += 1;
+	# 	ax1.plot(linspace(0,1000,1000), gaze_array/counts, lw = 6.0, color = c);
+	# 	legend_lines.append(mlines.Line2D([],[],color=c,lw=6, label=lab));
+	# ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	# ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	# ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	# ax1.legend(handles=[legend_lines[0],legend_lines[1]],loc = 'best',ncol=1,fontsize = 14);
+	# title('Average Temporal Gaze Profile, \n Preferred Alcohol/Preferred Ciagerte Trials vs. Not Trials', fontsize = 22);
+	# 	
+	# 	
+	# #now run the temporal gaze analysis for the three types of trials for the high pref trials
+	# #plot them all together for this...		
+	# fig = figure(); ax1 = gca();
+	# ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
+	# ax1.set_ylabel('Likelihood of fixating preferred item',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=15);
+	# ax1.set_xticks([0,200,400,600,800,1000]);
+	# ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
+	# color = 'blue'; alphas = [1.0, 0.67, 0.33]; legend_lines = [];
+	# for pref_category,a in zip(['alcohol','cigarette','neutral'],alphas):
+	# 	gaze_array = zeros(time_duration/time_bin_spacing);
+	# 	counts = zeros(shape(gaze_array));		
+	# 	for subj in trial_matrix:		
+	# 		for t in subj:
+	# 			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&(t.preferred_category == pref_category)):
+	# 				#cycle throgh each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
+	# 				for i in (arange(1000)+1):
+	# 					if (i>len(t.lookedAtPreferred)):
+	# 						continue;
+	# 					elif (isnan(t.lookedAtPreferred[-i])):
+	# 						continue;
+	# 					gaze_array[-i] += t.lookedAtPreferred[-i];
+	# 					counts[-i] += 1;
+	# 	ax1.plot(linspace(0,1000,1000), gaze_array/counts, lw = 6.0, color = color, alpha = a);
+	# 	legend_lines.append(mlines.Line2D([],[],color=color,lw=6,alpha = a, label='chose '+pref_category));
+	# ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	# ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	# ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	# ax1.legend(handles=[legend_lines[0],legend_lines[1],legend_lines[2]],loc = 'best',ncol=1,fontsize = 14);
+	# title('Average Temporal Gaze Profile, \n Preferred Alcohol/Preferred Cigarette Trials', fontsize = 22);

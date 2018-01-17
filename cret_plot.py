@@ -14,8 +14,8 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 ## Specify some universal parameters ##
 ############################################
 
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/figures/';  #'/Users/james/Documents/Python/CRET/figures/'; # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+savepath =  '/Users/james/Documents/Python/CRET/figures/'; # '/Users/jameswilmott/Documents/Python/CRET/figures/';  #
+shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
 
 db = shelve.open(shelvepath+'data'); 
 

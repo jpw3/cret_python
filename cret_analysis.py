@@ -136,8 +136,7 @@ def computePercentageLookingTimes(blocks, eyed = 'agg'):
 								cue_perc_at_pref.append(t.percentageTimeLookingAtCigarette);
 								not_cue_time_at_pref.append(t.timeLookingAtAlcohol);
 								not_cue_perc_at_pref.append(t.percentageTimeLookingAtAlcohol);							
-								rts.append(t.response_time);
-				1/0														
+								rts.append(t.response_time);													
 				#append this subjects' data to the holder list and calculate the nanmeans to store in the database
 				neu_subject_times.append(nanmean(neu_time_at_pref)); 
 				neu_subject_percs.append(nanmean(neu_perc_at_pref));
@@ -156,19 +155,16 @@ def computePercentageLookingTimes(blocks, eyed = 'agg'):
 				#add this data to the DataFrame for use in .csv creation
 				data.loc[counter] = [sub_id,cue,selected_item,nanmean(neu_time_at_pref),nanmean(neu_perc_at_pref),nanmean(cue_time_at_pref),nanmean(cue_perc_at_pref),nanmean(not_cue_time_at_pref),nanmean(not_cue_perc_at_pref),nanmean(rts)];
 				counter+=1;
-			
 			#now here aggregate all the data together and append it to the database
 			db['agg_high_pref_selected_%s_look_at_neutral_mean_time_at_pref'%(selected_item)] = nanmean(neu_subject_times); db['agg_high_pref_selected_%s_look_at_neutral_bs_sems_time_at_pref'%(selected_item)] = compute_BS_SEM(neu_subject_times);
-			db['agg_high_pref_selected_%s_look_at_neutral_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_subject_percs); db['agg_high_pref_selected_%s_look_at_neutral_bs_sems_perc_time_at_pref'%(sub_id,selected_item)] = compute_BS_SEM(neu_subject_percs);				
+			db['agg_high_pref_selected_%s_look_at_neutral_mean_perc_time_at_pref'%(selected_item)] = nanmean(neu_subject_percs); db['agg_high_pref_selected_%s_look_at_neutral_bs_sems_perc_time_at_pref'%(selected_item)] = compute_BS_SEM(neu_subject_percs);				
 			db['agg_high_pref_selected_%s_look_at_cue_mean_time_at_pref'%(selected_item)] = nanmean(cue_subject_times); db['agg_high_pref_selected_%s_look_at_cue_bs_sems_time_at_pref'%(selected_item)] = compute_BS_SEM(cue_subject_times);
-			db['agg_high_pref_selected_%s_look_at_cue_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(cue_subject_percs); db['agg_high_pref_selected_%s_look_at_cue_bs_sems_perc_time_at_pref'%(sub_id,selected_item)] = compute_BS_SEM(cue_subject_percs);			
+			db['agg_high_pref_selected_%s_look_at_cue_mean_perc_time_at_pref'%(selected_item)] = nanmean(cue_subject_percs); db['agg_high_pref_selected_%s_look_at_cue_bs_sems_perc_time_at_pref'%(selected_item)] = compute_BS_SEM(cue_subject_percs);			
 			db['agg_high_pref_selected_%s_look_at_not_cue_mean_time_at_pref'%(selected_item)] = nanmean(not_cue_subject_times); db['agg_high_pref_selected_%s_look_at_not_cue_bs_sems_time_at_pref'%(selected_item)] = compute_BS_SEM(not_cue_subject_times);
-			db['agg_high_pref_selected_%s_look_at_not_cue_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(not_cue_subject_percs); db['agg_high_pref_selected_%s_look_at_not_cue_bs_sems_perc_time_at_pref'%(sub_id,selected_item)] = compute_BS_SEM(not_cue_subject_percs);				
-			db['agg_high_pref_selected_%s_mean_rt'%(sub_id,selected_item)] = nanmean(all_rts); db['agg_high_pref_selected_%s_bs_sems_rt'%(sub_id, selected_item)] = compute_BS_SEM(all_rts);		
-
-
+			db['agg_high_pref_selected_%s_look_at_not_cue_mean_perc_time_at_pref'%(selected_item)] = nanmean(not_cue_subject_percs); db['agg_high_pref_selected_%s_look_at_not_cue_bs_sems_perc_time_at_pref'%(selected_item)] = compute_BS_SEM(not_cue_subject_percs);				
+			db['agg_high_pref_selected_%s_mean_rt'%(selected_item)] = nanmean(all_rts); db['agg_high_pref_selected_%s_bs_sems_rt'%(selected_item)] = compute_BS_SEM(all_rts);		
 	#write the data to csv files
-	high_vs_other_pref_data.to_csv(savepath+'perc_time_avg_high_vs_nothigh_pref_trial_data.csv',index=False); 
+	data.to_csv(savepath+'perc_time_avg_subj_data.csv',index=False); 
 
 
 
@@ -422,7 +418,7 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 			#plot the errorbars
 			#for x,m,s in zip(linspace(0,1000,1000),mews,sems):
 			ax1.fill_between(linspace(0,1000,1000), mews-sems, mews+sems, color = c, alpha = a*0.4);
-			legend_lines.append(mlines.Line2D([],[],color=c,lw=6,alpha = a, label='likelihood(time looking at %s) '%cue_name));
+			legend_lines.append(mlines.Line2D([],[],color=c,lw=6,alpha = a, label='likelihood(looking at %s) '%cue_name));
 		#plot the sum of each fora sanity emasure to ensure they equate to one
 		agg = [(nanmean(a)+nanmean(b)+nanmean(c)) for a,b,c in zip(cue_subject_means_array, not_cue_subject_means_array, neu_subject_means_array)];
 		ax1.plot(linspace(0,1000,1000),agg,color = 'gray', lw = 3.0);

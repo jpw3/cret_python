@@ -14,12 +14,12 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 ## Specify some universal parameters ##
 ############################################
 
-savepath =  '/Users/james/Documents/Python/CRET/figures/'; # '/Users/jameswilmott/Documents/Python/CRET/figures/';  #
-shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/figures/';  #'/Users/james/Documents/Python/CRET/figures/'; # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
 
 db = shelve.open(shelvepath+'data'); 
 
-ids=['cret01','cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11'];
+ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11','cret13','cret14','cret15','cret16','cret17','cret18']; #'cret01',
 
 #set parameters for plots
 matplotlib.rcParams['ytick.labelsize']=20; matplotlib.rcParams['xtick.labelsize']=18;
@@ -73,10 +73,10 @@ ax1.errorbar(2.2, db['agg_high_pref_selected_neutral_look_at_cue_mean_perc_time_
 
 #plot RTs for each type of trial in an inset
 ia = inset_axes(ax1, width="25%", height="30%", loc=1); #set the inset axes as percentages of the original axis size
-ia.set_xlim([0.85,2.35]); ia.set_xticks([1,1.6,2.2]); ia.set_ylim([750,1100]); ia.set_yticks(arange(800,1201,100));
-ia.set_xticklabels(['Cue Selected','Non-Cue Selected','Neutral Selected'], size = 10);
+ia.set_xlim([0.85,2.35]); ia.set_xticks([1,1.6,2.2]); ia.set_ylim([850,1400]); ia.set_yticks(arange(900,1601,100));
+ia.set_xticklabels(['Cue','Non-Cue','Neutral'], size = 10);
 ia.set_ylabel('Reaction time (ms)',size=10); ia.set_xlabel('Selected Item',size=10); ia.yaxis.set_label_position('right'); ia.yaxis.set_ticks_position('right');
-ia.set_yticklabels(['800','900','1000','1100','1200'], size = 10);
+ia.set_yticklabels(['900','1000','1100','1200','1300','1400','1500','1600'], size = 10);
 ia.bar(1.0,db['agg_high_pref_selected_cue_mean_rt'], color = 'grey', width = 0.3);
 ia.errorbar(1.0, db['agg_high_pref_selected_cue_mean_rt'],
              yerr=[[db['agg_high_pref_selected_cue_bs_sems_rt']],[db['agg_high_pref_selected_cue_bs_sems_rt']]],color='black',lw=2.0,capsize = 3.0);

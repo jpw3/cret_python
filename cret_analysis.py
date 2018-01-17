@@ -103,61 +103,59 @@ def computePercentageLookingTimes(blocks, eyed = 'agg'):
 				for t in subj:
 					#conditional to differentiate between not-cue trials when selecteing the non-cue or not
 					if ((selected_item=='cue')|(selected_item=='not_cue')):
-						if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial)&((t.preferred_category == cue)==cue_or_not)&((t.preferred_category == 'alcohol')|(t.preferred_category == 'cigarette'))):
+						if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial)&((t.preferred_category == cue)==cue_or_not)&((t.preferred_category == 'alcohol')|(t.preferred_category == 'cigarette'))):
 							neu_time_at_pref.append(t.timeLookingAtNeutral);
 							neu_perc_at_pref.append(t.percentageTimeLookingAtNeutral);
-							rts.append(t.response_time)
-						if (cue=='alcohol'):
-							cue_time_at_pref.append(t.timeLookingAtAlcohol);
-							cue_perc_at_pref.append(t.percentageTimeLookingAtAlcohol);
-							not_cue_time_at_pref.append(t.timeLookingAtCigarette);
-							not_cue_perc_at_pref.append(t.percentageTimeLookingAtCigarette);							
-							rts.append(t.response_time)							
-						elif (cue=='cigarette'):
-							cue_time_at_pref.append(t.timeLookingAtCigarette);
-							cue_perc_at_pref.append(t.percentageTimeLookingAtCigarette);
-							not_cue_time_at_pref.append(t.timeLookingAtAlcohol);
-							not_cue_perc_at_pref.append(t.percentageTimeLookingAtAlcohol);							
-							rts.append(t.response_time)																				
+							rts.append(t.response_time);
+							if (cue=='alcohol'):
+								cue_time_at_pref.append(t.timeLookingAtAlcohol);
+								cue_perc_at_pref.append(t.percentageTimeLookingAtAlcohol);
+								not_cue_time_at_pref.append(t.timeLookingAtCigarette);
+								not_cue_perc_at_pref.append(t.percentageTimeLookingAtCigarette);							
+								rts.append(t.response_time);							
+							elif (cue=='cigarette'):
+								cue_time_at_pref.append(t.timeLookingAtCigarette);
+								cue_perc_at_pref.append(t.percentageTimeLookingAtCigarette);
+								not_cue_time_at_pref.append(t.timeLookingAtAlcohol);
+								not_cue_perc_at_pref.append(t.percentageTimeLookingAtAlcohol);							
+								rts.append(t.response_time);																				
 					#this second conditional include neutral trials that were preferred only
 					elif (selected_item=='neutral'):
-						if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial)&((t.preferred_category == cue)==cue_or_not)&(t.preferred_category == 'neutral')):
+						if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial)&((t.preferred_category == cue)==cue_or_not)&(t.preferred_category == 'neutral')):
 							neu_time_at_pref.append(t.timeLookingAtNeutral);
 							neu_perc_at_pref.append(t.percentageTimeLookingAtNeutral);
-							rts.append(t.response_time)
-						if (cue=='alcohol'):
-							cue_time_at_pref.append(t.timeLookingAtAlcohol);
-							cue_perc_at_pref.append(t.percentageTimeLookingAtAlcohol);
-							not_cue_time_at_pref.append(t.timeLookingAtCigarette);
-							not_cue_perc_at_pref.append(t.percentageTimeLookingAtCigarette);							
-							rts.append(t.response_time)							
-						elif (cue=='cigarette'):
-							cue_time_at_pref.append(t.timeLookingAtCigarette);
-							cue_perc_at_pref.append(t.percentageTimeLookingAtCigarette);
-							not_cue_time_at_pref.append(t.timeLookingAtAlcohol);
-							not_cue_perc_at_pref.append(t.percentageTimeLookingAtAlcohol);							
-							rts.append(t.response_time)									
-					#append this subjects' data to the holder list and calculate the nanmeans to store in the database
-					neu_subject_times.append(nanmean(neu_time_at_pref)); 
-					neu_subject_percs.append(nanmean(neu_perc_at_pref));
-					cue_subject_times.append(nanmean(cue_time_at_pref));
-					cue_subject_percs.append(nanmean(cue_perc_at_pref));
-					not_cue_subject_times.append(nanmean(not_cue_time_at_pref));
-					not_cue_subject_percs.append(nanmean(not_cue_perc_at_pref));
-					all_rts.append(nanmean(rts));
-					
-					1/0
-					
-					db['%s_high_pref_selected_%s_look_at_neutral_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_time_at_pref); 
-					db['%s_high_pref_selected_%s_look_at_neutral_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_perc_at_pref);
-					db['%s_high_pref_selected_%s_look_at_cue_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(cue_time_at_pref); 
-					db['%s_high_pref_selected_%s_look_at_cue_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(cue_perc_at_pref);
-					db['%s_high_pref_selected_%s_look_at_not_cue_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(not_cue_time_at_pref); 
-					db['%s_high_pref_selected_%s_look_at_not_cuel_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(not_cue_perc_at_pref); 					
-					db['%s_high_pref_selected_%s_mean_rt'%(sub_id,selected_item)] = nanmean(rts);
-					#add this data to the DataFrame for use in .csv creation
-					data.loc[counter] = [sub_id,cue,selected_item,nanmean(neu_time_at_pref),nanmean(neu_perc_at_pref),nanmean(cue_time_at_pref),nanmean(cue_perc_at_pref),nanmean(not_cue_time_at_pref),nanmean(not_cue_perc_at_pref),nanmean(rts)];
-					counter+=1;
+							rts.append(t.response_time);
+							if (cue=='alcohol'):
+								cue_time_at_pref.append(t.timeLookingAtAlcohol);
+								cue_perc_at_pref.append(t.percentageTimeLookingAtAlcohol);
+								not_cue_time_at_pref.append(t.timeLookingAtCigarette);
+								not_cue_perc_at_pref.append(t.percentageTimeLookingAtCigarette);							
+								rts.append(t.response_time);						
+							elif (cue=='cigarette'):
+								cue_time_at_pref.append(t.timeLookingAtCigarette);
+								cue_perc_at_pref.append(t.percentageTimeLookingAtCigarette);
+								not_cue_time_at_pref.append(t.timeLookingAtAlcohol);
+								not_cue_perc_at_pref.append(t.percentageTimeLookingAtAlcohol);							
+								rts.append(t.response_time);
+				1/0														
+				#append this subjects' data to the holder list and calculate the nanmeans to store in the database
+				neu_subject_times.append(nanmean(neu_time_at_pref)); 
+				neu_subject_percs.append(nanmean(neu_perc_at_pref));
+				cue_subject_times.append(nanmean(cue_time_at_pref));
+				cue_subject_percs.append(nanmean(cue_perc_at_pref));
+				not_cue_subject_times.append(nanmean(not_cue_time_at_pref));
+				not_cue_subject_percs.append(nanmean(not_cue_perc_at_pref));
+				all_rts.append(nanmean(rts));		
+				db['%s_high_pref_selected_%s_look_at_neutral_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_time_at_pref); 
+				db['%s_high_pref_selected_%s_look_at_neutral_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_perc_at_pref);
+				db['%s_high_pref_selected_%s_look_at_cue_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(cue_time_at_pref); 
+				db['%s_high_pref_selected_%s_look_at_cue_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(cue_perc_at_pref);
+				db['%s_high_pref_selected_%s_look_at_not_cue_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(not_cue_time_at_pref); 
+				db['%s_high_pref_selected_%s_look_at_not_cuel_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(not_cue_perc_at_pref); 					
+				db['%s_high_pref_selected_%s_mean_rt'%(sub_id,selected_item)] = nanmean(rts);
+				#add this data to the DataFrame for use in .csv creation
+				data.loc[counter] = [sub_id,cue,selected_item,nanmean(neu_time_at_pref),nanmean(neu_perc_at_pref),nanmean(cue_time_at_pref),nanmean(cue_perc_at_pref),nanmean(not_cue_time_at_pref),nanmean(not_cue_perc_at_pref),nanmean(rts)];
+				counter+=1;
 			
 			#now here aggregate all the data together and append it to the database
 			db['agg_high_pref_selected_%s_look_at_neutral_mean_time_at_pref'%(selected_item)] = nanmean(neu_subject_times); db['agg_high_pref_selected_%s_look_at_neutral_bs_sems_time_at_pref'%(selected_item)] = compute_BS_SEM(neu_subject_times);

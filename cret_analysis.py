@@ -76,12 +76,7 @@ def computePercentageLookingTimes(blocks, eyed = 'agg'):
 	
 	data = pd.DataFrame(columns = ['sub_id','subject_cue','selected','neu_mean_time_looking_at_pref','neu_mean_percentage_looking_at_pref',
 								   'cue_mean_time_looking_at_pref','cue_mean_percentage_looking_at_pref','not_cue_mean_time_looking_at_pref','not_cue_mean_percentage_looking_at_pref', 'mean_response_time']);
-	
-	#store all the trial data for each subject in a master DB
-	hl_index_counter = 0;
-	all_high_index_counter = 0;
-	cv_counter = 0;
-	
+		
 	for high_pref_trial,name in zip([0,1],['non_high_pref','high_pref']):
 		#for now, only run this analysis for the high preference (preferred alcohol, preferred cigarette) trials
 		if high_pref_trial==0:
@@ -149,99 +144,34 @@ def computePercentageLookingTimes(blocks, eyed = 'agg'):
 					cue_subject_percs.append(nanmean(cue_perc_at_pref));
 					not_cue_subject_times.append(nanmean(not_cue_time_at_pref));
 					not_cue_subject_percs.append(nanmean(not_cue_perc_at_pref));
-					all_rts.append(nanmean(rts));					
-					db['%s_high_pref_selected_%s_neutral_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_time_at_pref); 
-					db['%s_high_pref_selected_%s_neutral_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_perc_at_pref);
-					db['%s_high_pref_selected_%s_cue_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(cue_time_at_pref); 
-					db['%s_high_pref_selected_%s_cue_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(cue_perc_at_pref);
-					db['%s_high_pref_selected_%s_not_cue_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(not_cue_time_at_pref); 
-					db['%s_high_pref_selected_%s_not_cuel_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(not_cue_perc_at_pref); 					
+					all_rts.append(nanmean(rts));
+					
+					1/0
+					
+					db['%s_high_pref_selected_%s_look_at_neutral_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_time_at_pref); 
+					db['%s_high_pref_selected_%s_look_at_neutral_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_perc_at_pref);
+					db['%s_high_pref_selected_%s_look_at_cue_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(cue_time_at_pref); 
+					db['%s_high_pref_selected_%s_look_at_cue_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(cue_perc_at_pref);
+					db['%s_high_pref_selected_%s_look_at_not_cue_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(not_cue_time_at_pref); 
+					db['%s_high_pref_selected_%s_look_at_not_cuel_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(not_cue_perc_at_pref); 					
 					db['%s_high_pref_selected_%s_mean_rt'%(sub_id,selected_item)] = nanmean(rts);
 					#add this data to the DataFrame for use in .csv creation
-					data.loc[counter] = [id,cue_name,nanmean(tp),nanmean(pp),nanmean(rt)];
+					data.loc[counter] = [sub_id,cue,selected_item,nanmean(neu_time_at_pref),nanmean(neu_perc_at_pref),nanmean(cue_time_at_pref),nanmean(cue_perc_at_pref),nanmean(not_cue_time_at_pref),nanmean(not_cue_perc_at_pref),nanmean(rts)];
 					counter+=1;
-					
+			
 			#now here aggregate all the data together and append it to the database
-			neu_subject_times = [];  
-			neu_subject_percs = [];
-			cue_subject_times = [];
-			cue_subject_percs = [];
-			not_cue_subject_times = [];
-			not_cue_subject_percs = [];
-			all_rts = [];
-		
+			db['agg_high_pref_selected_%s_look_at_neutral_mean_time_at_pref'%(selected_item)] = nanmean(neu_subject_times); db['agg_high_pref_selected_%s_look_at_neutral_bs_sems_time_at_pref'%(selected_item)] = compute_BS_SEM(neu_subject_times);
+			db['agg_high_pref_selected_%s_look_at_neutral_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_subject_percs); db['agg_high_pref_selected_%s_look_at_neutral_bs_sems_perc_time_at_pref'%(sub_id,selected_item)] = compute_BS_SEM(neu_subject_percs);				
+			db['agg_high_pref_selected_%s_look_at_cue_mean_time_at_pref'%(selected_item)] = nanmean(cue_subject_times); db['agg_high_pref_selected_%s_look_at_cue_bs_sems_time_at_pref'%(selected_item)] = compute_BS_SEM(cue_subject_times);
+			db['agg_high_pref_selected_%s_look_at_cue_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(cue_subject_percs); db['agg_high_pref_selected_%s_look_at_cue_bs_sems_perc_time_at_pref'%(sub_id,selected_item)] = compute_BS_SEM(cue_subject_percs);			
+			db['agg_high_pref_selected_%s_look_at_not_cue_mean_time_at_pref'%(selected_item)] = nanmean(not_cue_subject_times); db['agg_high_pref_selected_%s_look_at_not_cue_bs_sems_time_at_pref'%(selected_item)] = compute_BS_SEM(not_cue_subject_times);
+			db['agg_high_pref_selected_%s_look_at_not_cue_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(not_cue_subject_percs); db['agg_high_pref_selected_%s_look_at_not_cue_bs_sems_perc_time_at_pref'%(sub_id,selected_item)] = compute_BS_SEM(not_cue_subject_percs);				
+			db['agg_high_pref_selected_%s_mean_rt'%(sub_id,selected_item)] = nanmean(all_rts); db['agg_high_pref_selected_%s_bs_sems_rt'%(sub_id, selected_item)] = compute_BS_SEM(all_rts);		
 
-
-
-
-
-
-			db['%s_high_pref_selected_%s_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(time_at_pref); db['%s_high_pref_selected_%s_bs_sems_time_at_pref'%(sub_id,selected_item)] = compute_BS_SEM(time_at_pref);
-			db['%s_high_pref_selected_%s_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(perc_time_at_pref); db['%s_high_pref_selected_%s_bs_sems_perc_time_at_pref'%(sub_id,selected_item)] = compute_BS_SEM(perc_time_at_pref);				
-			db['%s_high_pref_selected_%s_mean_rt'%(sub_id,selected_item)] = nanmean(rts); db['%s_high_pref_selected_%s_bs_sems_rt'%(sub_id, selected_item)] = compute_BS_SEM(rts);		
-	
-	
-	
-	for high_pref_trial,name in zip([0,1],['non_high_pref','high_pref']):
-		time_at_pref = [mean([tee.timeLookingAtPreferred for tee in subj
-				   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];
-		perc_time_at_pref = [mean([tee.percentageTimeLookingAtPreferred for tee in subj
-				   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];					
-		rts = [mean([tee.response_time for tee in subj
-				   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];
-		db['%s_%s_mean_time_at_pref'%(eyed,name)] = nanmean(time_at_pref); db['%s_%s_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(time_at_pref);
-		db['%s_%s_mean_perc_time_at_pref'%(eyed,name)] = nanmean(perc_time_at_pref); db['%s_%s_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(perc_time_at_pref);
-		db['%s_%s_mean_rt'%(eyed,name)] = nanmean(rts); db['%s_%s_bs_sems_rt'%(eyed,name)] = compute_BS_SEM(rts);
-		
-		for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
-			#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats
-			high_vs_other_pref_data.loc[hl_index_counter] = [id,name,nanmean(tp),nanmean(pp),nanmean(rt)];
-			hl_index_counter+=1;
-			
-		#cycle through the different types of high preference trials (where each one could be selected):
-		#1. all high-pref trials, 2. all not high pref trials, 3. alcohol high pref trials
-		#4. cigarette high pref trials, and 5. neutral high pref trials
-		if high_pref_trial==1:
-			for pref_category in ['alcohol','cigarette','neutral']:
-				time_at_pref = [mean([tee.timeLookingAtPreferred for tee in subj
-						   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];
-				perc_time_at_pref = [mean([tee.percentageTimeLookingAtPreferred for tee in subj
-						   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];					
-				rts = [mean([tee.response_time for tee in subj
-						   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];					
-				db['%s_high_pref_%s_mean_time_at_pref'%(eyed,pref_category)] = nanmean(time_at_pref); db['%s_high_pref_%s_bs_sems_time_at_pref'%(eyed,pref_category)] = compute_BS_SEM(time_at_pref);
-				db['%s_high_pref_%s_mean_perc_time_at_pref'%(eyed,pref_category)] = nanmean(perc_time_at_pref); db['%s_high_pref_%s_bs_sems_perc_time_at_pref'%(eyed,pref_category)] = compute_BS_SEM(perc_time_at_pref);
-				db['%s_high_pref_%s_mean_rt'%(eyed,pref_category)] = nanmean(rts); db['%s_high_pref_%s_bs_sems_rt'%(eyed, pref_category)] = compute_BS_SEM(rts);
-				
-				for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
-					#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats
-					high_pref_only_data.loc[all_high_index_counter] = [id,pref_category,nanmean(tp),nanmean(pp),nanmean(rt)];
-					all_high_index_counter+=1;
-			
-			#now run this analysis for the trials where the subject selected the cue item, as defined above, vs the non cued item 
-					
-			for cue_or_not, cue_name in zip([1,0],['cue','not_cue']):
-				time_at_pref = [mean([tee.timeLookingAtPreferred for tee in subj
-						   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&((tee.preferred_category == cue)==cue_or_not)&
-						   ((tee.preferred_category == 'alcohol')|(tee.preferred_category == 'cigarette'))]) for subj,cue in zip(trial_matrix,subject_cues)];				
-				perc_time_at_pref = [mean([tee.percentageTimeLookingAtPreferred for tee in subj
-						   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&((tee.preferred_category == cue)==cue_or_not)&
-						   ((tee.preferred_category == 'alcohol')|(tee.preferred_category == 'cigarette'))]) for subj,cue in zip(trial_matrix,subject_cues)];				
-				rts = [mean([tee.response_time for tee in subj
-						   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&((tee.preferred_category == cue)==cue_or_not)&
-						   ((tee.preferred_category == 'alcohol')|(tee.preferred_category == 'cigarette'))]) for subj,cue in zip(trial_matrix,subject_cues)];
-				db['%s_high_pref_selected_%s_mean_time_at_pref'%(eyed,cue_name)] = nanmean(time_at_pref); db['%s_high_pref_selected_%s_bs_sems_time_at_pref'%(eyed,cue_name)] = compute_BS_SEM(time_at_pref);
-				db['%s_high_pref_selected_%s_mean_perc_time_at_pref'%(eyed,cue_name)] = nanmean(perc_time_at_pref); db['%s_high_pref_selected_%s_bs_sems_perc_time_at_pref'%(eyed,cue_name)] = compute_BS_SEM(perc_time_at_pref);				
-				db['%s_high_pref_selected_%s_mean_rt'%(eyed,cue_name)] = nanmean(rts); db['%s_high_pref_selected_%s_bs_sems_rt'%(eyed, cue_name)] = compute_BS_SEM(rts);
-				for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
-					#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats
-					cue_vs_not_cue_data.loc[all_high_index_counter] = [id,cue_name,nanmean(tp),nanmean(pp),nanmean(rt)];
-					cv_counter+=1;				
 
 	#write the data to csv files
 	high_vs_other_pref_data.to_csv(savepath+'perc_time_avg_high_vs_nothigh_pref_trial_data.csv',index=False); 
-	high_pref_only_data.to_csv(savepath+'perc_time_avg_high_pref_only_trial_data.csv',index=False);
-	cue_vs_not_cue_data.to_csv(savepath+'perc_time_cue_not_cue_high_pref_trial_data.csv',index=False);
+
 
 
 def computeLastItemLookedAt(blocks, eyed = 'agg'):
@@ -1116,11 +1046,72 @@ class trial(object):
 	# all_data.to_csv(savepath+'individual_subject_all_trials_trial_by_trial_data.csv',index=False); 
 
 	# ##Build an average database instance of each value for each subject for high vs low preferred trials and the subsets of high preferred trials
+	# 	#store all the trial data for each subject in a master DB
+	# hl_index_counter = 0;
+	# all_high_index_counter = 0;
+	# cv_counter = 0;
 	# high_vs_other_pref_data = pd.DataFrame(columns = ['sub_id','trial_type','mean_time_looking_at_pref','mean_percentage_looking_at_pref', 'mean_response_time']);
 	# high_pref_only_data = pd.DataFrame(columns = ['sub_id','preferred_pic','mean_time_looking_at_pref','mean_percentage_looking_at_pref', 'mean_response_time']);
 	# cue_vs_not_cue_data = pd.DataFrame(columns = ['sub_id','cue_type','mean_time_looking_at_pref','mean_percentage_looking_at_pref', 'mean_response_time']);
-	
-	
+	# for high_pref_trial,name in zip([0,1],['non_high_pref','high_pref']):
+	# 	time_at_pref = [mean([tee.timeLookingAtPreferred for tee in subj
+	# 			   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];
+	# 	perc_time_at_pref = [mean([tee.percentageTimeLookingAtPreferred for tee in subj
+	# 			   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];					
+	# 	rts = [mean([tee.response_time for tee in subj
+	# 			   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];
+	# 	db['%s_%s_mean_time_at_pref'%(eyed,name)] = nanmean(time_at_pref); db['%s_%s_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(time_at_pref);
+	# 	db['%s_%s_mean_perc_time_at_pref'%(eyed,name)] = nanmean(perc_time_at_pref); db['%s_%s_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(perc_time_at_pref);
+	# 	db['%s_%s_mean_rt'%(eyed,name)] = nanmean(rts); db['%s_%s_bs_sems_rt'%(eyed,name)] = compute_BS_SEM(rts);
+	# 	
+	# 	for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
+	# 		#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats
+	# 		high_vs_other_pref_data.loc[hl_index_counter] = [id,name,nanmean(tp),nanmean(pp),nanmean(rt)];
+	# 		hl_index_counter+=1;
+	# 		
+	# 	#cycle through the different types of high preference trials (where each one could be selected):
+	# 	#1. all high-pref trials, 2. all not high pref trials, 3. alcohol high pref trials
+	# 	#4. cigarette high pref trials, and 5. neutral high pref trials
+	# 	if high_pref_trial==1:
+	# 		for pref_category in ['alcohol','cigarette','neutral']:
+	# 			time_at_pref = [mean([tee.timeLookingAtPreferred for tee in subj
+	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];
+	# 			perc_time_at_pref = [mean([tee.percentageTimeLookingAtPreferred for tee in subj
+	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];					
+	# 			rts = [mean([tee.response_time for tee in subj
+	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];					
+	# 			db['%s_high_pref_%s_mean_time_at_pref'%(eyed,pref_category)] = nanmean(time_at_pref); db['%s_high_pref_%s_bs_sems_time_at_pref'%(eyed,pref_category)] = compute_BS_SEM(time_at_pref);
+	# 			db['%s_high_pref_%s_mean_perc_time_at_pref'%(eyed,pref_category)] = nanmean(perc_time_at_pref); db['%s_high_pref_%s_bs_sems_perc_time_at_pref'%(eyed,pref_category)] = compute_BS_SEM(perc_time_at_pref);
+	# 			db['%s_high_pref_%s_mean_rt'%(eyed,pref_category)] = nanmean(rts); db['%s_high_pref_%s_bs_sems_rt'%(eyed, pref_category)] = compute_BS_SEM(rts);
+	# 			
+	# 			for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
+	# 				#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats
+	# 				high_pref_only_data.loc[all_high_index_counter] = [id,pref_category,nanmean(tp),nanmean(pp),nanmean(rt)];
+	# 				all_high_index_counter+=1;
+	# 		
+	# 		#now run this analysis for the trials where the subject selected the cue item, as defined above, vs the non cued item 
+	# 				
+	# 		for cue_or_not, cue_name in zip([1,0],['cue','not_cue']):
+	# 			time_at_pref = [mean([tee.timeLookingAtPreferred for tee in subj
+	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&((tee.preferred_category == cue)==cue_or_not)&
+	# 					   ((tee.preferred_category == 'alcohol')|(tee.preferred_category == 'cigarette'))]) for subj,cue in zip(trial_matrix,subject_cues)];				
+	# 			perc_time_at_pref = [mean([tee.percentageTimeLookingAtPreferred for tee in subj
+	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&((tee.preferred_category == cue)==cue_or_not)&
+	# 					   ((tee.preferred_category == 'alcohol')|(tee.preferred_category == 'cigarette'))]) for subj,cue in zip(trial_matrix,subject_cues)];				
+	# 			rts = [mean([tee.response_time for tee in subj
+	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&((tee.preferred_category == cue)==cue_or_not)&
+	# 					   ((tee.preferred_category == 'alcohol')|(tee.preferred_category == 'cigarette'))]) for subj,cue in zip(trial_matrix,subject_cues)];
+	# 			db['%s_high_pref_selected_%s_mean_time_at_pref'%(eyed,cue_name)] = nanmean(time_at_pref); db['%s_high_pref_selected_%s_bs_sems_time_at_pref'%(eyed,cue_name)] = compute_BS_SEM(time_at_pref);
+	# 			db['%s_high_pref_selected_%s_mean_perc_time_at_pref'%(eyed,cue_name)] = nanmean(perc_time_at_pref); db['%s_high_pref_selected_%s_bs_sems_perc_time_at_pref'%(eyed,cue_name)] = compute_BS_SEM(perc_time_at_pref);				
+	# 			db['%s_high_pref_selected_%s_mean_rt'%(eyed,cue_name)] = nanmean(rts); db['%s_high_pref_selected_%s_bs_sems_rt'%(eyed, cue_name)] = compute_BS_SEM(rts);
+	# 			for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
+	# 				#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats
+	# 				cue_vs_not_cue_data.loc[all_high_index_counter] = [id,cue_name,nanmean(tp),nanmean(pp),nanmean(rt)];
+	# 				cv_counter+=1;					
+	# #write the data to csv files
+	# high_vs_other_pref_data.to_csv(savepath+'perc_time_avg_high_vs_nothigh_pref_trial_data.csv',index=False); 
+	# high_pref_only_data.to_csv(savepath+'perc_time_avg_high_pref_only_trial_data.csv',index=False);
+	# cue_vs_not_cue_data.to_csv(savepath+'perc_time_cue_not_cue_high_pref_trial_data.csv',index=False);	
 	
 	
 	

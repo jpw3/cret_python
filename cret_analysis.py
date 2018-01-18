@@ -17,9 +17,9 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 ## Specify some universal parameters ##
 ############################################
 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Users/james/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+datapath = '/Users/james/Documents/MATLAB/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
 
 subject_data = shelve.open(shelvepath+'data');
 
@@ -593,8 +593,8 @@ class trial(object):
 		self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
 		
 		# if self.dropped_sample < 1:
-		# 	self.plotSaccadeDebug();
-				
+		#   	self.plotSaccadeDebug();
+
 		self.get_ET_data(); #call this method defined below
 		
 	#define a function that takes a trial object and determines the proportion of time was looking at each item
@@ -604,7 +604,7 @@ class trial(object):
 	
 	def plotSaccadeDebug(self):
 	#plots the different saccades for the given trial for use in debugging	
-		fig = figure(figsize = (12.8,7.64)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]);
+		fig = figure(); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
 		ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
 		legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue'];
 		#first plot the eye traces with respect to the velocity data

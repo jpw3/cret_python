@@ -586,8 +586,8 @@ class trial(object):
 		temp = totalChange/timeChange; #calculate the velocity for each time point
 		self.velocities = insert(temp,0,0); #insert a 0 at the beginning of the array for the first time point
 		
-		#Next filter the velocities... this may or may not be necessary/advisable
-		#get params for a butterworth filter and bandpass it at 10 Hz
+		#Next filter the velocities.
+		#get params for a butterworth filter and bandpass it at 20 Hz
 		trialTime = self.sample_times[-1]-self.sample_times[0]; #get total time for the trial
 		samplingRate = 1000.0; #round(len(self.sample_times)/float(trialTime)); #get the downsampled sampling rate
 		halfSRate = samplingRate/2;
@@ -600,44 +600,42 @@ class trial(object):
 		self.filtered_velocities = y; #append the filtered velocities to this trial instance
 		
 		#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
-		startingVelCrit = 100; #christie used a velocity threshold of 100 degrees/second
+		startingVelCrit = 60; #christie used a velocity threshold of 100 degrees/second
 		
 		#if the subejct has already been completed, then I want to use the ending threshold values I calculated already
 		#first check if the id is in the list of completed ids, then pull the threshold
-		if self.sub_id in completed_velocity_ids:
+		if self.dropped_sample > 0:
+			endingVelCrit = -1;
+			nr_saccades = -1;
+		elif self.sub_id in completed_velocity_ids:
 			endingVelCrit = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['saccade_velocity_criterion'];
 			nr_saccades = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['nr_saccades'];
 		else:
-			[endingVelCrit, nr_saccades] = self.plotSaccadeDebug(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
-			1/0
+			[endingVelCrit, nr_saccades] = self.plotSaccadeGetVelocity(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
 			#add this trial's criterion to the database and save it
 			subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit];
 
 		#save the velocity threshold and the isSaccade truth vector to the array
 		self.saccadeCriterion = endingVelCrit; #degrees/sec
 		self.nr_saccades = nr_saccades;
-		self.isSaccade = self.filtered_velocities > self.saccadeCriertion;
+		self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
 		
 		self.get_ET_data();
-		
-	#define a function that takes a trial object and determines the proportion of time was looking at each item
-	#this should find arrays of length(trial time) for each item/location, marking a 0 if not looking at that loc
-	#and a 1 if it is. also should aggregate this together in a succint manner (e.g., proportion of trial spent looking at each item)
-	#will call this in the Trial definition function
 	
-	def plotSaccadeDebug(self, startingIsSaccade, startingVelCrit):
+	def plotSaccadeGetVelocity(self, startingVelCrit):
 		
-		print; print "'a' = accept this trial, 'c' = crash."; print;
+		print; print "'a' = accept this trial, 'c' = crash, 's' = skip this trial"; print;
 		print ; print "To adjust threshold, just type new threshold: " ; print ;
 		
 		#must make this iterative to that I can adjust the velocity threshold until it is appropriate for this trial	
 		new_crit = startingVelCrit;
+		resp = 0;
 		
 		while resp!=('a'):
 			isSaccade = self.filtered_velocities > new_crit; #identify where a saccade was based on the velocity criterion
 
 			#plot the different saccades for the given trial for use in debugging	
-			fig = figure(); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+			fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
 			ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
 			legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue'];
 			#first plot the eye traces with respect to the velocity data
@@ -650,7 +648,7 @@ class trial(object):
 					ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
 					#conditional to switch to the next saccade color
 					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
-					if self.isSaccade[i-1]==True:
+					if isSaccade[i-1]==True:
 						nr_saccades+=1
 						legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));					
 						saccade_counter+=1;
@@ -676,7 +674,7 @@ class trial(object):
 					plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);
 					#conditional to switch to the next saccade color
 					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
-					if self.isSaccade[i-1]==1:
+					if isSaccade[i-1]==1:
 						nr_saccades+=1				
 						saccade_counter+=1;
 						if saccade_counter > len(colors):
@@ -684,8 +682,10 @@ class trial(object):
 				else:
 					plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);		
 			#plot the velocity trheshold and set labels
-			plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(self.saccadeCriterion,self.saccadeCriterion+0.01,len(self.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
-			ia.set_xlabel('Velocity', fontsize = 14); ia.set_ylabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
+			plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(new_crit,new_crit+0.01,len(self.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
+			ia.set_ylabel('Velocity', fontsize = 14); ia.set_xlabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
+			
+			fig.text(0.7, 0.4, 'CURRENT VELOCITY \n THRESHOLD: %s'%(new_crit),size=16,weight='bold');
 			
 			resp = raw_input();	#wait for the button press to move to next trial
 			if resp.isdigit(): #adjust the threshold here
@@ -694,11 +694,18 @@ class trial(object):
 				1/0;
 			elif resp == 'a':
 				endingVelCrit = new_crit;
+			elif resp == 's':
+				endingVelCrit = -1; #this is a flag for skippig this trial
+				nr_saccaedes = -1;
 			else:
 				new_crit = new_crit;
 			close('all');
 		return [endingVelCrit, nr_saccades];
-			
+
+	#define a function that takes a trial object and determines the proportion of time was looking at each item
+	#this should find arrays of length(trial time) for each item/location, marking a 0 if not looking at that loc
+	#and a 1 if it is. also should aggregate this together in a succint manner (e.g., proportion of trial spent looking at each item)
+	#will call this in the Trial definition function			
 
 	def get_ET_data(self):
 		lookedUp = zeros(len(self.sample_times)); #truth arrays

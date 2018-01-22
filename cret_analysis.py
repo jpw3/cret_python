@@ -17,11 +17,13 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 ## Specify some universal parameters ##
 ############################################
 
-datapath = '/Users/james/Documents/MATLAB/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
-shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Users/james/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
 
+#import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
+subject_saccade_criteria = pd.read_csv(savepath+'subject_saccade_critera_each_trial.csv');
 
 ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11','cret13','cret14','cret15','cret16','cret17','cret18']; #'cret01',
 
@@ -569,6 +571,9 @@ class trial(object):
 		self.eyeY = array(eyeY); #[::sampStep];
 		self.p_size = array(pSize); #[::sampStep];
 		
+		
+		
+		
 		#find when the subject was saccading in each trial
 		#first use a differentiation method to define the velocity (eye position change/time change) for each time point in the trial
 		timeChange = 0.001; #diff(self.sample_times); #difference in time, in seconds 
@@ -582,14 +587,25 @@ class trial(object):
 		#get params for a butterworth filter and bandpass it at 10 Hz
 		trialTime = self.sample_times[-1]-self.sample_times[0]; #get total time for the trial
 		samplingRate = 1000.0; #round(len(self.sample_times)/float(trialTime)); #get the downsampled sampling rate
-		halfSRate = samplingRate/2; freqCut = 10; 
+		halfSRate = samplingRate/2;
+		
+		#Christie used a frequency cut off of 20 for the filter, but 'it should be 100' seems she determiend the frequency for each trial independantl
+		freqCut = 10;
+		
+		
+		
 		butterwindow = freqCut/halfSRate; nthOrder = 2; #defining parameters for the butterworth filter
 		[b,a] = ssignal.butter(nthOrder,butterwindow); #fit the butterworth filter
 		y = ssignal.filtfilt(b,a,self.velocities,padtype='odd'); #get the filtered velocity data		
 		self.filtered_velocities = y; #append the filtered velocities to this trial instance
 		
 		#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
+		
+		#christie used a velocity threshold of 100 degrees/second 
 		self.saccadeCriterion = 30; #degrees/sec
+		
+		
+		
 		self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
 		
 		# if self.dropped_sample < 1:

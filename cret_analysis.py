@@ -614,6 +614,7 @@ class trial(object):
 			[endingVelCrit, nr_saccades] = self.plotSaccadeGetVelocity(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
 			#add this trial's criterion to the database and save it
 			subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit];
+			subject_saccade_criteria.to_csv(savepath+'subject_saccade_criteria_each_trial.csv',index=False);
 
 		#save the velocity threshold and the isSaccade truth vector to the array
 		self.saccadeCriterion = endingVelCrit; #degrees/sec
@@ -648,14 +649,15 @@ class trial(object):
 					ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
 					#conditional to switch to the next saccade color
 					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
-					if isSaccade[i-1]==True:
-						nr_saccades+=1
-						legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));					
+					if (isSaccade[i-1]==True)&(i>0):  					
 						saccade_counter+=1;
 						if saccade_counter > len(colors):
-							saccade_counter=0;
+							saccade_counter=0;					
 				else:
 					ax.plot(xx, yy, color = colors[saccade_counter], marker = 'o', ms = 4);
+					if (isSaccade[i-1]==False)&(i>0):  
+						nr_saccades+=1;
+						legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));
 					
 			ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
 			ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
@@ -674,18 +676,19 @@ class trial(object):
 					plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);
 					#conditional to switch to the next saccade color
 					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
-					if isSaccade[i-1]==1:
-						nr_saccades+=1				
+					if (isSaccade[i-1]==True)&(i>0):			
 						saccade_counter+=1;
 						if saccade_counter > len(colors):
 							saccade_counter=0;
 				else:
-					plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);		
+					plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);
+					if (isSaccade[i-1]==False)&(i>0):  
+						nr_saccades+=1;
 			#plot the velocity trheshold and set labels
 			plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(new_crit,new_crit+0.01,len(self.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
 			ia.set_ylabel('Velocity', fontsize = 14); ia.set_xlabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
 			
-			fig.text(0.7, 0.4, 'CURRENT VELOCITY \n THRESHOLD: %s'%(new_crit),size=16,weight='bold');
+			fig.text(0.7, 0.4, 'CURRENT VELOCITY \n THRESHOLD: %s deg/s'%(new_crit),size=16,weight='bold');
 			
 			resp = raw_input();	#wait for the button press to move to next trial
 			if resp.isdigit(): #adjust the threshold here

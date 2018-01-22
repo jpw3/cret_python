@@ -23,7 +23,8 @@ shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
-subject_saccade_criteria = pd.read_csv(savepath+'subject_saccade_critera_each_trial.csv');
+subject_saccade_criteria = pd.read_csv(savepath+'subject_saccade_criteria_each_trial.csv');
+completed_velocity_ids = unique(subject_saccade_criteria['sub_id']);
 
 ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11','cret13','cret14','cret15','cret16','cret17','cret18']; #'cret01',
 
@@ -571,11 +572,13 @@ class trial(object):
 		self.eyeY = array(eyeY); #[::sampStep];
 		self.p_size = array(pSize); #[::sampStep];
 		
-		
-		
-		
 		#find when the subject was saccading in each trial
-		#first use a differentiation method to define the velocity (eye position change/time change) for each time point in the trial
+		#use a differentiation method to define the velocity (eye position change/time change) for each time point in the trial
+		#for each trial for each subject, go through and manually adjust the criterion for velocity as needed
+		# because of how I'm doing this, I want to save each trial after I've been through it so I don't have to do this each time...
+		#to do so, I will save completed trials' saccade velocity criterion to a .csv that I will import
+		#if I've already done the trial, I will use the velocity criertion that was already saved
+		
 		timeChange = 0.001; #diff(self.sample_times); #difference in time, in seconds 
 		xChange = -diff(self.eyeX);
 		yChange = -diff(self.eyeY);
@@ -589,89 +592,113 @@ class trial(object):
 		samplingRate = 1000.0; #round(len(self.sample_times)/float(trialTime)); #get the downsampled sampling rate
 		halfSRate = samplingRate/2;
 		
-		#Christie used a frequency cut off of 20 for the filter, but 'it should be 100' seems she determiend the frequency for each trial independantl
-		freqCut = 10;
-		
-		
-		
+		freqCut = 20; #Christie used a frequency cut off of 20 for the filter, but 'it should be 100' 
+
 		butterwindow = freqCut/halfSRate; nthOrder = 2; #defining parameters for the butterworth filter
 		[b,a] = ssignal.butter(nthOrder,butterwindow); #fit the butterworth filter
 		y = ssignal.filtfilt(b,a,self.velocities,padtype='odd'); #get the filtered velocity data		
 		self.filtered_velocities = y; #append the filtered velocities to this trial instance
 		
 		#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
+		startingVelCrit = 100; #christie used a velocity threshold of 100 degrees/second
 		
-		#christie used a velocity threshold of 100 degrees/second 
-		self.saccadeCriterion = 30; #degrees/sec
-		
-		
-		
-		self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
-		
-		# if self.dropped_sample < 1:
-		#   	self.plotSaccadeDebug();
+		#if the subejct has already been completed, then I want to use the ending threshold values I calculated already
+		#first check if the id is in the list of completed ids, then pull the threshold
+		if self.sub_id in completed_velocity_ids:
+			endingVelCrit = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['saccade_velocity_criterion'];
+			nr_saccades = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['nr_saccades'];
+		else:
+			[endingVelCrit, nr_saccades] = self.plotSaccadeDebug(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
+			1/0
+			#add this trial's criterion to the database and save it
+			subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit];
 
-		self.get_ET_data(); #call this method defined below
+		#save the velocity threshold and the isSaccade truth vector to the array
+		self.saccadeCriterion = endingVelCrit; #degrees/sec
+		self.nr_saccades = nr_saccades;
+		self.isSaccade = self.filtered_velocities > self.saccadeCriertion;
+		
+		self.get_ET_data();
 		
 	#define a function that takes a trial object and determines the proportion of time was looking at each item
 	#this should find arrays of length(trial time) for each item/location, marking a 0 if not looking at that loc
 	#and a 1 if it is. also should aggregate this together in a succint manner (e.g., proportion of trial spent looking at each item)
 	#will call this in the Trial definition function
 	
-	def plotSaccadeDebug(self):
-	#plots the different saccades for the given trial for use in debugging	
-		fig = figure(); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
-		ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
-		legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue'];
-		#first plot the eye traces with respect to the velocity data
-		#if the eye is in movements, use the color array above. otheriwse use black to denote fixation
-		saccade_counter = 0; nr_saccades = 0;
-		for i,xx,yy,issac in zip(range(len(self.sample_times)),
-											 self.eyeX, self.eyeY, self.isSaccade):
-			#plot the eye trace in black if not saccading
-			if issac < 1:
-				ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
-				#conditional to switch to the next saccade color
-				#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
-				if self.isSaccade[i-1]==True:
-					nr_saccades+=1
-					legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));					
-					saccade_counter+=1;
-					if saccade_counter > len(colors):
-						saccade_counter=0;
-			else:
-				ax.plot(xx, yy, color = colors[saccade_counter], marker = 'o', ms = 4);
-				
-		ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
-		ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
-		ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
-		ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
-		title('Eye Trace and Position Velocity, Degrees per Second,\nSubject %s, Block %s, Trial %s'%(self.sub_id, self.block_nr, self.trial_nr), fontsize = 22);
+	def plotSaccadeDebug(self, startingIsSaccade, startingVelCrit):
 		
-		#now plot the velocity data in an inset plot	
-		ia = inset_axes(ax, width="30%", height="30%", loc=1); #set the inset axes as percentages of the original axis size
-		saccade_counter = 0; nr_saccades = 0;
-		for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),
-											 self.filtered_velocities, self.velocities, self.isSaccade):
-			#plot the eye trace in black if not saccading
-			plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
-			if issac < 1:
-				plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);
-				#conditional to switch to the next saccade color
-				#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
-				if self.isSaccade[i-1]==1:
-					nr_saccades+=1				
-					saccade_counter+=1;
-					if saccade_counter > len(colors):
-						saccade_counter=0;
-			else:
-				plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);		
-		#plot the velocity trheshold and set labels
-		plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(self.saccadeCriterion,self.saccadeCriterion+0.01,len(self.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
-		ia.set_xlabel('Velocity', fontsize = 14); ia.set_ylabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
+		print; print "'a' = accept this trial, 'c' = crash."; print;
+		print ; print "To adjust threshold, just type new threshold: " ; print ;
 		
-		bool = raw_input();	#wait for the button press to move to next trial
-		close('all');	
+		#must make this iterative to that I can adjust the velocity threshold until it is appropriate for this trial	
+		new_crit = startingVelCrit;
+		
+		while resp!=('a'):
+			isSaccade = self.filtered_velocities > new_crit; #identify where a saccade was based on the velocity criterion
+
+			#plot the different saccades for the given trial for use in debugging	
+			fig = figure(); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+			ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
+			legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue'];
+			#first plot the eye traces with respect to the velocity data
+			#if the eye is in movements, use the color array above. otheriwse use black to denote fixation
+			saccade_counter = 0; nr_saccades = 0;
+			for i,xx,yy,issac in zip(range(len(self.sample_times)),
+												 self.eyeX, self.eyeY, isSaccade):
+				#plot the eye trace in black if not saccading
+				if issac < 1:
+					ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
+					#conditional to switch to the next saccade color
+					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
+					if self.isSaccade[i-1]==True:
+						nr_saccades+=1
+						legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));					
+						saccade_counter+=1;
+						if saccade_counter > len(colors):
+							saccade_counter=0;
+				else:
+					ax.plot(xx, yy, color = colors[saccade_counter], marker = 'o', ms = 4);
+					
+			ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+			ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+			ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+			ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
+			title('Eye Trace and Position Velocity \nSubject %s, Block %s, Trial %s'%(self.sub_id, self.block_nr, self.trial_nr), fontsize = 22);
+			
+			#now plot the velocity data in an inset plot	
+			ia = inset_axes(ax, width="30%", height="30%", loc=1); #set the inset axes as percentages of the original axis size
+			saccade_counter = 0; nr_saccades = 0;
+			for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),
+												 self.filtered_velocities, self.velocities, isSaccade):
+				#plot the eye trace in black if not saccading
+				plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
+				if issac < 1:
+					plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);
+					#conditional to switch to the next saccade color
+					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
+					if self.isSaccade[i-1]==1:
+						nr_saccades+=1				
+						saccade_counter+=1;
+						if saccade_counter > len(colors):
+							saccade_counter=0;
+				else:
+					plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);		
+			#plot the velocity trheshold and set labels
+			plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(self.saccadeCriterion,self.saccadeCriterion+0.01,len(self.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
+			ia.set_xlabel('Velocity', fontsize = 14); ia.set_ylabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
+			
+			resp = raw_input();	#wait for the button press to move to next trial
+			if resp.isdigit(): #adjust the threshold here
+				new_crit = float(resp);
+			elif resp == 'c':
+				1/0;
+			elif resp == 'a':
+				endingVelCrit = new_crit;
+			else:
+				new_crit = new_crit;
+			close('all');
+		return [endingVelCrit, nr_saccades];
+			
 
 	def get_ET_data(self):
 		lookedUp = zeros(len(self.sample_times)); #truth arrays

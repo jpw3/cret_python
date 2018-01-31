@@ -26,7 +26,7 @@ subject_data = shelve.open(shelvepath+'data');
 subject_saccade_criteria = pd.read_csv(savepath+'subject_saccade_criteria_each_trial.csv');
 completed_velocity_ids = unique(subject_saccade_criteria['sub_id']);
 
-ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11','cret13','cret14','cret15','cret16','cret17','cret18']; #'cret01',
+ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11','cret13','cret14','cret15','cret16','cret17','cret18','cret19','cret21','cret22','cret25','cret28']; #'cret01',
 
 display_size = array([22.80, 17.10]); #width, height of the screen used to present the images in degrees of visual angle
 
@@ -592,7 +592,7 @@ class trial(object):
 		samplingRate = 1000.0; #round(len(self.sample_times)/float(trialTime)); #get the downsampled sampling rate
 		halfSRate = samplingRate/2;
 		
-		freqCut = 20; #Christie used a frequency cut off of 20 for the filter, but 'it should be 100' 
+		freqCut =  100; #20; #Christie used a frequency cut off of 20 for the filter, but 'it should be 100' 
 
 		butterwindow = freqCut/halfSRate; nthOrder = 2; #defining parameters for the butterworth filter
 		[b,a] = ssignal.butter(nthOrder,butterwindow); #fit the butterworth filter
@@ -607,18 +607,21 @@ class trial(object):
 		if self.dropped_sample > 0:
 			endingVelCrit = -1;
 			nr_saccades = -1;
+			skip_trial = 1;
 		elif self.sub_id in completed_velocity_ids:
 			endingVelCrit = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['saccade_velocity_criterion'];
 			nr_saccades = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['nr_saccades'];
+			skip_trial = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['skip_trial'];
 		else:
-			[endingVelCrit, nr_saccades] = self.plotSaccadeGetVelocity(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
+			[endingVelCrit, nr_saccades, skip_trial] = self.plotSaccadeGetVelocity(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
 			#add this trial's criterion to the database and save it
-			subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit];
+			subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit, skip_trial];
 			subject_saccade_criteria.to_csv(savepath+'subject_saccade_criteria_each_trial.csv',index=False);
 
 		#save the velocity threshold and the isSaccade truth vector to the array
 		self.saccadeCriterion = endingVelCrit; #degrees/sec
 		self.nr_saccades = nr_saccades;
+		self.skip_trial = skip_trial;
 		self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
 		
 		self.get_ET_data();
@@ -630,7 +633,7 @@ class trial(object):
 		
 		#must make this iterative to that I can adjust the velocity threshold until it is appropriate for this trial	
 		new_crit = startingVelCrit;
-		resp = 0;
+		resp = 0; skip_trial = 0;
 		
 		while resp!=('a'):
 			isSaccade = self.filtered_velocities > new_crit; #identify where a saccade was based on the velocity criterion
@@ -638,7 +641,7 @@ class trial(object):
 			#plot the different saccades for the given trial for use in debugging	
 			fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
 			ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
-			legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue'];
+			legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','fuschia','gold','yellowgreen'];
 			#first plot the eye traces with respect to the velocity data
 			#if the eye is in movements, use the color array above. otheriwse use black to denote fixation
 			saccade_counter = 0; nr_saccades = 0;
@@ -698,8 +701,9 @@ class trial(object):
 			elif resp == 'a':
 				endingVelCrit = new_crit;
 			elif resp == 's':
-				endingVelCrit = -1; #this is a flag for skippig this trial
-				nr_saccaedes = -1;
+				endingVelCrit = -1; #this is a flag for skipping this trial
+				nr_saccades = -1;
+				skip_trial = 1;
 			else:
 				new_crit = new_crit;
 			close('all');

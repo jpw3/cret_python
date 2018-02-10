@@ -26,7 +26,7 @@ subject_data = shelve.open(shelvepath+'data');
 subject_saccade_criteria = pd.read_csv(savepath+'subject_saccade_criteria_each_trial.csv');
 completed_velocity_ids = unique(subject_saccade_criteria['sub_id']);
 
-ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11','cret13','cret14','cret15','cret16','cret17','cret18','cret19','cret21','cret22','cret25','cret28']; #'cret01',
+ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11','cret13','cret14','cret15','cret16','cret17','cret18','cret19','cret21','cret22','cret25','cret28','cret29']; #'cret01',
 
 display_size = array([22.80, 17.10]); #width, height of the screen used to present the images in degrees of visual angle
 
@@ -62,10 +62,10 @@ matplotlib.pyplot.rc('font',weight='bold');
 #do this for all trials, and then for trials where their two stated preferred items (e.g., trial type 1)
 #assign each subject's data to a .csv and save it, and then campute the averages and plot for my use.
 
-def computePercentageLookingTimes(blocks, eyed = 'agg'):
+def computeProportionLookingTimes(blocks, eyed = 'agg'):
 	db = subject_data;
 	#loop through and get all the trials for each subject
-	trial_matrix = [[tee for b in bl for tee in b.trials] for bl in blocks];
+	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
 	
 	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
 	all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
@@ -176,7 +176,7 @@ def computeLastItemLookedAt(blocks, eyed = 'agg'):
 	db = subject_data;
 	
 	#loop through and get all the trials for each subject
-	trial_matrix = [[tee for b in bl for tee in b.trials] for bl in blocks];
+	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
 
 	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
 	all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
@@ -256,7 +256,7 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 	db = subject_data;
 	
 	#loop through and get all the trials for each subject
-	trial_matrix = [[tee for b in bl for tee in b.trials] for bl in blocks];
+	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
 	
 	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
 	all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
@@ -546,85 +546,93 @@ class trial(object):
 		#finally, eye position and pupil size information
 		self.drift_shift = trialData.drift_shift;
 
-		#loop through to get only unique samples, e.g. sampling at 1000 Hz 
-		all_sample_times = trialData.sampleTimes-trialData.sampleTimes[0]; #get sample times
-		prev_time = -1;
-		eyeX = []; eyeY = []; pSize = []; samp_times = [];
-		self.dropped_sample = 0; #pre-allocate this and change it if I find one
-		
-		for time,x_pos,y_pos,pup_s in zip(all_sample_times,trialData.eyeX,trialData.eyeY,trialData.pSize):
-			if time==prev_time:
-				continue;
-			else:
-				samp_times.append(time);
-				#check if the sample was very large (e.g., blink or look away) and set the corresponding values to NaNs
-				if (abs(x_pos)>100)|(abs(y_pos)>100):
-					x_pos = nan; y_pos = nan; pup_s = nan;
-					self.dropped_sample = 1;
-				eyeX.append(x_pos);
-				eyeY.append(y_pos);
-				pSize.append(pup_s);
-				prev_time = time;
-			
-		#get the data together	
-		self.sample_times = array(samp_times); #[::sampStep];
-		self.eyeX = array(eyeX); #[::sampStep];
-		self.eyeY = array(eyeY); #[::sampStep];
-		self.p_size = array(pSize); #[::sampStep];
-		
-		#find when the subject was saccading in each trial
-		#use a differentiation method to define the velocity (eye position change/time change) for each time point in the trial
-		#for each trial for each subject, go through and manually adjust the criterion for velocity as needed
-		# because of how I'm doing this, I want to save each trial after I've been through it so I don't have to do this each time...
-		#to do so, I will save completed trials' saccade velocity criterion to a .csv that I will import
-		#if I've already done the trial, I will use the velocity criertion that was already saved
-		
-		timeChange = 0.001; #diff(self.sample_times); #difference in time, in seconds 
-		xChange = -diff(self.eyeX);
-		yChange = -diff(self.eyeY);
-		totalChange = sqrt(xChange**2+yChange**2);
-		temp = totalChange/timeChange; #calculate the velocity for each time point
-		self.velocities = insert(temp,0,0); #insert a 0 at the beginning of the array for the first time point
-		
-		#Next filter the velocities.
-		#get params for a butterworth filter and bandpass it at 20 Hz
-		trialTime = self.sample_times[-1]-self.sample_times[0]; #get total time for the trial
-		samplingRate = 1000.0; #round(len(self.sample_times)/float(trialTime)); #get the downsampled sampling rate
-		halfSRate = samplingRate/2;
-		
-		freqCut =  100; #20; #Christie used a frequency cut off of 20 for the filter, but 'it should be 100' 
-
-		butterwindow = freqCut/halfSRate; nthOrder = 2; #defining parameters for the butterworth filter
-		[b,a] = ssignal.butter(nthOrder,butterwindow); #fit the butterworth filter
-		y = ssignal.filtfilt(b,a,self.velocities,padtype='odd'); #get the filtered velocity data		
-		self.filtered_velocities = y; #append the filtered velocities to this trial instance
-		
-		#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
-		startingVelCrit = 60; #christie used a velocity threshold of 100 degrees/second
-		
-		#if the subejct has already been completed, then I want to use the ending threshold values I calculated already
-		#first check if the id is in the list of completed ids, then pull the threshold
-		if self.dropped_sample > 0:
-			endingVelCrit = -1;
-			nr_saccades = -1;
-			skip_trial = 1;
-		elif self.sub_id in completed_velocity_ids:
-			endingVelCrit = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['saccade_velocity_criterion'];
-			nr_saccades = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['nr_saccades'];
-			skip_trial = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['skip_trial'];
+		self.skip = 0;
+		#in the extreme case of there only being one sample, just skip the trial because it's a pain in the ass and I won't be able to use it anyway...
+		if type(trialData.sampleTimes)==int:
+			self.trial_type = -1;
+			self.dropped_sample = 1;
+			self.skip = 1;
+			self.preferred_category = -1;
 		else:
-			[endingVelCrit, nr_saccades, skip_trial] = self.plotSaccadeGetVelocity(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
-			#add this trial's criterion to the database and save it
-			subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit, skip_trial];
-			subject_saccade_criteria.to_csv(savepath+'subject_saccade_criteria_each_trial.csv',index=False);
-
-		#save the velocity threshold and the isSaccade truth vector to the array
-		self.saccadeCriterion = endingVelCrit; #degrees/sec
-		self.nr_saccades = nr_saccades;
-		self.skip_trial = skip_trial;
-		self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
-		
-		self.get_ET_data();
+			#loop through to get only unique samples, e.g. sampling at 1000 Hz		
+			all_sample_times = trialData.sampleTimes-trialData.sampleTimes[0]; #get sample times
+			prev_time = -1;
+			eyeX = []; eyeY = []; pSize = []; samp_times = [];
+			self.dropped_sample = 0; #pre-allocate this and change it if I find one
+			
+			for time,x_pos,y_pos,pup_s in zip(all_sample_times,trialData.eyeX,trialData.eyeY,trialData.pSize):
+				if time==prev_time:
+					continue;
+				else:
+					samp_times.append(time);
+					#check if the sample was very large (e.g., blink or look away) and set the corresponding values to NaNs
+					if (abs(x_pos)>100)|(abs(y_pos)>100):
+						x_pos = nan; y_pos = nan; pup_s = nan;
+						self.dropped_sample = 1;
+					eyeX.append(x_pos);
+					eyeY.append(y_pos);
+					pSize.append(pup_s);
+					prev_time = time;
+				
+			#get the data together	
+			self.sample_times = array(samp_times); #[::sampStep];
+			self.eyeX = array(eyeX); #[::sampStep];
+			self.eyeY = array(eyeY); #[::sampStep];
+			self.p_size = array(pSize); #[::sampStep];
+			
+			#find when the subject was saccading in each trial
+			#use a differentiation method to define the velocity (eye position change/time change) for each time point in the trial
+			#for each trial for each subject, go through and manually adjust the criterion for velocity as needed
+			# because of how I'm doing this, I want to save each trial after I've been through it so I don't have to do this each time...
+			#to do so, I will save completed trials' saccade velocity criterion to a .csv that I will import
+			#if I've already done the trial, I will use the velocity criertion that was already saved
+			
+			timeChange = 0.001; #diff(self.sample_times); #difference in time, in seconds 
+			xChange = -diff(self.eyeX);
+			yChange = -diff(self.eyeY);
+			totalChange = sqrt(xChange**2+yChange**2);
+			temp = totalChange/timeChange; #calculate the velocity for each time point
+			self.velocities = insert(temp,0,0); #insert a 0 at the beginning of the array for the first time point
+			
+			#Next filter the velocities.
+			#get params for a butterworth filter and bandpass it at 20 Hz
+			trialTime = self.sample_times[-1]-self.sample_times[0]; #get total time for the trial
+			samplingRate = 1000.0; #round(len(self.sample_times)/float(trialTime)); #get the downsampled sampling rate
+			halfSRate = samplingRate/2;
+			
+			freqCut =  100; #20; #Christie used a frequency cut off of 20 for the filter, but 'it should be 100' 
+	
+			butterwindow = freqCut/halfSRate; nthOrder = 2; #defining parameters for the butterworth filter
+			[b,a] = ssignal.butter(nthOrder,butterwindow); #fit the butterworth filter
+			y = ssignal.filtfilt(b,a,self.velocities,padtype='odd'); #get the filtered velocity data		
+			self.filtered_velocities = y; #append the filtered velocities to this trial instance
+			
+			#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
+			startingVelCrit = 60; #christie used a velocity threshold of 100 degrees/second
+			
+			# #if the subejct has already been completed, then I want to use the ending threshold values I calculated already
+			# #first check if the id is in the list of completed ids, then pull the threshold
+			# if self.dropped_sample > 0:
+			# 	endingVelCrit = -1;
+			# 	nr_saccades = -1;
+			# 	skip_trial = 1;
+			# elif self.sub_id in completed_velocity_ids:
+			# 	endingVelCrit = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['saccade_velocity_criterion'];
+			# 	nr_saccades = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['nr_saccades'];
+			# 	skip_trial = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['skip_trial'];
+			# else:
+			# 	[endingVelCrit, nr_saccades, skip_trial] = self.plotSaccadeGetVelocity(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
+			# 	#add this trial's criterion to the database and save it
+			# 	subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit, skip_trial];
+			# 	subject_saccade_criteria.to_csv(savepath+'subject_saccade_criteria_each_trial.csv',index=False);
+			# 
+			# #save the velocity threshold and the isSaccade truth vector to the array
+			# self.saccadeCriterion = endingVelCrit; #degrees/sec
+			# self.nr_saccades = nr_saccades;
+			# self.skip_trial = skip_trial;
+			# self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
+			
+			self.get_ET_data();
 	
 	def plotSaccadeGetVelocity(self, startingVelCrit):
 		

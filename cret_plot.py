@@ -17,6 +17,8 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 savepath =  '/Users/jameswilmott/Documents/Python/CRET/figures/';  # '/Users/james/Documents/Python/CRET/figures/'; #
 shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
 
+eyed = raw_input('ID for plotting (agg for all subjects): ');
+
 db = shelve.open(shelvepath+'data'); 
 
 ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11','cret13','cret14','cret15','cret16','cret17','cret18']; #'cret01',
@@ -35,21 +37,21 @@ matplotlib.pyplot.rc('font',weight='bold');
 
 ##Plot proportion for PAPC trials based on whetehr they chose the cue or not item for items when they chose alohol or cigarette
 fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
-title('Average proportion of time fixating each item in a trial \n depending on which item was selected', fontsize = 22);
-ax1.set_ylim(0.0,1.1); ax1.set_yticks(arange(0.0,1.01,0.1)); ax1.set_xlim([0.7,3.0]); ax1.set_xticks([1,1.6,2.2]);
+title('Average proportion of time fixating each item in a trial \n depending on which item was selected %s'%eyed, fontsize = 22);
+ax1.set_ylim(0.0,1.1); ax1.set_yticks(arange(0.0,1.01,0.1)); ax1.set_xlim([0.4,3.3]); ax1.set_xticks([1,1.6,2.2]);
 ax1.set_ylabel('Average proportion of time spent fixating during a trial',size=18); ax1.set_xlabel('Selected Item',size=18,labelpad=15);
 ax1.set_xticklabels(['Cue Selected','Non-Cue Selected','Neutral Selected']); #'All PAPC Trials',
 colors=['red','blue','green'];
 #first plot the cases where the cue was selected. order will be cue, not_cue, neutral
-ax1.bar(1.0,db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref'], color = colors[0], width = 0.3);
-ax1.errorbar(1.0, db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref'],
-             yerr=[[db['agg_high_pref_selected_cue_look_at_cue_bs_sems_perc_time_at_pref']],[db['agg_high_pref_selected_cue_look_at_cue_bs_sems_perc_time_at_pref']]],color='black',lw=6.0, capsize = 7.0);
-ax1.bar(1.0,db['agg_high_pref_selected_cue_look_at_not_cue_mean_perc_time_at_pref'], bottom = db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref'], color = colors[1], width = 0.3);
-ax1.errorbar(1.0, db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref']+db['agg_high_pref_selected_cue_look_at_not_cue_mean_perc_time_at_pref'],
-             yerr=[[db['agg_high_pref_selected_cue_look_at_not_cue_bs_sems_perc_time_at_pref']],[db['agg_high_pref_selected_cue_look_at_not_cue_bs_sems_perc_time_at_pref']]],color='black',lw=6.0,capsize = 7.0);
-ax1.bar(1.0,db['agg_high_pref_selected_cue_look_at_neutral_mean_perc_time_at_pref'], bottom = db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref']+db['agg_high_pref_selected_cue_look_at_not_cue_mean_perc_time_at_pref'], color = colors[2], width = 0.3);
-ax1.errorbar(1.0, db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref']+db['agg_high_pref_selected_cue_look_at_not_cue_mean_perc_time_at_pref']+db['agg_high_pref_selected_cue_look_at_neutral_mean_perc_time_at_pref'],
-             yerr=[[db['agg_high_pref_selected_cue_look_at_neutral_bs_sems_perc_time_at_pref']],[db['agg_high_pref_selected_cue_look_at_neutral_bs_sems_perc_time_at_pref']]],color='black',lw=6.0,capsize = 7.0);
+ax1.bar(0.7,db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref'%eyed], color = colors[0], width = 0.4);
+ax1.errorbar(0.7, db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref'%eyed],
+             yerr=[[db['agg_high_pref_selected_cue_look_at_cue_bs_sems_perc_time_at_pref'%eyed]],[db['agg_high_pref_selected_cue_look_at_cue_bs_sems_perc_time_at_pref']]],color='black',lw=6.0, capsize = 7.0);
+ax1.bar(0.9,db['agg_high_pref_selected_cue_look_at_not_cue_mean_perc_time_at_pref'%eyed], bottom = db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref'], color = colors[1], width = 0.3);
+ax1.errorbar(1.0, db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref'%eyed]+db['agg_high_pref_selected_cue_look_at_not_cue_mean_perc_time_at_pref'],
+             yerr=[[db['agg_high_pref_selected_cue_look_at_not_cue_bs_sems_perc_time_at_pref'%eyed]],[db['agg_high_pref_selected_cue_look_at_not_cue_bs_sems_perc_time_at_pref']]],color='black',lw=6.0,capsize = 7.0);
+ax1.bar(1.0,db['agg_high_pref_selected_cue_look_at_neutral_mean_perc_time_at_pref'%eyed], bottom = db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref']+db['agg_high_pref_selected_cue_look_at_not_cue_mean_perc_time_at_pref'], color = colors[2], width = 0.3);
+ax1.errorbar(1.0, db['agg_high_pref_selected_cue_look_at_cue_mean_perc_time_at_pref'%eyed]+db['agg_high_pref_selected_cue_look_at_not_cue_mean_perc_time_at_pref']+db['agg_high_pref_selected_cue_look_at_neutral_mean_perc_time_at_pref'],
+             yerr=[[db['agg_high_pref_selected_cue_look_at_neutral_bs_sems_perc_time_at_pref'%eyed]],[db['agg_high_pref_selected_cue_look_at_neutral_bs_sems_perc_time_at_pref']]],color='black',lw=6.0,capsize = 7.0);
 #now selected not cue
 ax1.bar(1.6,db['agg_high_pref_selected_not_cue_look_at_cue_mean_perc_time_at_pref'], color = colors[0], width = 0.3);
 ax1.errorbar(1.6, db['agg_high_pref_selected_not_cue_look_at_cue_mean_perc_time_at_pref'],

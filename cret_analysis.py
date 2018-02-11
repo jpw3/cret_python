@@ -17,16 +17,21 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 ## Specify some universal parameters ##
 ############################################
 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Users/james/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+datapath = '/Users/james/Documents/MATLAB/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
 subject_saccade_criteria = pd.read_csv(savepath+'subject_saccade_criteria_each_trial.csv');
 completed_velocity_ids = unique(subject_saccade_criteria['sub_id']);
 
-ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11','cret13','cret14','cret15','cret16','cret17','cret18','cret19','cret21','cret22','cret25','cret28','cret29']; #'cret01',
+ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11','cret13','cret14','cret15','cret16',
+	 'cret17','cret18','cret19','cret21','cret22','cret25','cret28','cret29']; #'cret01', 21 ids
+
+subjective_prefs = [('cret03','cigarette'),('cret04','cigarette'),('cret05','cigarette'),('cret06','alcohol'),('cret07','cigarette'),('cret08','cigarette'),
+	('cret09','cigarette'),('cret11','cigarette'),('cret13','cigarette'),('cret14','cigarette'),('cret15','cigarette'),('cret16','cigarette'),
+	 ('cret17','cigarette'),('cret18','cigarette')]; #14 ids
 
 display_size = array([22.80, 17.10]); #width, height of the screen used to present the images in degrees of visual angle
 
@@ -68,12 +73,15 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
 	
 	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
-	all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
-		(tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == 1))] for subject in trial_matrix]; #first get all the selected categories
-	prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
-	prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
-	#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
-	subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];
+	if eyed=='subjective_resps':
+		subject_cues = [info[1] for info in subjective_prefs];
+	else:
+		all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
+			(tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == 1))] for subject in trial_matrix]; #first get all the selected categories
+		prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
+		prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
+		#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
+		subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];
 	#
 	##Build an average database instance of each value for each subject for high vs low preferred trials and the subsets of high preferred trials
 	
@@ -159,15 +167,16 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 				data.loc[counter] = [sub_id,cue,selected_item,nanmean(neu_time_at_pref),nanmean(neu_perc_at_pref),nanmean(cue_time_at_pref),nanmean(cue_perc_at_pref),nanmean(not_cue_time_at_pref),nanmean(not_cue_perc_at_pref),nanmean(rts)];
 				counter+=1;
 			#now here aggregate all the data together and append it to the database
-			db['agg_high_pref_selected_%s_look_at_neutral_mean_time_at_pref'%(selected_item)] = nanmean(neu_subject_times); db['agg_high_pref_selected_%s_look_at_neutral_bs_sems_time_at_pref'%(selected_item)] = compute_BS_SEM(neu_subject_times);
-			db['agg_high_pref_selected_%s_look_at_neutral_mean_perc_time_at_pref'%(selected_item)] = nanmean(neu_subject_percs); db['agg_high_pref_selected_%s_look_at_neutral_bs_sems_perc_time_at_pref'%(selected_item)] = compute_BS_SEM(neu_subject_percs);				
-			db['agg_high_pref_selected_%s_look_at_cue_mean_time_at_pref'%(selected_item)] = nanmean(cue_subject_times); db['agg_high_pref_selected_%s_look_at_cue_bs_sems_time_at_pref'%(selected_item)] = compute_BS_SEM(cue_subject_times);
-			db['agg_high_pref_selected_%s_look_at_cue_mean_perc_time_at_pref'%(selected_item)] = nanmean(cue_subject_percs); db['agg_high_pref_selected_%s_look_at_cue_bs_sems_perc_time_at_pref'%(selected_item)] = compute_BS_SEM(cue_subject_percs);			
-			db['agg_high_pref_selected_%s_look_at_not_cue_mean_time_at_pref'%(selected_item)] = nanmean(not_cue_subject_times); db['agg_high_pref_selected_%s_look_at_not_cue_bs_sems_time_at_pref'%(selected_item)] = compute_BS_SEM(not_cue_subject_times);
-			db['agg_high_pref_selected_%s_look_at_not_cue_mean_perc_time_at_pref'%(selected_item)] = nanmean(not_cue_subject_percs); db['agg_high_pref_selected_%s_look_at_not_cue_bs_sems_perc_time_at_pref'%(selected_item)] = compute_BS_SEM(not_cue_subject_percs);				
-			db['agg_high_pref_selected_%s_mean_rt'%(selected_item)] = nanmean(all_rts); db['agg_high_pref_selected_%s_bs_sems_rt'%(selected_item)] = compute_BS_SEM(all_rts);		
+			db['%s_high_pref_selected_%s_look_at_neutral_mean_time_at_pref'%(eyed,selected_item)] = nanmean(neu_subject_times); db['%s_high_pref_selected_%s_look_at_neutral_bs_sems_time_at_pref'%(eyed,selected_item)] = compute_BS_SEM(neu_subject_times);
+			db['%s_high_pref_selected_%s_look_at_neutral_mean_perc_time_at_pref'%(eyed,selected_item)] = nanmean(neu_subject_percs); db['%s_high_pref_selected_%s_look_at_neutral_bs_sems_perc_time_at_pref'%(eyed,selected_item)] = compute_BS_SEM(neu_subject_percs);				
+			db['%s_high_pref_selected_%s_look_at_cue_mean_time_at_pref'%(eyed,selected_item)] = nanmean(cue_subject_times); db['%s_high_pref_selected_%s_look_at_cue_bs_sems_time_at_pref'%(eyed,selected_item)] = compute_BS_SEM(cue_subject_times);
+			db['%s_high_pref_selected_%s_look_at_cue_mean_perc_time_at_pref'%(eyed,selected_item)] = nanmean(cue_subject_percs); db['%s_high_pref_selected_%s_look_at_cue_bs_sems_perc_time_at_pref'%(eyed,selected_item)] = compute_BS_SEM(cue_subject_percs);			
+			db['%s_high_pref_selected_%s_look_at_not_cue_mean_time_at_pref'%(eyed,selected_item)] = nanmean(not_cue_subject_times); db['%s_high_pref_selected_%s_look_at_not_cue_bs_sems_time_at_pref'%(eyed,selected_item)] = compute_BS_SEM(not_cue_subject_times);
+			db['%s_high_pref_selected_%s_look_at_not_cue_mean_perc_time_at_pref'%(eyed,selected_item)] = nanmean(not_cue_subject_percs); db['%s_high_pref_selected_%s_look_at_not_cue_bs_sems_perc_time_at_pref'%(eyed,selected_item)] = compute_BS_SEM(not_cue_subject_percs);				
+			db['%s_high_pref_selected_%s_mean_rt'%(eyed,selected_item)] = nanmean(all_rts); db['%s_high_pref_selected_%s_bs_sems_rt'%(eyed,selected_item)] = compute_BS_SEM(all_rts);		
 	#write the data to csv files
-	data.to_csv(savepath+'perc_time_avg_subj_data.csv',index=False); 
+	if eyed=='agg':
+		data.to_csv(savepath+'perc_time_avg_subj_data.csv',index=False); 
 
 
 
@@ -179,12 +188,15 @@ def computeLastItemLookedAt(blocks, eyed = 'agg'):
 	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
 
 	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
-	all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
-		(tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == 1))] for subject in trial_matrix]; #first get all the selected categories
-	prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
-	prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
-	#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
-	subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];
+	if eyed=='subjective_resps':
+		subject_cues = [info[1] for info in subjective_prefs];
+	else:	
+		all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
+			(tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == 1))] for subject in trial_matrix]; #first get all the selected categories
+		prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
+		prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
+		#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
+		subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];
 	
 	high_vs_other_pref_data = pd.DataFrame(columns = ['sub_id','trial_type','percentage_last_fixated_item_was_selected', 'mean_response_time']);
 	high_pref_only_data = pd.DataFrame(columns = ['sub_id','preferred_pic','percentage_last_fixated_item_was_selected', 'mean_response_time']);
@@ -242,12 +254,13 @@ def computeLastItemLookedAt(blocks, eyed = 'agg'):
 					cv_counter+=1;
 				
 	#write the data to csv files
-	high_vs_other_pref_data.to_csv(savepath+'last_item_avg_high_vs_nothigh_pref_trial_data.csv',index=False); 
-	high_pref_only_data.to_csv(savepath+'last_item_avg_high_pref_only_trial_data.csv',index=False);
-	cue_vs_not_cue_data.to_csv(savepath+'last_item_cue_not_cue_high_pref_trial_data.csv',index=False);
+	if eyed=='agg':
+		high_vs_other_pref_data.to_csv(savepath+'last_item_avg_high_vs_nothigh_pref_trial_data.csv',index=False); 
+		high_pref_only_data.to_csv(savepath+'last_item_avg_high_pref_only_trial_data.csv',index=False);
+		cue_vs_not_cue_data.to_csv(savepath+'last_item_cue_not_cue_high_pref_trial_data.csv',index=False);
 	
 	
-def computeTemporalGazeProfile(blocks, id = 'agg'):
+def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 	#this function compute the temporal gaze profile with respect to the preferred item
 	#for each subject and each trial type, find the average proportion of time spent looking
 	#at the perferred tem or not. This will be the 'likelihood' of fixating the preferred item
@@ -259,12 +272,15 @@ def computeTemporalGazeProfile(blocks, id = 'agg'):
 	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
 	
 	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
-	all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
-		(tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == 1))] for subject in trial_matrix]; #first get all the selected categories
-	prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
-	prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
-	#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
-	subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];		
+	if eyed=='subjective_resps':
+		subject_cues = [info[1] for info in subjective_prefs];
+	else:	
+		all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
+			(tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == 1))] for subject in trial_matrix]; #first get all the selected categories
+		prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
+		prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
+		#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
+		subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];		
 
 	# #at some point store this data into a database/csv
 		

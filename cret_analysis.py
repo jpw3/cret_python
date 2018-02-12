@@ -26,12 +26,12 @@ subject_data = shelve.open(shelvepath+'data');
 subject_saccade_criteria = pd.read_csv(savepath+'subject_saccade_criteria_each_trial.csv');
 completed_velocity_ids = unique(subject_saccade_criteria['sub_id']);
 
-ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11','cret13','cret14','cret15','cret16',
-	 'cret17','cret18','cret19','cret21','cret22','cret25','cret28','cret29']; #'cret01', 21 ids
+ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11', 'cret14','cret15','cret16',
+	 'cret17','cret18','cret19','cret21','cret22','cret25','cret28','cret29']; #'cret01', 21 ids   ,'cret13'     
 
 subjective_prefs = [('cret03','cigarette'),('cret04','cigarette'),('cret05','cigarette'),('cret06','alcohol'),('cret07','cigarette'),('cret08','cigarette'),
-	('cret09','cigarette'),('cret11','cigarette'),('cret13','cigarette'),('cret14','cigarette'),('cret15','cigarette'),('cret16','cigarette'),
-	 ('cret17','cigarette'),('cret18','cigarette')]; #14 ids
+	('cret09','cigarette'),('cret11','cigarette'),('cret14','cigarette'),('cret15','cigarette'),('cret16','cigarette'),
+	 ('cret17','cigarette'),('cret18','cigarette')]; #14 ids ('cret13','cigarette'),
 
 display_size = array([22.80, 17.10]); #width, height of the screen used to present the images in degrees of visual angle
 
@@ -596,6 +596,10 @@ class trial(object):
 			self.eyeY = array(eyeY); #[::sampStep];
 			self.p_size = array(pSize); #[::sampStep];
 			
+			#standardize the eye trace information
+			
+			
+			
 			#find when the subject was saccading in each trial
 			#use a differentiation method to define the velocity (eye position change/time change) for each time point in the trial
 			#for each trial for each subject, go through and manually adjust the criterion for velocity as needed
@@ -626,8 +630,8 @@ class trial(object):
 			#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
 			startingVelCrit = 60; #christie used a velocity threshold of 100 degrees/second
 			
-			# #if the subejct has already been completed, then I want to use the ending threshold values I calculated already
-			# #first check if the id is in the list of completed ids, then pull the threshold
+			#if the subejct has already been completed, then I want to use the ending threshold values I calculated already
+			#first check if the id is in the list of completed ids, then pull the threshold
 			# if self.dropped_sample > 0:
 			# 	endingVelCrit = -1;
 			# 	nr_saccades = -1;

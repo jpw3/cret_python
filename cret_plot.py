@@ -111,6 +111,32 @@ filename = 'fixate_preferred_item_labeled';
 show();
 
 
+############################################
+## Reaction times  ##
+############################################
+
+fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
+title('Reaction time depending on which item\n was selected %s'%eyed, fontsize = 22);
+ax1.set_ylim(850,1400); ax1.set_yticks(arange(900,1401,100)); ax1.set_xlim([0.7,2.5]); ax1.set_xticks([1,1.6,2.2]);
+ax1.set_ylabel('Reaction time',size=18); ax1.set_xlabel('Selected Item',size=18,labelpad=15);
+ax1.set_xticklabels(['Cue Selected','Non-Cue Selected','Neutral Selected']);
+
+ax1.bar(1,db['%s_high_pref_selected_cue_mean_rt'%eyed], color = 'gray', width = 0.3);
+ax1.errorbar(1, db['%s_high_pref_selected_cue_mean_rt'%eyed],
+             yerr=[[db['%s_high_pref_selected_cue_bs_sems_rt'%eyed]],[db['%s_high_pref_selected_cue_bs_sems_rt'%eyed]]],color='black',lw=6.0);
+
+ax1.bar(1.6,db['%s_high_pref_selected_not_cue_mean_rt'%eyed], color = 'gray', width = 0.3);
+ax1.errorbar(1.6, db['%s_high_pref_selected_not_cue_mean_rt'%eyed],
+             yerr=[[db['%s_high_pref_selected_not_cue_bs_sems_rt'%eyed]],[db['%s_high_pref_selected_not_cue_bs_sems_rt'%eyed]]],color='black',lw=6.0);
+
+ax1.bar(2.2,db['%s_high_pref_selected_neutral_mean_rt'%eyed], color = 'gray', width = 0.3);
+ax1.errorbar(2.2, db['%s_high_pref_selected_neutral_mean_rt'%eyed],
+             yerr=[[db['%s_high_pref_selected_neutral_bs_sems_rt'%eyed]],[db['%s_high_pref_selected_neutral_bs_sems_rt'%eyed]]],color='black',lw=6.0);
+
+ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+show();
+
 
 ############################################
 ## Plotting proportion of trials the last fixted items was the preferred item figure  ##

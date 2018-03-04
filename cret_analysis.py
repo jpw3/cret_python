@@ -23,15 +23,19 @@ shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
-subject_saccade_criteria = pd.read_csv(savepath+'subject_saccade_criteria_each_trial.csv');
-completed_velocity_ids = unique(subject_saccade_criteria['sub_id']);
+#subject_saccade_criteria = pd.read_csv(savepath+'subject_saccade_criteria_each_trial.csv');
+#completed_velocity_ids = unique(subject_saccade_criteria['sub_id']);
 
 ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11', 'cret14','cret15','cret16',
-	 'cret17','cret18','cret19','cret21','cret22','cret25','cret28','cret29']; #'cret01', 21 ids   ,'cret13'     
+	 'cret17','cret18','cret19','cret21','cret22','cret24','cret25','cret26','cret27','cret28','cret29','cret30',
+	 'cret33','cret36','cret37','cret38','cret39']; #'cret01', 21 ids   ,'cret13'     
 
 subjective_prefs = [('cret03','cigarette'),('cret04','cigarette'),('cret05','cigarette'),('cret06','alcohol'),('cret07','cigarette'),('cret08','cigarette'),
 	('cret09','cigarette'),('cret11','cigarette'),('cret14','cigarette'),('cret15','cigarette'),('cret16','cigarette'),
-	 ('cret17','cigarette'),('cret18','cigarette')]; #14 ids ('cret13','cigarette'),
+	 ('cret17','cigarette'),('cret18','cigarette'),('cret19','cigarette'),('cret20','cigarette'),('cret21','cigarette'),
+	 ('cret22','cigarette'),('cret23','cigarette'),('cret24','cigarette'),('cret25','cigarette'),('cret26','cigarette'),
+	 ('cret27','alcohol'),('cret28','cigarette'),('cret29','cigarette'),('cret30','cigarette'),('cret31','alcohol'),
+	 ('cret32','alcohol'),('cret33','cigarette'),('cret34','alcohol'),('cret35','cigarette'),('cret36','alcohol'),('cret37','alcohol')]; #14 ids ('cret13','cigarette'),
 
 display_size = array([22.80, 17.10]); #width, height of the screen used to present the images in degrees of visual angle
 
@@ -75,18 +79,91 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
 	if eyed=='subjective_resps':
 		subject_cues = [info[1] for info in subjective_prefs];
-	else:
+	elif eyed=='agg':
 		all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
 			(tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == 1))] for subject in trial_matrix]; #first get all the selected categories
 		prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
 		prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
 		#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
 		subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];
-	#
-	##Build an average database instance of each value for each subject for high vs low preferred trials and the subsets of high preferred trials
+
+		# ##Build an average database instance of each value for each subject for high vs low preferred trials and the subsets of high preferred trials
+		# data_preference = pd.DataFrame(columns = ['sub_id','subject_cue','selected','neu_mean_time_looking_at_pref','neu_mean_percentage_looking_at_pref',
+		# 						   'cue_mean_time_looking_at_pref','cue_mean_percentage_looking_at_pref','not_cue_mean_time_looking_at_pref',
+		# 						   'not_cue_mean_percentage_looking_at_pref', 'mean_response_time']);
+		#database for the mean proportion of looking time for alcoho and cigarette items 
+		data = pd.DataFrame(columns = ['sub_id','prop_trials_chose_alc','prop_trials_chose_cig','prop_trials_chose_neu','neu_avg_looking_time','neu_avg_prop_time','cig_avg_looking_time','cig_avg_prop_time','alc_avg_looking_time',
+									   'alc_avg_prop_time','chose_alc_neu_avg_looking_time','chose_alc_neu_avg_prop_time','chose_alc_cig_avg_looking_time',
+									   'chose_alc_cig_avg_prop_time','chose_alc_alc_avg_looking_time','chose_alc_alc_avg_prop_time','chose_cig_neu_avg_looking_time',
+									   'chose_cig_neu_avg_prop_time','chose_cig_cig_avg_looking_time','chose_cig_cig_avg_prop_time','chose_cig_alc_avg_looking_time',
+									   'chose_cig_alc_avg_prop_time','chose_neu_neu_avg_looking_time','chose_neu_neu_avg_prop_time','chose_neu_cig_avg_looking_time',
+									   'chose_neu_cig_avg_prop_time','chose_neu_alc_avg_looking_time','chose_neu_alc_avg_prop_time','avg_rt','chose_alc_avg_rt',
+									   'chose_cig_avg_rt','chose_neu_avg_rt']);
+
+
+		#this formulation is for the non-preference breakdown. not_hp stands for 'all high preference trials, even those where neutral was selected'
+		all_hp_all_substances = [[tee.preferred_category for tee in subject if ((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == 1))]
+			for subject in trial_matrix]; #first get all the selected categories
+		all_hp_prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
+		all_hp_prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances];
+		all_hp_prop_chose_neu = [sum([val == 'neutral' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances];
+		
 	
-	data = pd.DataFrame(columns = ['sub_id','subject_cue','selected','neu_mean_time_looking_at_pref','neu_mean_percentage_looking_at_pref',
-								   'cue_mean_time_looking_at_pref','cue_mean_percentage_looking_at_pref','not_cue_mean_time_looking_at_pref','not_cue_mean_percentage_looking_at_pref', 'mean_response_time']);
+	#get the proportion of looking time data for alcohol, cigarettes, and neutral items
+	#get the aggregate breakdwon as well as when they chose each item
+	for high_pref_trial,name in zip([0,1],['non_high_pref','high_pref']):
+		#for now, only run this analysis for the high preference (preferred alcohol, preferred cigarette) trials
+		if high_pref_trial==0:
+			continue;
+		#first run the analysis for all high preference trials, not breaking it down by whether they chose alcohol, cigeratte, or neutral
+		
+		#now run the analysis conditioned on which item was chosen
+		for selected_item in ['alcohol','cigarette','neutral']:
+			neu_subject_times = []; #these are holders for the mean times and proportions for each subject, given the subset of trials 
+			neu_subject_percs = [];
+			alc_subject_times = [];
+			alc_subject_percs = [];
+			cig_subject_times = [];
+			cig_subject_percs = [];
+			all_rts = [];	
+			#loop through trials for each subject
+			for subj,chose_alc,chose_cig,chose_neu,sub_id in zip(trial_matrix, all_hp_prop_chose_alc, all_hp_prop_chose_cig, all_hp_prop_chose_neu, ids):
+				neu_time_at_pref = [];
+				neu_perc_at_pref = [];
+				alc_time_at_pref = [];
+				alc_perc_at_pref = [];
+				cig_time_at_pref = [];
+				cig_perc_at_pref = [];
+				rts = [];	
+				for t in subj:
+					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial)):					
+						if (t.preferred_category==selected_item):
+							neu_time_at_pref.append(t.timeLookingAtNeutral);
+							neu_perc_at_pref.append(t.percentageTimeLookingAtNeutral);	
+							alc_time_at_pref.append(t.timeLookingAtAlcohol);
+							alc_perc_at_pref.append(t.percentageTimeLookingAtAlcohol);		
+							cig_time_at_pref.append(t.timeLookingAtCigarette);
+							cig_perc_at_pref.append(t.percentageTimeLookingAtCigarette);
+							rts.append(t.response_time);
+				#append this subjects' data to the holder list and calculate the nanmeans to store in the database
+				neu_subject_times.append(nanmean(neu_time_at_pref)); 
+				neu_subject_percs.append(nanmean(neu_perc_at_pref));
+				alc_subject_times.append(nanmean(alc_time_at_pref));
+				alc_subject_percs.append(nanmean(alc_perc_at_pref));
+				cig_subject_times.append(nanmean(cig_time_at_pref));
+				cig_subject_percs.append(nanmean(cig_perc_at_pref));
+				all_rts.append(nanmean(rts));
+				#append the individual subject data to the database
+				db['%s_high_pref_selected_%s_look_at_neutral_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_time_at_pref); 
+				db['%s_high_pref_selected_%s_look_at_neutral_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(neu_perc_at_pref);
+				db['%s_high_pref_selected_%s_look_at_alc_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(alc_time_at_pref); 
+				db['%s_high_pref_selected_%s_look_at_alc_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(alc_perc_at_pref);
+				db['%s_high_pref_selected_%s_look_at_cig_mean_time_at_pref'%(sub_id,selected_item)] = nanmean(cig_time_at_pref); 
+				db['%s_high_pref_selected_%s_look_at_cig_mean_perc_time_at_pref'%(sub_id,selected_item)] = nanmean(cig_perc_at_pref); 					
+				db['%s_high_pref_selected_%s_mean_rt'%(sub_id,selected_item)] = nanmean(rts);		
+		
+		
+		
 		
 	for high_pref_trial,name in zip([0,1],['non_high_pref','high_pref']):
 		#for now, only run this analysis for the high preference (preferred alcohol, preferred cigarette) trials
@@ -614,45 +691,51 @@ class trial(object):
 			temp = totalChange/timeChange; #calculate the velocity for each time point
 			self.velocities = insert(temp,0,0); #insert a 0 at the beginning of the array for the first time point
 			
-			#Next filter the velocities.
-			#get params for a butterworth filter and bandpass it at 20 Hz
-			trialTime = self.sample_times[-1]-self.sample_times[0]; #get total time for the trial
-			samplingRate = 1000.0; #round(len(self.sample_times)/float(trialTime)); #get the downsampled sampling rate
-			halfSRate = samplingRate/2;
-			
-			freqCut =  100; #20; #Christie used a frequency cut off of 20 for the filter, but 'it should be 100' 
-	
-			butterwindow = freqCut/halfSRate; nthOrder = 2; #defining parameters for the butterworth filter
-			[b,a] = ssignal.butter(nthOrder,butterwindow); #fit the butterworth filter
-			y = ssignal.filtfilt(b,a,self.velocities,padtype='odd'); #get the filtered velocity data		
-			self.filtered_velocities = y; #append the filtered velocities to this trial instance
-			
-			#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
-			startingVelCrit = 60; #christie used a velocity threshold of 100 degrees/second
-			
-			#if the subejct has already been completed, then I want to use the ending threshold values I calculated already
-			#first check if the id is in the list of completed ids, then pull the threshold
-			# if self.dropped_sample > 0:
-			# 	endingVelCrit = -1;
-			# 	nr_saccades = -1;
-			# 	skip_trial = 1;
-			# elif self.sub_id in completed_velocity_ids:
-			# 	endingVelCrit = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['saccade_velocity_criterion'];
-			# 	nr_saccades = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['nr_saccades'];
-			# 	skip_trial = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['skip_trial'];
-			# else:
-			# 	[endingVelCrit, nr_saccades, skip_trial] = self.plotSaccadeGetVelocity(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
-			# 	#add this trial's criterion to the database and save it
-			# 	subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit, skip_trial];
-			# 	subject_saccade_criteria.to_csv(savepath+'subject_saccade_criteria_each_trial.csv',index=False);
-			# 
-			# #save the velocity threshold and the isSaccade truth vector to the array
-			# self.saccadeCriterion = endingVelCrit; #degrees/sec
-			# self.nr_saccades = nr_saccades;
-			# self.skip_trial = skip_trial;
-			# self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
-			
-			self.get_ET_data();
+			#create a failsafe for very fast trials, where there is not enough samples to use the butterworth filter
+			if len(self.velocities)>=9:
+				
+				#Next filter the velocities.
+				#get params for a butterworth filter and bandpass it at 20 Hz
+				trialTime = self.sample_times[-1]-self.sample_times[0]; #get total time for the trial
+				samplingRate = 1000.0; #round(len(self.sample_times)/float(trialTime)); #get the downsampled sampling rate
+				halfSRate = samplingRate/2;
+				
+				freqCut =  100; #20; #Christie used a frequency cut off of 20 for the filter, but 'it should be 100' 
+		
+				butterwindow = freqCut/halfSRate; nthOrder = 2; #defining parameters for the butterworth filter
+				[b,a] = ssignal.butter(nthOrder,butterwindow); #fit the butterworth filter			
+				y = ssignal.filtfilt(b,a,self.velocities,padtype='odd'); #get the filtered velocity data		
+				self.filtered_velocities = y; #append the filtered velocities to this trial instance
+				
+				#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
+				startingVelCrit = 60; #christie used a velocity threshold of 100 degrees/second
+				
+				#if the subejct has already been completed, then I want to use the ending threshold values I calculated already
+				#first check if the id is in the list of completed ids, then pull the threshold
+				# if self.dropped_sample > 0:
+				# 	endingVelCrit = -1;
+				# 	nr_saccades = -1;
+				# 	skip_trial = 1;
+				# elif self.sub_id in completed_velocity_ids:
+				# 	endingVelCrit = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['saccade_velocity_criterion'];
+				# 	nr_saccades = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['nr_saccades'];
+				# 	skip_trial = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['skip_trial'];
+				# else:
+				# 	[endingVelCrit, nr_saccades, skip_trial] = self.plotSaccadeGetVelocity(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
+				# 	#add this trial's criterion to the database and save it
+				# 	subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit, skip_trial];
+				# 	subject_saccade_criteria.to_csv(savepath+'subject_saccade_criteria_each_trial.csv',index=False);
+				# 
+				# #save the velocity threshold and the isSaccade truth vector to the array
+				# self.saccadeCriterion = endingVelCrit; #degrees/sec
+				# self.nr_saccades = nr_saccades;
+				# self.skip_trial = skip_trial;
+				# self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
+				
+				self.get_ET_data();
+				
+			else:
+				self.filtered_velocities = -1;
 	
 	def plotSaccadeGetVelocity(self, startingVelCrit):
 		

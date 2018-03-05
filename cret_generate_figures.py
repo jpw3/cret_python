@@ -14,8 +14,8 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 ## Specify some universal parameters ##
 ############################################
 
-savepath =  '/Users/james/Documents/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/';  # 
-shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/figures/';  # '/Users/james/Documents/Python/CRET/figures/'; #
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
 
 eyed = raw_input('ID for plotting (agg for all subjects): ');
 
@@ -149,4 +149,100 @@ show();
 
 
 
+############################################
+## Plotting proportion of trials the last fixted items was the preferred item figure  ##
+############################################
 
+##Plot proportion for PAPC trials based on whetehr they chose the cue or not item for items when they chose alohol or cigarette
+fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
+ax1.set_ylim(0.,0.5); ax1.set_yticks(arange(0,0.501,0.05)); ax1.set_xlim([0.7,2.5]); ax1.set_xticks([1,1.6,2.2]); #,2.8]); ax1.set_xlim([0.7,3.1]);
+ax1.set_ylabel('Proportion of trials last fixated item',size=18); ax1.set_xlabel('Substance',size=18,labelpad=15);
+ax1.set_xticklabels(['Alcohol','Cigarette','Neutral']); #'All PAPC Trials',
+
+ax1.bar(1.0,db['%s_all_hp_alc_mean_prop_last_fixated_item'%(eyed)],color='gray',width=0.4);
+ax1.errorbar(1.0,db['%s_all_hp_alc_mean_prop_last_fixated_item'%(eyed)],
+			 yerr=[[db['%s_all_hp_alc_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_all_hp_alc_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0);
+ax1.bar(1.6,db['%s_all_hp_cig_mean_prop_last_fixated_item'%(eyed)],color='gray',width=0.4);
+ax1.errorbar(1.6,db['%s_all_hp_cig_mean_prop_last_fixated_item'%(eyed)],
+			 yerr=[[db['%s_all_hp_cig_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_all_hp_cig_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0);
+ax1.bar(2.2,db['%s_all_hp_neu_mean_prop_last_fixated_item'%(eyed)],color='gray',width=0.4);
+ax1.errorbar(2.2,db['%s_all_hp_neu_mean_prop_last_fixated_item'%(eyed)],
+			 yerr=[[db['%s_all_hp_neu_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_all_hp_neu_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0);
+
+ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+title('Average proportion of trials the selected item \n was the last item fixated', fontsize = 22);
+#save the labeled figure as a .png	
+filename = 'all_hp_prop_last_fixated__labeled';
+savefig(savepath+filename+'.png',dpi=400);
+# #then get rid of labels and save as a .eps
+# labels = [item.get_text() for item in ax1.get_xticklabels()]; labels[0]=''; labels[1]=''; labels[2]=''; labels[3]=''; labels[4]='';#have to do this to center the x ticks on correct spot without incurring ticks at every spot
+# ax1.set_xticklabels(labels);
+# ax1.set_yticklabels(['','','','','','','','','','','','','','']);
+# ax1.set_ylabel(''); ax1.set_xlabel(''); title('');
+# filename = 'cue_vs_not_cue_percentage_trials_last_fixated_item';
+# savefig(savepath+filename+'.eps',dpi=400);
+show();
+
+
+
+#now the break down by each type of substanc chosen
+fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
+ax1.set_ylim(0.,0.5); ax1.set_yticks(arange(0,0.501,0.05)); ax1.set_xlim([0.4,3.0]); ax1.set_xticks([1,1.7,2.4]); 
+ax1.set_ylabel('Proportion of trials last fixated item',size=18); ax1.set_xlabel('Substance',size=18,labelpad=15);
+ax1.set_xticklabels(['Alcohol Selected','Cigarette Selected','Neutral Selected']);
+colors=['red','blue','green'];
+
+#alcohol selected first
+ax1.bar(0.8,db['%s_chose_alc_alc_mean_prop_last_fixated_item'%(eyed)], color = colors[0], width = 0.2);
+ax1.errorbar(0.8, db['%s_chose_alc_alc_mean_prop_last_fixated_item'%(eyed)],
+             yerr=[[db['%s_chose_alc_alc_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_chose_alc_alc_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0); #, capsize = 7.0
+ax1.bar(1.0,db['%s_chose_alc_cig_mean_prop_last_fixated_item'%(eyed)], color = colors[1], width = 0.2);
+ax1.errorbar(1.0, db['%s_chose_alc_cig_mean_prop_last_fixated_item'%(eyed)],
+             yerr=[[db['%s_chose_alc_cig_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_chose_alc_cig_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0); 
+ax1.bar(1.2,db['%s_chose_alc_neu_mean_prop_last_fixated_item'%(eyed)], color = colors[2], width = 0.2);
+ax1.errorbar(1.2, db['%s_chose_alc_neu_mean_prop_last_fixated_item'%(eyed)],
+             yerr=[[db['%s_chose_alc_neu_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_chose_alc_neu_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0); 
+
+#cigarettes next
+ax1.bar(1.5,db['%s_chose_cig_alc_mean_prop_last_fixated_item'%(eyed)], color = colors[0], width = 0.2);
+ax1.errorbar(1.5, db['%s_chose_cig_alc_mean_prop_last_fixated_item'%(eyed)],
+             yerr=[[db['%s_chose_cig_alc_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_chose_cig_alc_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0); #, capsize = 7.0
+ax1.bar(1.7,db['%s_chose_cig_cig_mean_prop_last_fixated_item'%(eyed)], color = colors[1], width = 0.2);
+ax1.errorbar(1.7, db['%s_chose_cig_cig_mean_prop_last_fixated_item'%(eyed)],
+             yerr=[[db['%s_chose_cig_cig_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_chose_cig_cig_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0); 
+ax1.bar(1.9,db['%s_chose_cig_neu_mean_prop_last_fixated_item'%(eyed)], color = colors[2], width = 0.2);
+ax1.errorbar(1.9, db['%s_chose_cig_neu_mean_prop_last_fixated_item'%(eyed)],
+             yerr=[[db['%s_chose_cig_neu_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_chose_cig_neu_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0); 
+
+#neutral finally
+ax1.bar(2.2,db['%s_chose_neu_alc_mean_prop_last_fixated_item'%(eyed)], color = colors[0], width = 0.2);
+ax1.errorbar(2.2, db['%s_chose_neu_alc_mean_prop_last_fixated_item'%(eyed)],
+             yerr=[[db['%s_chose_neu_alc_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_chose_neu_alc_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0); #, capsize = 7.0
+ax1.bar(2.4,db['%s_chose_neu_cig_mean_prop_last_fixated_item'%(eyed)], color = colors[1], width = 0.2);
+ax1.errorbar(2.4, db['%s_chose_neu_cig_mean_prop_last_fixated_item'%(eyed)],
+             yerr=[[db['%s_chose_neu_cig_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_chose_neu_cig_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0); 
+ax1.bar(2.6,db['%s_chose_neu_neu_mean_prop_last_fixated_item'%(eyed)], color = colors[2], width = 0.2);
+ax1.errorbar(2.6, db['%s_chose_neu_neu_mean_prop_last_fixated_item'%(eyed)],
+             yerr=[[db['%s_chose_neu_neu_bs_sems_prop_last_fixated_item'%(eyed)]],[db['%s_chose_neu_neu_bs_sems_prop_last_fixated_item'%(eyed)]]],color='black',lw=6.0); 
+
+
+ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+legend_lines = [mlines.Line2D([],[],color=colors[0],lw=6,alpha = 1, label='looked at alcohol'),
+                 mlines.Line2D([],[],color=colors[1],lw=6,alpha = 1, label='looked at cigarettes'),
+                 mlines.Line2D([],[],color=colors[2],lw=6,alpha = 1, label='looked at neutral')];
+ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2]],loc = 0,ncol=1,fontsize = 14);
+#save the labeled figure as a .png	
+filename = 'by_choice_prop_last_fixated_labeled';
+#savefig(savepath+filename+'.png',dpi=400);
+# #then get rid of labels and save as a .eps
+# labels = [item.get_text() for item in ax1.get_xticklabels()]; labels[0]=''; labels[1]=''; labels[2]=''; labels[3]=''; labels[4]='';#have to do this to center the x ticks on correct spot without incurring ticks at every spot
+# ax1.set_xticklabels(labels);
+# ax1.set_yticklabels(['','','','','','','','','','','','','','']);
+# ax1.set_ylabel(''); ax1.set_xlabel(''); title('');
+# filename = 'cue_vs_not_cue_percentage_time_fixate_preferred_item';
+# savefig(savepath+filename+'.eps',dpi=400);
+show();

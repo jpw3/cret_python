@@ -102,7 +102,7 @@ legend_lines = [mlines.Line2D([],[],color=colors[0],lw=6,alpha = 1, label='looke
 #ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2]],loc = 0,ncol=1,fontsize = 14);
 #save the labeled figure as a .png	
 filename = 'by_choice_fixate_preferred_item_labeled';
-#savefig(savepath+filename+'.png',dpi=400);
+savefig(savepath+filename+'.png',dpi=400);
 #then get rid of labels and save as a .eps
 labels = [item.get_text() for item in ax1.get_xticklabels()]; labels[0]=''; labels[1]=''; labels[2]='';# labels[3]=''; labels[4]='';#have to do this to center the x ticks on correct spot without incurring ticks at every spot
 ax1.set_xticklabels(labels);
@@ -160,7 +160,7 @@ ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
 ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
 #save the labeled figure as a .png	
 filename = 'all_hp_fixate_preferred_item_labeled';
-#savefig(savepath+filename+'.png',dpi=400);
+savefig(savepath+filename+'.png',dpi=400);
 #then get rid of labels and save as a .eps
 labels = [item.get_text() for item in ax1.get_xticklabels()]; labels[0]=''; labels[1]=''; labels[2]=''; #labels[3]=''; labels[4]='';#have to do this to center the x ticks on correct spot without incurring ticks at every spot
 ax1.set_xticklabels(labels);

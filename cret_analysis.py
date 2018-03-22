@@ -667,22 +667,32 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 	#calculate the temporal gaze profiles for each subset of rials: selected the cue, selected the not cue, and selected the neutral
 	#then for each of these subsets, find and plot the probability of looking at each item through the trial
 	for cue_or_not, selected_item in zip([1,0,0],['cue','not_cue','neutral']):
+		
+	for selected_item in ['alcohol','cigarette','neutral']:		
+		
+		
 		fig = figure(); ax1 = gca();
 		ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
 		ax1.set_ylabel('Likelihood of fixating',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=11);
 		ax1.set_xticks([0,200,400,600,800,1000]);
 		ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
 		colors = ['red','blue', 'green']; alphas = [1.0, 1.0, 1.0]; legend_lines = [];		count = 0;
-		#define arrays for the neutral, cue, and not_cue items
+		
+		#define arrays for the neutral, alcohol and cigarette items
 		neu_gaze_array = zeros(time_duration/time_bin_spacing);
 		neu_counts = zeros(shape(neu_gaze_array));
 		neu_subject_means_array = [[] for i in range(1000)]; #use this to store each individual subjects' mean for each time point			
-		cue_gaze_array = zeros(time_duration/time_bin_spacing);
-		cue_counts = zeros(shape(cue_gaze_array));
-		cue_subject_means_array = [[] for i in range(1000)]; 		
-		not_cue_gaze_array = zeros(time_duration/time_bin_spacing);
-		not_cue_counts = zeros(shape(not_cue_gaze_array));
-		not_cue_subject_means_array = [[] for i in range(1000)]; 		
+		alc_gaze_array = zeros(time_duration/time_bin_spacing);
+		alc_counts = zeros(shape(cue_gaze_array));
+		alc_subject_means_array = [[] for i in range(1000)]; 		
+		cig_cue_gaze_array = zeros(time_duration/time_bin_spacing);
+		cig_cue_counts = zeros(shape(not_cue_gaze_array));
+		cig_cue_subject_means_array = [[] for i in range(1000)];
+		
+		
+		
+		
+		
 		for subj,cue in zip(trial_matrix, subject_cues):
 			neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
 			neu_individ_subject_counts = zeros(time_duration/time_bin_spacing);
@@ -1491,94 +1501,185 @@ class trial(object):
 ## original computation of proportion of looking time at preferred item data
 ###############################################################	
 	
-## Proportion fo looking time computation
-	# ##Build a trial by trial instance of each value for each subject for all trials
-	# all_data = pd.DataFrame(columns = ['sub_id','trial_type','time_looking_at_pref','percentage_looking_at_pref','time_looking_at_alc','percentage_looking_at_alc',
-	# 										 'time_looking_at_cig','percentage_looking_at_cig','time_looking_at_neu','percentage_looking_at_neu', 'response_time',
-	# 										 'last_item_looked_at','last_category_looked_at','time_last_item_looked_at','selected_item','selected_category','alcohol_pref','cig_pref']);
-	# #store all the trial data for each subject in a master DB
-	# index_counter = 0;
-	# for trials in trial_matrix:
-	# 	for t in trials:
-	# 		if (t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0):
-	# 			all_data.loc[index_counter] = [t.sub_id, t.trial_type, t.timeLookingAtPreferred, t.percentageTimeLookingAtPreferred,
-	# 										   t.timeLookingAtAlcohol, t.percentageTimeLookingAtAlcohol, t.timeLookingAtCigarette,
-	# 										   t.percentageTimeLookingAtCigarette, t.timeLookingAtNeutral, t.percentageTimeLookingAtNeutral,
-	# 										   t.response_time, t.lastItemLookedAt, t.lastCategoryLookedAt, t.timeLastItemLookedAt,
-	# 										   t.preferred_item, t.preferred_category, t.alcohol_pref, t.cigarette_pref];
-	# 			index_counter+=1;
+	# #find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
+	# if eyed=='subjective_resps':
+	# 	subject_cues = [info[1] for info in subjective_prefs];
+	# else:	
+	# 	all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
+	# 		(tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == 1))] for subject in trial_matrix]; #first get all the selected categories
+	# 	prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
+	# 	prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
+	# 	#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
+	# 	subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];		
 	# 
-	# #write the csv file
-	# all_data.to_csv(savepath+'individual_subject_all_trials_trial_by_trial_data.csv',index=False); 
-
-	# ##Build an average database instance of each value for each subject for high vs low preferred trials and the subsets of high preferred trials
-	# 	#store all the trial data for each subject in a master DB
-	# hl_index_counter = 0;
-	# all_high_index_counter = 0;
-	# cv_counter = 0;
-	# high_vs_other_pref_data = pd.DataFrame(columns = ['sub_id','trial_type','mean_time_looking_at_pref','mean_percentage_looking_at_pref', 'mean_response_time']);
-	# high_pref_only_data = pd.DataFrame(columns = ['sub_id','preferred_pic','mean_time_looking_at_pref','mean_percentage_looking_at_pref', 'mean_response_time']);
-	# cue_vs_not_cue_data = pd.DataFrame(columns = ['sub_id','cue_type','mean_time_looking_at_pref','mean_percentage_looking_at_pref', 'mean_response_time']);
-	# for high_pref_trial,name in zip([0,1],['non_high_pref','high_pref']):
-	# 	time_at_pref = [mean([tee.timeLookingAtPreferred for tee in subj
-	# 			   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];
-	# 	perc_time_at_pref = [mean([tee.percentageTimeLookingAtPreferred for tee in subj
-	# 			   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];					
-	# 	rts = [mean([tee.response_time for tee in subj
-	# 			   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))]) for subj in trial_matrix];
-	# 	db['%s_%s_mean_time_at_pref'%(eyed,name)] = nanmean(time_at_pref); db['%s_%s_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(time_at_pref);
-	# 	db['%s_%s_mean_perc_time_at_pref'%(eyed,name)] = nanmean(perc_time_at_pref); db['%s_%s_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(perc_time_at_pref);
-	# 	db['%s_%s_mean_rt'%(eyed,name)] = nanmean(rts); db['%s_%s_bs_sems_rt'%(eyed,name)] = compute_BS_SEM(rts);
+	# # #at some point store this data into a database/csv
 	# 	
-	# 	for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
-	# 		#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats
-	# 		high_vs_other_pref_data.loc[hl_index_counter] = [id,name,nanmean(tp),nanmean(pp),nanmean(rt)];
-	# 		hl_index_counter+=1;
-	# 		
-	# 	#cycle through the different types of high preference trials (where each one could be selected):
-	# 	#1. all high-pref trials, 2. all not high pref trials, 3. alcohol high pref trials
-	# 	#4. cigarette high pref trials, and 5. neutral high pref trials
-	# 	if high_pref_trial==1:
-	# 		for pref_category in ['alcohol','cigarette','neutral']:
-	# 			time_at_pref = [mean([tee.timeLookingAtPreferred for tee in subj
-	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];
-	# 			perc_time_at_pref = [mean([tee.percentageTimeLookingAtPreferred for tee in subj
-	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];					
-	# 			rts = [mean([tee.response_time for tee in subj
-	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&(tee.preferred_category == pref_category)]) for subj in trial_matrix];					
-	# 			db['%s_high_pref_%s_mean_time_at_pref'%(eyed,pref_category)] = nanmean(time_at_pref); db['%s_high_pref_%s_bs_sems_time_at_pref'%(eyed,pref_category)] = compute_BS_SEM(time_at_pref);
-	# 			db['%s_high_pref_%s_mean_perc_time_at_pref'%(eyed,pref_category)] = nanmean(perc_time_at_pref); db['%s_high_pref_%s_bs_sems_perc_time_at_pref'%(eyed,pref_category)] = compute_BS_SEM(perc_time_at_pref);
-	# 			db['%s_high_pref_%s_mean_rt'%(eyed,pref_category)] = nanmean(rts); db['%s_high_pref_%s_bs_sems_rt'%(eyed, pref_category)] = compute_BS_SEM(rts);
-	# 			
-	# 			for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
-	# 				#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats
-	# 				high_pref_only_data.loc[all_high_index_counter] = [id,pref_category,nanmean(tp),nanmean(pp),nanmean(rt)];
-	# 				all_high_index_counter+=1;
-	# 		
-	# 		#now run this analysis for the trials where the subject selected the cue item, as defined above, vs the non cued item 
-	# 				
-	# 		for cue_or_not, cue_name in zip([1,0],['cue','not_cue']):
-	# 			time_at_pref = [mean([tee.timeLookingAtPreferred for tee in subj
-	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&((tee.preferred_category == cue)==cue_or_not)&
-	# 					   ((tee.preferred_category == 'alcohol')|(tee.preferred_category == 'cigarette'))]) for subj,cue in zip(trial_matrix,subject_cues)];				
-	# 			perc_time_at_pref = [mean([tee.percentageTimeLookingAtPreferred for tee in subj
-	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&((tee.preferred_category == cue)==cue_or_not)&
-	# 					   ((tee.preferred_category == 'alcohol')|(tee.preferred_category == 'cigarette'))]) for subj,cue in zip(trial_matrix,subject_cues)];				
-	# 			rts = [mean([tee.response_time for tee in subj
-	# 					   if((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&((tee.trial_type == 1)==high_pref_trial))&((tee.preferred_category == cue)==cue_or_not)&
-	# 					   ((tee.preferred_category == 'alcohol')|(tee.preferred_category == 'cigarette'))]) for subj,cue in zip(trial_matrix,subject_cues)];
-	# 			db['%s_high_pref_selected_%s_mean_time_at_pref'%(eyed,cue_name)] = nanmean(time_at_pref); db['%s_high_pref_selected_%s_bs_sems_time_at_pref'%(eyed,cue_name)] = compute_BS_SEM(time_at_pref);
-	# 			db['%s_high_pref_selected_%s_mean_perc_time_at_pref'%(eyed,cue_name)] = nanmean(perc_time_at_pref); db['%s_high_pref_selected_%s_bs_sems_perc_time_at_pref'%(eyed,cue_name)] = compute_BS_SEM(perc_time_at_pref);				
-	# 			db['%s_high_pref_selected_%s_mean_rt'%(eyed,cue_name)] = nanmean(rts); db['%s_high_pref_selected_%s_bs_sems_rt'%(eyed, cue_name)] = compute_BS_SEM(rts);
-	# 			for id,tp,pp,rt in zip(ids, time_at_pref, perc_time_at_pref, rts):
-	# 				#add the data to a pandas.DataFrame object to write it to a file for use in R to run the stats
-	# 				cue_vs_not_cue_data.loc[all_high_index_counter] = [id,cue_name,nanmean(tp),nanmean(pp),nanmean(rt)];
-	# 				cv_counter+=1;					
-	# #write the data to csv files
-	# high_vs_other_pref_data.to_csv(savepath+'perc_time_avg_high_vs_nothigh_pref_trial_data.csv',index=False); 
-	# high_pref_only_data.to_csv(savepath+'perc_time_avg_high_pref_only_trial_data.csv',index=False);
-	# cue_vs_not_cue_data.to_csv(savepath+'perc_time_cue_not_cue_high_pref_trial_data.csv',index=False);
-	
-	
+	# #calculate the temporal gaze profiles for each subset of rials: selected the cue, selected the not cue, and selected the neutral
+	# #then for each of these subsets, find and plot the probability of looking at each item through the trial
+	# for cue_or_not, selected_item in zip([1,0,0],['cue','not_cue','neutral']):
+	# 	fig = figure(); ax1 = gca();
+	# 	ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,1000]);
+	# 	ax1.set_ylabel('Likelihood of fixating',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=11);
+	# 	ax1.set_xticks([0,200,400,600,800,1000]);
+	# 	ax1.set_xticklabels(['-1000','-800','-600','-400','-200','0']);
+	# 	colors = ['red','blue', 'green']; alphas = [1.0, 1.0, 1.0]; legend_lines = [];		count = 0;
+	# 	#define arrays for the neutral, cue, and not_cue items
+	# 	neu_gaze_array = zeros(time_duration/time_bin_spacing);
+	# 	neu_counts = zeros(shape(neu_gaze_array));
+	# 	neu_subject_means_array = [[] for i in range(1000)]; #use this to store each individual subjects' mean for each time point			
+	# 	cue_gaze_array = zeros(time_duration/time_bin_spacing);
+	# 	cue_counts = zeros(shape(cue_gaze_array));
+	# 	cue_subject_means_array = [[] for i in range(1000)]; 		
+	# 	not_cue_gaze_array = zeros(time_duration/time_bin_spacing);
+	# 	not_cue_counts = zeros(shape(not_cue_gaze_array));
+	# 	not_cue_subject_means_array = [[] for i in range(1000)]; 		
+	# 	for subj,cue in zip(trial_matrix, subject_cues):
+	# 		neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+	# 		neu_individ_subject_counts = zeros(time_duration/time_bin_spacing);
+	# 		cue_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+	# 		cue_individ_subject_counts = zeros(time_duration/time_bin_spacing);
+	# 		not_cue_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+	# 		not_cue_individ_subject_counts = zeros(time_duration/time_bin_spacing);	
+	# 		for t in subj:
+	# 			#conditional to differentiate between not-cue trials when selecteing the non-cue or not
+	# 			#the second conditional include nuetral trials that were preferred only
+	# 			if ((selected_item=='cue')|(selected_item=='not_cue')):
+	# 				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&((t.preferred_category == cue)==cue_or_not)&((t.preferred_category == 'alcohol')|(t.preferred_category == 'cigarette'))):
+	# 					#neutral is always the same...
+	# 					#cycle through each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
+	# 					for i in (arange(1000)+1):
+	# 						if (i>len(t.lookedAtNeutral)):
+	# 							continue;
+	# 						elif (isnan(t.lookedAtNeutral[-i])):
+	# 							continue;
+	# 						neu_gaze_array[-i] += t.lookedAtNeutral[-i];
+	# 						neu_counts[-i] += 1;
+	# 						#put the individual subject data together
+	# 						neu_individ_subject_sum[-i] += t.lookedAtNeutral[-i];
+	# 						neu_individ_subject_counts[-i] += 1;
+	# 					if cue=='alcohol':
+	# 						for i in (arange(1000)+1):
+	# 							if (i>len(t.lookedAtAlcohol)):
+	# 								continue;
+	# 							elif (isnan(t.lookedAtAlcohol[-i])):
+	# 								continue;
+	# 							#store the alcohol gaze patterns as the cue item
+	# 							cue_gaze_array[-i] += t.lookedAtAlcohol[-i];
+	# 							cue_counts[-i] += 1;
+	# 							#put the individual subject data together
+	# 							cue_individ_subject_sum[-i] += t.lookedAtAlcohol[-i];
+	# 							cue_individ_subject_counts[-i] += 1;
+	# 							
+	# 							#and store the cigarette items as the not_cue item
+	# 							not_cue_gaze_array[-i] += t.lookedAtCigarette[-i];
+	# 							not_cue_counts[-i] += 1;
+	# 							#put the individual subject data together
+	# 							not_cue_individ_subject_sum[-i] += t.lookedAtCigarette[-i];
+	# 							not_cue_individ_subject_counts[-i] += 1;
+	# 						
+	# 					elif cue=='cigarette':
+	# 						for i in (arange(1000)+1):
+	# 							if (i>len(t.lookedAtAlcohol)):
+	# 								continue;
+	# 							elif (isnan(t.lookedAtAlcohol[-i])):
+	# 								continue;							
+	# 							#store the cigarette items as the not_cue item
+	# 							cue_gaze_array[-i] += t.lookedAtCigarette[-i];
+	# 							cue_counts[-i] += 1;
+	# 							#put the individual subject data together
+	# 							cue_individ_subject_sum[-i] += t.lookedAtCigarette[-i];
+	# 							cue_individ_subject_counts[-i] += 1;							
+	# 
+	# 							#and store the alcohol gaze patterns as the cue item
+	# 							not_cue_gaze_array[-i] += t.lookedAtAlcohol[-i];
+	# 							not_cue_counts[-i] += 1;
+	# 							#put the individual subject data together
+	# 							not_cue_individ_subject_sum[-i] += t.lookedAtAlcohol[-i];
+	# 							not_cue_individ_subject_counts[-i] += 1;
+	# 							
+	# 			if (selected_item=='neutral'):
+	# 				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==1)&((t.preferred_category == cue)==cue_or_not)&(t.preferred_category == 'neutral')):
+	# 					#neutral is always the same...
+	# 					#cycle through each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
+	# 					for i in (arange(1000)+1):
+	# 						if (i>len(t.lookedAtNeutral)):
+	# 							continue;
+	# 						elif (isnan(t.lookedAtNeutral[-i])):
+	# 							continue;
+	# 						neu_gaze_array[-i] += t.lookedAtNeutral[-i];
+	# 						neu_counts[-i] += 1;
+	# 						#put the individual subject data together
+	# 						neu_individ_subject_sum[-i] += t.lookedAtNeutral[-i];
+	# 						neu_individ_subject_counts[-i] += 1;
+	# 					if cue=='alcohol':
+	# 						for i in (arange(1000)+1):
+	# 							if (i>len(t.lookedAtAlcohol)):
+	# 								continue;
+	# 							elif (isnan(t.lookedAtAlcohol[-i])):
+	# 								continue;
+	# 							#store the alcohol gaze patterns as the cue item
+	# 							cue_gaze_array[-i] += t.lookedAtAlcohol[-i];
+	# 							cue_counts[-i] += 1;
+	# 							#put the individual subject data together
+	# 							cue_individ_subject_sum[-i] += t.lookedAtAlcohol[-i];
+	# 							cue_individ_subject_counts[-i] += 1;
+	# 							
+	# 							#and store the cigarette items as the not_cue item
+	# 							not_cue_gaze_array[-i] += t.lookedAtCigarette[-i];
+	# 							not_cue_counts[-i] += 1;
+	# 							#put the individual subject data together
+	# 							not_cue_individ_subject_sum[-i] += t.lookedAtCigarette[-i];
+	# 							not_cue_individ_subject_counts[-i] += 1;
+	# 						
+	# 					elif cue=='cigarette':
+	# 						for i in (arange(1000)+1):
+	# 							if (i>len(t.lookedAtAlcohol)):
+	# 								continue;
+	# 							elif (isnan(t.lookedAtAlcohol[-i])):
+	# 								continue;							
+	# 							#store the cigarette items as the not_cue item
+	# 							cue_gaze_array[-i] += t.lookedAtCigarette[-i];
+	# 							cue_counts[-i] += 1;
+	# 							#put the individual subject data together
+	# 							cue_individ_subject_sum[-i] += t.lookedAtCigarette[-i];
+	# 							cue_individ_subject_counts[-i] += 1;							
+	# 
+	# 							#and store the alcohol gaze patterns as the cue item
+	# 							not_cue_gaze_array[-i] += t.lookedAtAlcohol[-i];
+	# 							not_cue_counts[-i] += 1;
+	# 							#put the individual subject data together
+	# 							not_cue_individ_subject_sum[-i] += t.lookedAtAlcohol[-i];
+	# 							not_cue_individ_subject_counts[-i] += 1;								
+	# 							
+	# 						
+	# 		neu_individ_subject_mean = neu_individ_subject_sum/neu_individ_subject_counts; #calculate the mean for this subject at each time point
+	# 		[neu_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),neu_individ_subject_mean)]; #append this to the array for each subject   			
+	# 		cue_individ_subject_mean = cue_individ_subject_sum/cue_individ_subject_counts; #calculate the mean for this subject at each time point
+	# 		[cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),cue_individ_subject_mean)]; #append this to the array for each subject
+	# 		not_cue_individ_subject_mean = not_cue_individ_subject_sum/not_cue_individ_subject_counts; #calculate the mean for this subject at each time point
+	# 		[not_cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),not_cue_individ_subject_mean)]; #append this to the array for each subject   					
+	# 						
+	# 	#plot each likelihood looking at items				
+	# 	for  subj_ms, cue_name, c, a in zip([cue_subject_means_array, not_cue_subject_means_array, neu_subject_means_array], ['cue','not_cue','neutral'], colors, alphas):							
+	# 		mews = array([nanmean(subj) for subj in subj_ms]); # gaze_array/counts
+	# 		sems = array([compute_BS_SEM(subj) for subj in subj_ms]);
+	# 		ax1.plot(linspace(0,1000,1000), mews, lw = 4.0, color = c, alpha = a);
+	# 		#plot the errorbars
+	# 		#for x,m,s in zip(linspace(0,1000,1000),mews,sems):
+	# 		ax1.fill_between(linspace(0,1000,1000), mews-sems, mews+sems, color = c, alpha = a*0.4);
+	# 		legend_lines.append(mlines.Line2D([],[],color=c,lw=6,alpha = a, label='likelihood(looking at %s) '%cue_name));
+	# 	#plot the sum of each fora sanity emasure to ensure they equate to one
+	# 	agg = [(nanmean(a)+nanmean(b)+nanmean(c)) for a,b,c in zip(cue_subject_means_array, not_cue_subject_means_array, neu_subject_means_array)];
+	# 	ax1.plot(linspace(0,1000,1000),agg,color = 'gray', lw = 3.0);
+	# 	legend_lines.append(mlines.Line2D([],[],color='gray',lw=4, alpha = 1.0, label='sum of all'));
+	# 	ax1.plot(linspace(0,1000,1000),linspace(0.33,0.333,1000),color = 'gray', lw = 3.0, ls='dashed');
+	# 	legend_lines.append(mlines.Line2D([],[],color='gray',lw=4, alpha = 1.0, ls = 'dashed', label='random'));	
+	# 	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	# 	ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	# 	ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	# 	ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2], legend_lines[3], legend_lines[4]],loc = 2,ncol=1,fontsize = 11); #, legend_lines[2]
+	# 	title('Average Temporal Gaze Profile, \n Chose %s Trials'%(selected_item), fontsize = 22);
+	# show();
+	# 
 	
 	

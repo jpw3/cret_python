@@ -1577,7 +1577,8 @@ class trial(object):
 	# #write the data to csv files
 	# high_vs_other_pref_data.to_csv(savepath+'perc_time_avg_high_vs_nothigh_pref_trial_data.csv',index=False); 
 	# high_pref_only_data.to_csv(savepath+'perc_time_avg_high_pref_only_trial_data.csv',index=False);
-	# cue_vs_not_cue_data.to_csv(savepath+'perc_time_cue_not_cue_high_pref_trial_data.csv',index=False);	
+	# cue_vs_not_cue_data.to_csv(savepath+'perc_time_cue_not_cue_high_pref_trial_data.csv',index=False);
+	
 	
 	
 	

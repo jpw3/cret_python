@@ -17,18 +17,18 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 ## Specify some universal parameters ##
 ############################################
 
-datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Volumes/WORK_HD/data/CRET/'; #
 savepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
-shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
 #subject_saccade_criteria = pd.read_csv(savepath+'subject_saccade_criteria_each_trial.csv');
 #completed_velocity_ids = unique(subject_saccade_criteria['sub_id']);
 
-ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11', 'cret14','cret15','cret16',
-	 'cret17','cret18','cret19','cret21','cret22','cret24','cret25','cret26','cret27','cret28','cret29','cret30',
-	 'cret33','cret36','cret37','cret38','cret39']; #   'cret01'   ,'cret13'     
+ids=['cret15']; #['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11', 'cret14','cret15','cret16',
+	# 'cret17','cret18','cret19','cret21','cret22','cret24','cret25','cret26','cret27','cret28','cret29','cret30',
+	 #'cret33','cret36','cret37','cret38','cret39']; #   'cret01'   ,'cret13'     
 
 subjective_prefs = [('cret03','cigarette'),('cret04','cigarette'),('cret05','cigarette'),('cret06','alcohol'),('cret07','cigarette'),('cret08','cigarette'),
 	('cret09','cigarette'),('cret11','cigarette'),('cret14','cigarette'),('cret15','cigarette'),('cret16','cigarette'),
@@ -967,8 +967,11 @@ class trial(object):
 				#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
 				startingVelCrit = 60; #christie used a velocity threshold of 100 degrees/second
 				
-				#if the subejct has already been completed, then I want to use the ending threshold values I calculated already
-				#first check if the id is in the list of completed ids, then pull the threshold
+				self.plotSaccadeGetVelocity(startingVelCrit);
+				
+				
+				# #if the subejct has already been completed, then I want to use the ending threshold values I calculated already
+				# #first check if the id is in the list of completed ids, then pull the threshold
 				# if self.dropped_sample > 0:
 				# 	endingVelCrit = -1;
 				# 	nr_saccades = -1;
@@ -982,12 +985,12 @@ class trial(object):
 				# 	#add this trial's criterion to the database and save it
 				# 	subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit, skip_trial];
 				# 	subject_saccade_criteria.to_csv(savepath+'subject_saccade_criteria_each_trial.csv',index=False);
-				# 
-				# #save the velocity threshold and the isSaccade truth vector to the array
-				# self.saccadeCriterion = endingVelCrit; #degrees/sec
-				# self.nr_saccades = nr_saccades;
-				# self.skip_trial = skip_trial;
-				# self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
+				
+				#save the velocity threshold and the isSaccade truth vector to the array
+				self.saccadeCriterion = endingVelCrit; #degrees/sec
+				self.nr_saccades = nr_saccades;
+				self.skip_trial = skip_trial;
+				self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
 				
 				self.get_ET_data();
 				

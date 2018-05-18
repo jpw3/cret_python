@@ -21,7 +21,7 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 
 
 datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Volumes/WORK_HD/data/CRET/'; #
-savepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/';  # 
 shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
@@ -137,9 +137,6 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 	#get the aggregate breakdwon as well as when they chose each item
 	#for high_pref_trial,name in zip([0,1],['non_high_pref','high_pref']):
 	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):	
-		#for now, only run this analysis for the high preference (preferred alcohol, preferred cigarette) trials
-		if high_pref_trial==0:
-			continue;
 		#define holders for each breakdown of the data to store each subjects' respective data
 		neu_subject_times = []; 
 		neu_subject_percs = [];
@@ -452,10 +449,7 @@ def computeLastItemLookedAt(blocks, eyed = 'agg'):
 	#get the proportion of trials where the last fixated item was alcohol, cigarettes, and neutral items
 	#get the aggregate breakdwon as well as when they chose each item
 	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):	
-		#for now, only run this analysis for the high preference (preferred alcohol, preferred cigarette) trials
-		if high_pref_trial==0:
-			continue;
-		
+
 		alc_last_fixated = [];
 		cig_last_fixated = [];
 		neu_last_fixated = [];
@@ -686,6 +680,7 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 	#collect which trial type to run this analysis for
 	ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
 	
+	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
 		
 	for selected_item in ['alcohol','cigarette','neutral']:		
 		
@@ -781,15 +776,15 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 		ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
 		ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
 		ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2], legend_lines[3]],loc = 2,ncol=1,fontsize = 11); # legend_lines[4]]
-		title('Average Temporal Gaze Profile, \n Chose %s Trials'%(selected_item), fontsize = 22);
-		savefig(savepath+'temporal_gaze_profile_selected_%s.png'%selected_item,dpi=400); #save as .png
-		#then strip axes and save as an .eps object
-		ax1.legend_.remove(); # legend_lines[4]]
-		title('');
-		ax1.set_ylabel(''); ax1.set_xlabel('');
-		ax1.set_xticklabels(['','','','','','']);
-		ax1.set_yticklabels(['','','','','','','','','','','','','','']);
-		#savefig(savepath+'temporal_gaze_profile_selected_%s.eps'%selected_item,dpi=400); #save as .png
+		title('%s Average Temporal Gaze Profile, \n Chose %s Trials'%(name, selected_item), fontsize = 22);
+		# savefig(savepath+'temporal_gaze_profile_selected_%s.png'%selected_item,dpi=400); #save as .png
+		# #then strip axes and save as an .eps object
+		# ax1.legend_.remove(); # legend_lines[4]]
+		# title('');
+		# ax1.set_ylabel(''); ax1.set_xlabel('');
+		# ax1.set_xticklabels(['','','','','','']);
+		# ax1.set_yticklabels(['','','','','','','','','','','','','','']);
+		# savefig(savepath+'temporal_gaze_profile_selected_%s.eps'%selected_item,dpi=400); #save as .png
 		
 	show();
 

@@ -17,6 +17,9 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 ## Specify some universal parameters ##
 ############################################
 
+# Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
+
+
 datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Volumes/WORK_HD/data/CRET/'; #
 savepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
 shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
@@ -26,9 +29,9 @@ subject_data = shelve.open(shelvepath+'data');
 #subject_saccade_criteria = pd.read_csv(savepath+'subject_saccade_criteria_each_trial.csv');
 #completed_velocity_ids = unique(subject_saccade_criteria['sub_id']);
 
-ids=['cret15']; #['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11', 'cret14','cret15','cret16',
-	# 'cret17','cret18','cret19','cret21','cret22','cret24','cret25','cret26','cret27','cret28','cret29','cret30',
-	 #'cret33','cret36','cret37','cret38','cret39']; #   'cret01'   ,'cret13'     
+ids=['cret03','cret04','cret05','cret06','cret07','cret08','cret09','cret10','cret11', 'cret14','cret15','cret16',
+	 'cret17','cret18','cret19','cret21','cret22','cret24','cret25','cret26','cret27','cret28','cret29','cret30',
+	 'cret33','cret36','cret37','cret38','cret39']; #   'cret01'   ,'cret13'     ['cret15']; 
 
 subjective_prefs = [('cret03','cigarette'),('cret04','cigarette'),('cret05','cigarette'),('cret06','alcohol'),('cret07','cigarette'),('cret08','cigarette'),
 	('cret09','cigarette'),('cret11','cigarette'),('cret14','cigarette'),('cret15','cigarette'),('cret16','cigarette'),
@@ -114,7 +117,7 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 		# 						   'cue_mean_time_looking_at_pref','cue_mean_percentage_looking_at_pref','not_cue_mean_time_looking_at_pref',
 		# 						   'not_cue_mean_percentage_looking_at_pref', 'mean_response_time']);
 		#database for the mean proportion of looking time for alcoho and cigarette items 
-		data = pd.DataFrame(columns = ['sub_id','prop_trials_chose_alc','prop_trials_chose_cig','prop_trials_chose_neu','neu_avg_looking_time','neu_avg_prop_time','cig_avg_looking_time','cig_avg_prop_time','alc_avg_looking_time',
+		data = pd.DataFrame(columns = ['sub_id','trial_type','prop_trials_chose_alc','prop_trials_chose_cig','prop_trials_chose_neu','neu_avg_looking_time','neu_avg_prop_time','cig_avg_looking_time','cig_avg_prop_time','alc_avg_looking_time',
 									   'alc_avg_prop_time','avg_rt','chose_alc_neu_avg_looking_time','chose_alc_neu_avg_prop_time','chose_alc_cig_avg_looking_time',
 									   'chose_alc_cig_avg_prop_time','chose_alc_alc_avg_looking_time','chose_alc_alc_avg_prop_time','chose_alc_avg_rt',
 									   'chose_cig_neu_avg_looking_time','chose_cig_neu_avg_prop_time','chose_cig_cig_avg_looking_time','chose_cig_cig_avg_prop_time','chose_cig_alc_avg_looking_time',
@@ -129,10 +132,11 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 		all_hp_prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_hp_all_substances];
 		all_hp_prop_chose_neu = [sum([val == 'neutral' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_hp_all_substances];
 
-	
+
 	#get the proportion of looking time data for alcohol, cigarettes, and neutral items
 	#get the aggregate breakdwon as well as when they chose each item
-	for high_pref_trial,name in zip([0,1],['non_high_pref','high_pref']):
+	#for high_pref_trial,name in zip([0,1],['non_high_pref','high_pref']):
+	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):	
 		#for now, only run this analysis for the high preference (preferred alcohol, preferred cigarette) trials
 		if high_pref_trial==0:
 			continue;
@@ -176,7 +180,7 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 			cig_perc_at_pref = [];
 			rts = [];			
 			for t in subj:
-				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial)):					
+				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):                     #==high_pref_trial)):					
 					neu_time_at_pref.append(t.timeLookingAtNeutral);
 					neu_perc_at_pref.append(t.percentageTimeLookingAtNeutral);	
 					alc_time_at_pref.append(t.timeLookingAtAlcohol);
@@ -202,13 +206,13 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 			# db.sync();
 			
 		#get the aggregated data points for this, across all subjects
-		db['%s_high_pref_all_hp_look_at_neutral_mean_time_at_pref'%(eyed)] = nanmean(neu_subject_times); db['%s_high_pref_all_hp_look_at_neutral_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(neu_subject_times);
-		db['%s_high_pref_all_hp_look_at_neutral_mean_perc_time_at_pref'%(eyed)] = nanmean(neu_subject_percs); db['%s_high_pref_all_hp_look_at_neutral_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(neu_subject_percs);
-		db['%s_high_pref_all_hp_look_at_alc_mean_time_at_pref'%(eyed)] = nanmean(alc_subject_times); db['%s_high_pref_all_hp_look_at_alc_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(alc_subject_times); 
-		db['%s_high_pref_all_hp_look_at_alc_mean_perc_time_at_pref'%(eyed)] = nanmean(alc_subject_percs); db['%s_high_pref_all_hp_look_at_alc_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(alc_subject_percs);
-		db['%s_high_pref_all_hp_look_at_cig_mean_time_at_pref'%(eyed)] = nanmean(cig_subject_times);  db['%s_high_pref_all_hp_look_at_cig_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(cig_subject_times); 
-		db['%s_high_pref_all_hp_look_at_cig_mean_perc_time_at_pref'%(eyed)] = nanmean(cig_subject_percs); db['%s_high_pref_all_hp_look_at_cig_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(cig_subject_percs); 					
-		db['%s_high_pref_all_hp_mean_rt'%(eyed)] = nanmean(all_rts); db['%s_high_pref_all_hp_bs_sems_rt'%(eyed)] = compute_BS_SEM(all_rts);	
+		db['%s_%s_all_hp_look_at_neutral_mean_time_at_pref'%(eyed,name)] = nanmean(neu_subject_times); db['%s_%s_all_hp_look_at_neutral_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(neu_subject_times);
+		db['%s_%s_all_hp_look_at_neutral_mean_perc_time_at_pref'%(eyed,name)] = nanmean(neu_subject_percs); db['%s_%s_all_hp_look_at_neutral_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(neu_subject_percs);
+		db['%s_%s_all_hp_look_at_alc_mean_time_at_pref'%(eyed,name)] = nanmean(alc_subject_times); db['%s_%s_all_hp_look_at_alc_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(alc_subject_times); 
+		db['%s_%s_all_hp_look_at_alc_mean_perc_time_at_pref'%(eyed,name)] = nanmean(alc_subject_percs); db['%s_%s_all_hp_look_at_alc_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(alc_subject_percs);
+		db['%s_%s_all_hp_look_at_cig_mean_time_at_pref'%(eyed,name)] = nanmean(cig_subject_times);  db['%s_%s_all_hp_look_at_cig_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(cig_subject_times); 
+		db['%s_%s_all_hp_look_at_cig_mean_perc_time_at_pref'%(eyed,name)] = nanmean(cig_subject_percs); db['%s_%s_all_hp_look_at_cig_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(cig_subject_percs); 					
+		db['%s_%s_all_hp_mean_rt'%(eyed,name)] = nanmean(all_rts); db['%s_%s_all_hp_bs_sems_rt'%(eyed,name)] = compute_BS_SEM(all_rts);	
 		db.sync();
 		
 		#now run the analysis conditioned on which item was chosen
@@ -223,7 +227,7 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 				cig_perc_at_pref = [];
 				rts = [];	
 				for t in subj:
-					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&((t.trial_type == 1)==high_pref_trial)):					
+					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):                       #==high_pref_trial)):					
 						if (t.preferred_category==selected_item):
 							neu_time_at_pref.append(t.timeLookingAtNeutral);
 							neu_perc_at_pref.append(t.percentageTimeLookingAtNeutral);	
@@ -270,33 +274,33 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 
 		#now here aggregate all the data together and append it to the database
 		#neutral first...
-		db['%s_high_pref_selected_neutral_look_at_neutral_mean_time_at_pref'%(eyed)] = nanmean(chose_neu_neu_subject_times); db['%s_high_pref_selected_neutral_look_at_neutral_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(chose_neu_neu_subject_times);
-		db['%s_high_pref_selected_neutral_look_at_neutral_mean_perc_time_at_pref'%(eyed)] = nanmean(chose_neu_neu_subject_percs); db['%s_high_pref_selected_neutral_look_at_neutral_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(chose_neu_neu_subject_percs);				
-		db['%s_high_pref_selected_neutral_look_at_alc_mean_time_at_pref'%(eyed)] = nanmean(chose_neu_alc_subject_times); db['%s_high_pref_selected_neutral_look_at_alc_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(chose_neu_alc_subject_times);
-		db['%s_high_pref_selected_neutral_look_at_alc_mean_perc_time_at_pref'%(eyed)] = nanmean(chose_neu_alc_subject_percs); db['%s_high_pref_selected_neutral_look_at_alc_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(chose_neu_alc_subject_percs);			
-		db['%s_high_pref_selected_neutral_look_at_cig_mean_time_at_pref'%(eyed)] = nanmean(chose_neu_cig_subject_times); db['%s_high_pref_selected_neutral_look_at_cig_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(chose_neu_cig_subject_times);
-		db['%s_high_pref_selected_neutral_look_at_cig_mean_perc_time_at_pref'%(eyed)] = nanmean(chose_neu_cig_subject_percs); db['%s_high_pref_selected_neutral_look_at_cig_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(chose_neu_cig_subject_percs);				
-		db['%s_high_pref_selected_neutral_mean_rt'%(eyed)] = nanmean(chose_neu_all_rts); db['%s_high_pref_selected_neutral_bs_sems_rt'%(eyed)] = compute_BS_SEM(chose_neu_all_rts);	
+		db['%s_%s_selected_neutral_look_at_neutral_mean_time_at_pref'%(eyed,name)] = nanmean(chose_neu_neu_subject_times); db['%s_%s_selected_neutral_look_at_neutral_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_neu_neu_subject_times);
+		db['%s_%s_selected_neutral_look_at_neutral_mean_perc_time_at_pref'%(eyed,name)] = nanmean(chose_neu_neu_subject_percs); db['%s_%s_selected_neutral_look_at_neutral_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_neu_neu_subject_percs);				
+		db['%s_%s_selected_neutral_look_at_alc_mean_time_at_pref'%(eyed,name)] = nanmean(chose_neu_alc_subject_times); db['%s_%s_selected_neutral_look_at_alc_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_neu_alc_subject_times);
+		db['%s_%s_selected_neutral_look_at_alc_mean_perc_time_at_pref'%(eyed,name)] = nanmean(chose_neu_alc_subject_percs); db['%s_%s_selected_neutral_look_at_alc_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_neu_alc_subject_percs);			
+		db['%s_%s_selected_neutral_look_at_cig_mean_time_at_pref'%(eyed,name)] = nanmean(chose_neu_cig_subject_times); db['%s_%s_selected_neutral_look_at_cig_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_neu_cig_subject_times);
+		db['%s_%s_selected_neutral_look_at_cig_mean_perc_time_at_pref'%(eyed,name)] = nanmean(chose_neu_cig_subject_percs); db['%s_%s_selected_neutral_look_at_cig_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_neu_cig_subject_percs);				
+		db['%s_%s_selected_neutral_mean_rt'%(eyed,name)] = nanmean(chose_neu_all_rts); db['%s_%s_selected_neutral_bs_sems_rt'%(eyed,name)] = compute_BS_SEM(chose_neu_all_rts);	
 		db.sync();
 		
 		#cigarettes
-		db['%s_high_pref_selected_cig_look_at_neutral_mean_time_at_pref'%(eyed)] = nanmean(chose_cig_neu_subject_times); db['%s_high_pref_selected_cig_look_at_neutral_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(chose_cig_neu_subject_times);
-		db['%s_high_pref_selected_cig_look_at_neutral_mean_perc_time_at_pref'%(eyed)] = nanmean(chose_cig_neu_subject_percs); db['%s_high_pref_selected_cig_look_at_neutral_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(chose_cig_neu_subject_percs);				
-		db['%s_high_pref_selected_cig_look_at_alc_mean_time_at_pref'%(eyed)] = nanmean(chose_cig_alc_subject_times); db['%s_high_pref_selected_cig_look_at_alc_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(chose_cig_alc_subject_times);
-		db['%s_high_pref_selected_cig_look_at_alc_mean_perc_time_at_pref'%(eyed)] = nanmean(chose_cig_alc_subject_percs); db['%s_high_pref_selected_cig_look_at_alc_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(chose_cig_alc_subject_percs);			
-		db['%s_high_pref_selected_cig_look_at_cig_mean_time_at_pref'%(eyed)] = nanmean(chose_cig_cig_subject_times); db['%s_high_pref_selected_cig_look_at_cig_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(chose_cig_cig_subject_times);
-		db['%s_high_pref_selected_cig_look_at_cig_mean_perc_time_at_pref'%(eyed)] = nanmean(chose_cig_cig_subject_percs); db['%s_high_pref_selected_cig_look_at_cig_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(chose_cig_cig_subject_percs);				
-		db['%s_high_pref_selected_cig_mean_rt'%(eyed)] = nanmean(chose_cig_all_rts); db['%s_high_pref_selected_cig_bs_sems_rt'%(eyed)] = compute_BS_SEM(chose_cig_all_rts);	
+		db['%s_%s_selected_cig_look_at_neutral_mean_time_at_pref'%(eyed,name)] = nanmean(chose_cig_neu_subject_times); db['%s_%s_selected_cig_look_at_neutral_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_cig_neu_subject_times);
+		db['%s_%s_selected_cig_look_at_neutral_mean_perc_time_at_pref'%(eyed,name)] = nanmean(chose_cig_neu_subject_percs); db['%s_%s_selected_cig_look_at_neutral_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_cig_neu_subject_percs);				
+		db['%s_%s_selected_cig_look_at_alc_mean_time_at_pref'%(eyed,name)] = nanmean(chose_cig_alc_subject_times); db['%s_%s_selected_cig_look_at_alc_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_cig_alc_subject_times);
+		db['%s_%s_selected_cig_look_at_alc_mean_perc_time_at_pref'%(eyed,name)] = nanmean(chose_cig_alc_subject_percs); db['%s_%s_selected_cig_look_at_alc_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_cig_alc_subject_percs);			
+		db['%s_%s_selected_cig_look_at_cig_mean_time_at_pref'%(eyed,name)] = nanmean(chose_cig_cig_subject_times); db['%s_%s_selected_cig_look_at_cig_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_cig_cig_subject_times);
+		db['%s_%s_selected_cig_look_at_cig_mean_perc_time_at_pref'%(eyed,name)] = nanmean(chose_cig_cig_subject_percs); db['%s_%s_selected_cig_look_at_cig_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_cig_cig_subject_percs);				
+		db['%s_%s_selected_cig_mean_rt'%(eyed,name)] = nanmean(chose_cig_all_rts); db['%s_%s_selected_cig_bs_sems_rt'%(eyed,name)] = compute_BS_SEM(chose_cig_all_rts);	
 		db.sync();
 		
 		#alcohol
-		db['%s_high_pref_selected_alc_look_at_neutral_mean_time_at_pref'%(eyed)] = nanmean(chose_alc_neu_subject_times); db['%s_high_pref_selected_alc_look_at_neutral_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(chose_alc_neu_subject_times);
-		db['%s_high_pref_selected_alc_look_at_neutral_mean_perc_time_at_pref'%(eyed)] = nanmean(chose_alc_neu_subject_percs); db['%s_high_pref_selected_alc_look_at_neutral_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(chose_alc_neu_subject_percs);				
-		db['%s_high_pref_selected_alc_look_at_alc_mean_time_at_pref'%(eyed)] = nanmean(chose_alc_alc_subject_times); db['%s_high_pref_selected_alc_look_at_alc_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(chose_alc_alc_subject_times);
-		db['%s_high_pref_selected_alc_look_at_alc_mean_perc_time_at_pref'%(eyed)] = nanmean(chose_alc_alc_subject_percs); db['%s_high_pref_selected_alc_look_at_alc_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(chose_alc_alc_subject_percs);			
-		db['%s_high_pref_selected_alc_look_at_cig_mean_time_at_pref'%(eyed)] = nanmean(chose_alc_cig_subject_times); db['%s_high_pref_selected_alc_look_at_cig_bs_sems_time_at_pref'%(eyed)] = compute_BS_SEM(chose_alc_cig_subject_times);
-		db['%s_high_pref_selected_alc_look_at_cig_mean_perc_time_at_pref'%(eyed)] = nanmean(chose_alc_cig_subject_percs); db['%s_high_pref_selected_alc_look_at_cig_bs_sems_perc_time_at_pref'%(eyed)] = compute_BS_SEM(chose_alc_cig_subject_percs);				
-		db['%s_high_pref_selected_alc_mean_rt'%(eyed)] = nanmean(chose_alc_all_rts); db['%s_high_pref_selected_alc_bs_sems_rt'%(eyed)] = compute_BS_SEM(chose_alc_all_rts);	
+		db['%s_%s_selected_alc_look_at_neutral_mean_time_at_pref'%(eyed,name)] = nanmean(chose_alc_neu_subject_times); db['%s_%s_selected_alc_look_at_neutral_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_alc_neu_subject_times);
+		db['%s_%s_selected_alc_look_at_neutral_mean_perc_time_at_pref'%(eyed,name)] = nanmean(chose_alc_neu_subject_percs); db['%s_%s_selected_alc_look_at_neutral_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_alc_neu_subject_percs);				
+		db['%s_%s_selected_alc_look_at_alc_mean_time_at_pref'%(eyed,name)] = nanmean(chose_alc_alc_subject_times); db['%s_%s_selected_alc_look_at_alc_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_alc_alc_subject_times);
+		db['%s_%s_selected_alc_look_at_alc_mean_perc_time_at_pref'%(eyed,name)] = nanmean(chose_alc_alc_subject_percs); db['%s_%s_selected_alc_look_at_alc_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_alc_alc_subject_percs);			
+		db['%s_%s_selected_alc_look_at_cig_mean_time_at_pref'%(eyed,name)] = nanmean(chose_alc_cig_subject_times); db['%s_%s_selected_alc_look_at_cig_bs_sems_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_alc_cig_subject_times);
+		db['%s_%s_selected_alc_look_at_cig_mean_perc_time_at_pref'%(eyed,name)] = nanmean(chose_alc_cig_subject_percs); db['%s_%s_selected_alc_look_at_cig_bs_sems_perc_time_at_pref'%(eyed,name)] = compute_BS_SEM(chose_alc_cig_subject_percs);				
+		db['%s_%s_selected_alc_mean_rt'%(eyed,name)] = nanmean(chose_alc_all_rts); db['%s_%s_selected_alc_bs_sems_rt'%(eyed,name)] = compute_BS_SEM(chose_alc_all_rts);	
 		db.sync();
 		
 		#finally aggregate all of the data for each subject and each breakdown together and store it in the DataFrame (and then turn it into the .csv)
@@ -311,7 +315,7 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 			   chose_cig_neu_subject_times, chose_cig_neu_subject_percs, chose_cig_cig_subject_times, chose_cig_cig_subject_percs, chose_cig_alc_subject_times, chose_cig_alc_subject_percs, chose_cig_all_rts, \
 			   chose_neu_neu_subject_times, chose_neu_neu_subject_percs, chose_neu_cig_subject_times, chose_neu_cig_subject_percs, chose_neu_alc_subject_times, chose_neu_alc_subject_percs,  chose_neu_all_rts):
 		
-			data.loc[index_counter] = [sub_id, chose_alc, chose_cig, chose_neu, \
+			data.loc[index_counter] = [sub_id, name, chose_alc, chose_cig, chose_neu, \
 						nanmean(neu_time), nanmean(neu_prop), nanmean(cig_time), nanmean(cig_prop), nanmean(alc_time), nanmean(alc_prop), nanmean(agg_rts), \
 						nanmean(alc_neu_time), nanmean(alc_neu_prop), nanmean(alc_cig_time), nanmean(alc_cig_prop), nanmean(alc_alc_time), nanmean(alc_alc_prop), nanmean(alc_agg_rts), \
 						nanmean(cig_neu_time), nanmean(cig_neu_prop), nanmean(cig_cig_time), nanmean(cig_cig_prop), nanmean(cig_alc_time), nanmean(cig_alc_prop), nanmean(cig_agg_rts), \
@@ -967,7 +971,9 @@ class trial(object):
 				#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
 				startingVelCrit = 60; #christie used a velocity threshold of 100 degrees/second
 				
-				self.plotSaccadeGetVelocity(startingVelCrit);
+				########## Here, plotting of eye traces occurs ############
+				
+				#self.plotSaccadeGetVelocity(startingVelCrit);
 				
 				
 				# #if the subejct has already been completed, then I want to use the ending threshold values I calculated already
@@ -987,10 +993,12 @@ class trial(object):
 				# 	subject_saccade_criteria.to_csv(savepath+'subject_saccade_criteria_each_trial.csv',index=False);
 				
 				#save the velocity threshold and the isSaccade truth vector to the array
-				self.saccadeCriterion = endingVelCrit; #degrees/sec
-				self.nr_saccades = nr_saccades;
-				self.skip_trial = skip_trial;
-				self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
+				# self.saccadeCriterion = endingVelCrit; #degrees/sec
+				# self.nr_saccades = nr_saccades;
+				# self.skip_trial = skip_trial;
+				# self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
+				
+				############ End plotting of eye traces #################
 				
 				self.get_ET_data();
 				

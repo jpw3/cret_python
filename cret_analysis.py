@@ -20,9 +20,9 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 
 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Volumes/WORK_HD/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/james/Documents/Python/CRET/data/';  # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -789,6 +789,42 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 		# savefig(savepath+'temporal_gaze_profile_selected_%s.eps'%selected_item,dpi=400); #save as .png
 		
 	show();
+	
+	
+def compute_standardized_heatmaps(blocks):
+	#determine and normalize all eye traces to assign alcohol to left, cigarette to top, and neutral to right
+	#apply transformation to eye traces and then save it to the trial instance
+	# Location coordinates:
+	# Top (stim loc 1): 0, 6
+	# Bottom right (stim loc 2): 5.1962, -3
+	# Bottom left (stim loc 3): -5.1962, -3
+	# radians difference: 2.0944 (120 degrees), 4.1889 (240 degrees)
+	# what I want: alcohol = 'left', cigarette = 'top', neutral = 'right'
+	# What I might have:
+	# 1. alcohol = 'left', cigarette = 'top', neutral = 'right'
+	# 2. alcohol = 'top', cigarette = 'left', neutral = 'right'
+	# 3. alcohol = 'right', cigarette = 'top', neutral = 'left'
+	# 4. alcohol = 'right', cigarette = 'left', neutral = 'top'
+	# 5. alcohol = 'top', cigarette = 'right', neutral = 'left'
+	# 6. alcohol = 'left', cigarette = 'right', neutral = 'top'
+	
+	#break it down by which location trial type it was and transform the eye traces accordingly
+	# will need to rotate by 120 (alcohol in top) or 240 degrees (alcohol in right), by using the following:
+	# xprime = x cos(theta) + y sin(theta) ; yprime = -x sin(theta) + y cos(theta), using radians
+		
+	ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
+	
+	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
+		
+	for selected_item in ['alcohol','cigarette','neutral']:			
+		
+		#first, get
+		
+		xx = linspace(-display_size[0]/2,display_size[0]/2,500);
+		yy = linspace(-display_size[1]/2,display_size[1]/2,500)
+		
+	
+	
 
 def compute_BS_SEM(data_matrix):
     #calculate the between-subjects standard error of the mean. trial_matrix should be matrix of trials including each subject
@@ -1002,93 +1038,52 @@ class trial(object):
 				############ End plotting of eye traces #################
 				
 				self.get_ET_data();
+				self.get_picture_organzation();
 				
 			else:
 				self.filtered_velocities = -1;
 				self.skip = 1;
 	
-	def plotSaccadeGetVelocity(self, startingVelCrit):
+	def get_picture_organzation(self):
+		#standardized_eyetraces
+		#determine and normalize all eye traces to assign alcohol to left, cigarette to top, and neutral to right
+		#apply transformation to eye traces and then save it to the trial instance
+		# Location coordinates:
+		# Top (stim loc 1): 0, 6
+		# Bottom right (stim loc 2): 5.1962, -3
+		# Bottom left (stim loc 3): -5.1962, -3
+		# radians difference: 2.0944 (120 degrees), 4.1889 (240 degrees)
+		# what I want: alcohol = 'left', cigarette = 'top', neutral = 'right'
+		# What I might have:
+		# 1. alcohol = 'left', cigarette = 'top', neutral = 'right'
+		# 2. alcohol = 'top', cigarette = 'left', neutral = 'right'
+		# 3. alcohol = 'right', cigarette = 'top', neutral = 'left'
+		# 4. alcohol = 'right', cigarette = 'left', neutral = 'top'
+		# 5. alcohol = 'top', cigarette = 'right', neutral = 'left'
+		# 6. alcohol = 'left', cigarette = 'right', neutral = 'top'
 		
-		print; print "'a' = accept this trial, 'c' = crash, 's' = skip this trial"; print;
-		print ; print "To adjust threshold, just type new threshold: " ; print ;
-		
-		#must make this iterative to that I can adjust the velocity threshold until it is appropriate for this trial	
-		new_crit = startingVelCrit;
-		resp = 0; skip_trial = 0;
-		
-		while resp!=('a'):
-			isSaccade = self.filtered_velocities > new_crit; #identify where a saccade was based on the velocity criterion
+		#break it down by which location trial type it was and transform the eye traces accordingly
+		# will need to rotate by 120 (alcohol in top) or 240 degrees (alcohol in right), by using the following:
+		# xprime = x cos(theta) + y sin(theta) ; yprime = -x sin(theta) + y cos(theta), using radians
 
-			#plot the different saccades for the given trial for use in debugging	
-			fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
-			ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
-			legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','fuschia','gold','yellowgreen'];
-			#first plot the eye traces with respect to the velocity data
-			#if the eye is in movements, use the color array above. otheriwse use black to denote fixation
-			saccade_counter = 0; nr_saccades = 0;
-			for i,xx,yy,issac in zip(range(len(self.sample_times)),
-												 self.eyeX, self.eyeY, isSaccade):
-				#plot the eye trace in black if not saccading
-				if issac < 1:
-					ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
-					#conditional to switch to the next saccade color
-					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
-					if (isSaccade[i-1]==True)&(i>0):  					
-						saccade_counter+=1;
-						if saccade_counter > len(colors):
-							saccade_counter=0;					
-				else:
-					ax.plot(xx, yy, color = colors[saccade_counter], marker = 'o', ms = 4);
-					if (isSaccade[i-1]==False)&(i>0):  
-						nr_saccades+=1;
-						legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));
-					
-			ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
-			ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
-			ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
-			ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
-			title('Eye Trace and Position Velocity \nSubject %s, Block %s, Trial %s'%(self.sub_id, self.block_nr, self.trial_nr), fontsize = 22);
-			
-			#now plot the velocity data in an inset plot	
-			ia = inset_axes(ax, width="30%", height="30%", loc=1); #set the inset axes as percentages of the original axis size
-			saccade_counter = 0; nr_saccades = 0;
-			for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),
-												 self.filtered_velocities, self.velocities, isSaccade):
-				#plot the eye trace in black if not saccading
-				plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
-				if issac < 1:
-					plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);
-					#conditional to switch to the next saccade color
-					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
-					if (isSaccade[i-1]==True)&(i>0):			
-						saccade_counter+=1;
-						if saccade_counter > len(colors):
-							saccade_counter=0;
-				else:
-					plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);
-					if (isSaccade[i-1]==False)&(i>0):  
-						nr_saccades+=1;
-			#plot the velocity trheshold and set labels
-			plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(new_crit,new_crit+0.01,len(self.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
-			ia.set_ylabel('Velocity', fontsize = 14); ia.set_xlabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
-			
-			fig.text(0.7, 0.4, 'CURRENT VELOCITY \n THRESHOLD: %s deg/s'%(new_crit),size=16,weight='bold');
-			
-			resp = raw_input();	#wait for the button press to move to next trial
-			if resp.isdigit(): #adjust the threshold here
-				new_crit = float(resp);
-			elif resp == 'c':
-				1/0;
-			elif resp == 'a':
-				endingVelCrit = new_crit;
-			elif resp == 's':
-				endingVelCrit = -1; #this is a flag for skipping this trial
-				nr_saccades = -1;
-				skip_trial = 1;
-			else:
-				new_crit = new_crit;
-			close('all');
-		return [endingVelCrit, nr_saccades];
+		
+		if (self.alcohol_loc=='left')&(self.cigarette_loc=='up')&(self.neutral_loc=='right'):
+			#trial type 1
+			self.pre_transformed_picture_organiztion = 1;
+			#self.post_transformed_picture_organiztion = 1;
+			#self.transformedX = self.eyeX; self.transformedY = self.eyeY;
+		elif (self.alcohol_loc=='up')&(self.cigarette_loc=='left')&(self.neutral_loc=='right'):		
+			self.pre_transformed_picture_organiztion = 2;
+		elif (self.alcohol_loc=='right')&(self.cigarette_loc=='up')&(self.neutral_loc=='left'):		
+			self.pre_transformed_picture_organiztion = 3;
+		elif (self.alcohol_loc=='right')&(self.cigarette_loc=='left')&(self.neutral_loc=='up'):		
+			self.pre_transformed_picture_organiztion = 4;
+		elif (self.alcohol_loc=='up')&(self.cigarette_loc=='right')&(self.neutral_loc=='left'):		
+			self.pre_transformed_picture_organiztion = 5;
+		elif (self.alcohol_loc=='left')&(self.cigarette_loc=='right')&(self.neutral_loc=='up'):		
+			self.pre_transformed_picture_organiztion = 6;
+		
+
 
 	#define a function that takes a trial object and determines the proportion of time was looking at each item
 	#this should find arrays of length(trial time) for each item/location, marking a 0 if not looking at that loc
@@ -1220,6 +1215,88 @@ class trial(object):
 			self.timeLastItemLookedAt = -1;
 
 
+	def plotSaccadeGetVelocity(self, startingVelCrit):
+		
+		print; print "'a' = accept this trial, 'c' = crash, 's' = skip this trial"; print;
+		print ; print "To adjust threshold, just type new threshold: " ; print ;
+		
+		#must make this iterative to that I can adjust the velocity threshold until it is appropriate for this trial	
+		new_crit = startingVelCrit;
+		resp = 0; skip_trial = 0;
+		
+		while resp!=('a'):
+			isSaccade = self.filtered_velocities > new_crit; #identify where a saccade was based on the velocity criterion
+
+			#plot the different saccades for the given trial for use in debugging	
+			fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+			ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
+			legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','fuschia','gold','yellowgreen'];
+			#first plot the eye traces with respect to the velocity data
+			#if the eye is in movements, use the color array above. otheriwse use black to denote fixation
+			saccade_counter = 0; nr_saccades = 0;
+			for i,xx,yy,issac in zip(range(len(self.sample_times)),
+												 self.eyeX, self.eyeY, isSaccade):
+				#plot the eye trace in black if not saccading
+				if issac < 1:
+					ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
+					#conditional to switch to the next saccade color
+					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
+					if (isSaccade[i-1]==True)&(i>0):  					
+						saccade_counter+=1;
+						if saccade_counter > len(colors):
+							saccade_counter=0;					
+				else:
+					ax.plot(xx, yy, color = colors[saccade_counter], marker = 'o', ms = 4);
+					if (isSaccade[i-1]==False)&(i>0):  
+						nr_saccades+=1;
+						legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));
+					
+			ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+			ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+			ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+			ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
+			title('Eye Trace and Position Velocity \nSubject %s, Block %s, Trial %s'%(self.sub_id, self.block_nr, self.trial_nr), fontsize = 22);
+			
+			#now plot the velocity data in an inset plot	
+			ia = inset_axes(ax, width="30%", height="30%", loc=1); #set the inset axes as percentages of the original axis size
+			saccade_counter = 0; nr_saccades = 0;
+			for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),
+												 self.filtered_velocities, self.velocities, isSaccade):
+				#plot the eye trace in black if not saccading
+				plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
+				if issac < 1:
+					plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);
+					#conditional to switch to the next saccade color
+					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
+					if (isSaccade[i-1]==True)&(i>0):			
+						saccade_counter+=1;
+						if saccade_counter > len(colors):
+							saccade_counter=0;
+				else:
+					plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);
+					if (isSaccade[i-1]==False)&(i>0):  
+						nr_saccades+=1;
+			#plot the velocity trheshold and set labels
+			plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(new_crit,new_crit+0.01,len(self.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
+			ia.set_ylabel('Velocity', fontsize = 14); ia.set_xlabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
+			
+			fig.text(0.7, 0.4, 'CURRENT VELOCITY \n THRESHOLD: %s deg/s'%(new_crit),size=16,weight='bold');
+			
+			resp = raw_input();	#wait for the button press to move to next trial
+			if resp.isdigit(): #adjust the threshold here
+				new_crit = float(resp);
+			elif resp == 'c':
+				1/0;
+			elif resp == 'a':
+				endingVelCrit = new_crit;
+			elif resp == 's':
+				endingVelCrit = -1; #this is a flag for skipping this trial
+				nr_saccades = -1;
+				skip_trial = 1;
+			else:
+				new_crit = new_crit;
+			close('all');
+		return [endingVelCrit, nr_saccades];
 
 ############################################
 ## Previous code that may be useful but not using currently ###

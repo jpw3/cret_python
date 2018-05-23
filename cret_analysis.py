@@ -20,9 +20,9 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 
 
-datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/james/Documents/Python/CRET/data/';  # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
-shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Volumes/WORK_HD/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -48,7 +48,7 @@ left_pic_coors = array([-5.20,-3.0]); #in dva
 right_pic_coors = array([5.20,-3]);
 up_pic_coors = array([0,6]);
 
-distance_threshold = 4; #threshold for how far away eye position can be from the coordinates to be considered looking at that item
+distance_threshold = 4.0; #threshold for how far away eye position can be from the coordinates to be considered looking at that item
 
 #define the possible filenames for each class of pictures
 alcohol_filenames = ['bacardi','brandy','budweiser','captainmorgan','corona','greygoose','heineken','jackdaniels','jimbeam','josecuervo','kahlua','naturallight','newamsterdam','skyy','smirnoff','sutter'];
@@ -791,38 +791,140 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 	show();
 	
 	
-def compute_standardized_heatmaps(blocks):
+def compute_heatmaps(block_matrix):
 	#determine and normalize all eye traces to assign alcohol to left, cigarette to top, and neutral to right
-	#apply transformation to eye traces and then save it to the trial instance
-	# Location coordinates:
-	# Top (stim loc 1): 0, 6
-	# Bottom right (stim loc 2): 5.1962, -3
-	# Bottom left (stim loc 3): -5.1962, -3
-	# radians difference: 2.0944 (120 degrees), 4.1889 (240 degrees)
-	# what I want: alcohol = 'left', cigarette = 'top', neutral = 'right'
-	# What I might have:
-	# 1. alcohol = 'left', cigarette = 'top', neutral = 'right'
-	# 2. alcohol = 'top', cigarette = 'left', neutral = 'right'
-	# 3. alcohol = 'right', cigarette = 'top', neutral = 'left'
-	# 4. alcohol = 'right', cigarette = 'left', neutral = 'top'
-	# 5. alcohol = 'top', cigarette = 'right', neutral = 'left'
-	# 6. alcohol = 'left', cigarette = 'right', neutral = 'top'
 	
-	#break it down by which location trial type it was and transform the eye traces accordingly
-	# will need to rotate by 120 (alcohol in top) or 240 degrees (alcohol in right), by using the following:
-	# xprime = x cos(theta) + y sin(theta) ; yprime = -x sin(theta) + y cos(theta), using radians
-		
 	ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
 	
 	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
 		
 	for selected_item in ['alcohol','cigarette','neutral']:			
 		
-		#first, get
-		
-		xx = linspace(-display_size[0]/2,display_size[0]/2,500);
-		yy = linspace(-display_size[1]/2,display_size[1]/2,500)
-		
+		#first, get the individual eye traces for each item for each trial where the selected_item was chosen
+		# store each item's eye traces (adding a +1 for the trace being in that location at any time point in the trial) by creating little windows
+		# e.g., a 4-degree by 4-degree square around each picture
+		#compare against reference X,Y coordinates and place the values into each matrrix accordingly
+		#aggregate this for each participant into a combined map
+			
+		#these are holder arrays for each participant, for each item. Each list holds a 500 by 500 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
+		alc_subj_arrays = [zeros((100,100)) for su in block_matrix];
+		cig_subj_arrays = [zeros((100,100)) for su in block_matrix];
+		neu_subj_arrays = [zeros((100,100)) for su in block_matrix];
+
+		for subj_nr, blocks in enumerate(block_matrix):
+			for b in blocks:
+				for i in arange(0,len(b.trials)):
+					if b.trials[i].dropped_sample>0:
+						continue; #skip trials with blinks or eye movements away from the screen
+					
+					#here, figure out where the alcohol, cigarette, and neutral items were located on each trial
+					if b.trials[i].alcohol_loc == 'up':
+						alc_center_xy = array([0.0,6.0]);
+					elif b.trials[i].alcohol_loc == 'right':
+						alc_center_xy = array([5.20,-3.0]);
+					elif b.trials[i].alcohol_loc == 'left':	
+						alc_center_xy = array([-5.20,-3.0]);
+						
+					if b.trials[i].cigarette_loc == 'up':
+						cig_center_xy = array([0.0,6.0]);
+					elif b.trials[i].cigarette_loc == 'right':
+						cig_center_xy = array([5.20,-3.0]);
+					elif b.trials[i].cigarette_loc == 'left':	
+						cig_center_xy = array([-5.20,-3.0]);
+						
+					if b.trials[i].neutral_loc == 'up':
+						neu_center_xy = array([0.0,6.0]);
+					elif b.trials[i].neutral_loc == 'right':
+						neu_center_xy = array([5.20,-3.0]);
+					elif b.trials[i].neutral_loc == 'left':	
+						neu_center_xy = array([-5.20,-3.0]);
+					
+					#distance_threshold = 6.0;	
+					#get reference arrays for each substance item for this trial, reference X, Y coordinates for a spatial array correpsonding to 4 by 4 degree square around the picture	
+					alc_xx = linspace(alc_center_xy[0]-distance_threshold,alc_center_xy[0]+distance_threshold,100);
+					alc_yy = linspace(alc_center_xy[1]-distance_threshold,alc_center_xy[1]+distance_threshold,100);
+					cig_xx = linspace(cig_center_xy[0]-distance_threshold,cig_center_xy[0]+distance_threshold,100);
+					cig_yy = linspace(cig_center_xy[1]-distance_threshold,cig_center_xy[1]+distance_threshold,100);
+					neu_xx = linspace(neu_center_xy[0]-distance_threshold,neu_center_xy[0]+distance_threshold,100);
+					neu_yy = linspace(neu_center_xy[1]-distance_threshold,neu_center_xy[1]+distance_threshold,100);
+										
+					#just test to make sure the rfrence coordinates for each item don't overlap
+					if (sum((alc_center_xy == cig_center_xy)) + sum((alc_center_xy == neu_center_xy)) + sum((neu_center_xy == cig_center_xy))) > 1:
+						#the comparison is against 1 because the y coordinates of the left and right picture are the same (-3) and they would sum to 1
+						1/0;
+					
+					#at this point, go through the eye traces and for each point determine if it's within the alcohol, cigarette, or neutral 6 by 6 window using the center coordinates for reference
+					# if it is, compare it's (adjusted, zero-centered coordinates) against the reference array X and Y values (XX and YY) and allocate a 1 to that corresponding location in this subject's alc, cig, or neu combined locations
+					# if there is no data to add (e.g., no looking at that item for that participants, it will still just be a zero)
+					
+					#plot to draw the boundaries of alcohol limits for this trial (sanity check)
+					
+						
+					alc_agg = 0;	
+						
+						
+											
+					fig = figure(); ax = gca();
+					ax.set_xlim(-display_size[0]/2,display_size[0]/2); ax.set_ylim(-display_size[1]/2,display_size[1]/2);
+					xx,yy = meshgrid(alc_xx,alc_yy);
+					for ex, why in zip(xx,yy):
+						ax.plot(ex, why, color='gray', marker='o', alpha = 0.1);
+					xx,yy = meshgrid(cig_xx,cig_yy);
+					for ex, why in zip(xx,yy):
+						ax.plot(ex, why, color='gray', marker='o',alpha=0.1);
+					xx,yy = meshgrid(neu_xx,neu_yy);
+					for ex, why in zip(xx,yy):
+						ax.plot(ex, why, color='gray', marker='o',alpha=0.1);
+						
+					theta = linspace(0,2*pi, 20);
+					alc_circle_x = alc_center_xy[0] + distance_threshold*cos(theta);
+					alc_circle_y = alc_center_xy[1] + distance_threshold*sin(theta);					
+					for t,g in zip(alc_circle_x, alc_circle_y):
+						ax.plot(t,g, color='black', marker='o',);
+					cig_circle_x = cig_center_xy[0] + distance_threshold*cos(theta);
+					cig_circle_y = cig_center_xy[1] + distance_threshold*sin(theta);					
+					for t,g in zip(cig_circle_x, cig_circle_y):
+						ax.plot(t,g, color='black', marker='o',);						
+					neu_circle_x = neu_center_xy[0] + distance_threshold*cos(theta);
+					neu_circle_y = neu_center_xy[1] + distance_threshold*sin(theta);					
+					for t,g in zip(neu_circle_x, neu_circle_y):
+						ax.plot(t,g, color='black', marker='o',);						
+								
+					for data_i,data in enumerate(zip(b.trials[i].eyeX, b.trials[i].eyeY)):					
+						x = data[0]; y = data[1];
+						#check if the X and Y position is within the boundaries for alcohol; boundaries are the endpoints of the X and Y coordinates
+						if sqrt((x-alc_center_xy[0])**2 + (y-alc_center_xy[1])**2)<distance_threshold:
+						#if (x > alc_xx[0])&(x < alc_xx [-1])&(y > alc_yy[0])&(y < alc_yy[-1]):
+							alc_agg +=1;
+							#confirm that this was a lookedAtAlcohol instance
+							if b.trials[i].lookedAtAlcohol[data_i]!=1:
+								1/0;
+							ax.plot(x,y, marker='o', color='red');
+						elif sqrt((x-cig_center_xy[0])**2 + (y-cig_center_xy[1])**2)<distance_threshold:	
+						#elif (x > cig_xx[0])&(x < cig_xx [-1])&(y > cig_yy[0])&(y < cig_yy[-1]):
+							#confirm that this was a lookedAtAlcohol instance
+							if b.trials[i].lookedAtCigarette[data_i]!=1:
+								1/0;
+							ax.plot(x,y, marker='o', color='green');
+						elif sqrt((x-neu_center_xy[0])**2 + (y-neu_center_xy[1])**2)<distance_threshold:
+						#elif (x > neu_xx[0])&(x < neu_xx [-1])&(y > neu_yy[0])&(y < neu_yy[-1]):
+							#confirm that this was a lookedAtAlcohol instance
+							if b.trials[i].lookedAtNeutral[data_i]!=1:
+								1/0;
+							ax.plot(x,y, marker='o', color='blue');							
+							
+							
+								
+					show()
+					1/0
+							
+						
+						
+						
+						
+					
+					
+					
 	
 	
 
@@ -1715,4 +1817,22 @@ class trial(object):
 	# show();
 	# 
 	
+## Commetns about transformations for displays to try and aggregate eye positions all together (heat maps)	
+	#apply transformation to eye traces and then save it to the trial instance
+	# Location coordinates:
+	# Top (stim loc 1): 0, 6
+	# Bottom right (stim loc 2): 5.1962, -3
+	# Bottom left (stim loc 3): -5.1962, -3
+	# radians difference: 2.0944 (120 degrees), 4.1889 (240 degrees)
+	# what I want: alcohol = 'left', cigarette = 'top', neutral = 'right'
+	# What I might have:
+	# 1. alcohol = 'left', cigarette = 'top', neutral = 'right'
+	# 2. alcohol = 'top', cigarette = 'left', neutral = 'right'
+	# 3. alcohol = 'right', cigarette = 'top', neutral = 'left'
+	# 4. alcohol = 'right', cigarette = 'left', neutral = 'top'
+	# 5. alcohol = 'top', cigarette = 'right', neutral = 'left'
+	# 6. alcohol = 'left', cigarette = 'right', neutral = 'top'
 	
+	#break it down by which location trial type it was and transform the eye traces accordingly
+	# will need to rotate by 120 (alcohol in top) or 240 degrees (alcohol in right), by using the following:
+	# xprime = x cos(theta) + y sin(theta) ; yprime = -x sin(theta) + y cos(theta), using radians	

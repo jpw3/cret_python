@@ -12,6 +12,7 @@ import math
 import matplotlib.lines as mlines
 import scipy.signal as ssignal
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
+import time
 
 ############################################
 ## Specify some universal parameters ##
@@ -798,6 +799,8 @@ def compute_heatmaps(block_matrix):
 	
 	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
 		
+	start_time = time.time();
+		
 	for selected_item in ['alcohol','cigarette','neutral']:			
 		
 		#first, get the individual eye traces for each item for each trial where the selected_item was chosen
@@ -807,116 +810,161 @@ def compute_heatmaps(block_matrix):
 		#aggregate this for each participant into a combined map
 			
 		#these are holder arrays for each participant, for each item. Each list holds a 500 by 500 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
-		alc_subj_arrays = [zeros((100,100)) for su in block_matrix];
-		cig_subj_arrays = [zeros((100,100)) for su in block_matrix];
-		neu_subj_arrays = [zeros((100,100)) for su in block_matrix];
+		alc_subj_arrays = [zeros((20,20)) for su in block_matrix];
+		cig_subj_arrays = [zeros((20,20)) for su in block_matrix];
+		neu_subj_arrays = [zeros((20,20)) for su in block_matrix];
 
 		for subj_nr, blocks in enumerate(block_matrix):
 			for b in blocks:
 				for i in arange(0,len(b.trials)):
 					if b.trials[i].dropped_sample>0:
 						continue; #skip trials with blinks or eye movements away from the screen
+					if b.trials[i].trial_type!=ttype:
+						continue; #skip trials where this isn't the right trial type
 					
-					#here, figure out where the alcohol, cigarette, and neutral items were located on each trial
-					if b.trials[i].alcohol_loc == 'up':
-						alc_center_xy = array([0.0,6.0]);
-					elif b.trials[i].alcohol_loc == 'right':
-						alc_center_xy = array([5.20,-3.0]);
-					elif b.trials[i].alcohol_loc == 'left':	
-						alc_center_xy = array([-5.20,-3.0]);
+					if b.trials[i].preferred_category==selected_item:
 						
-					if b.trials[i].cigarette_loc == 'up':
-						cig_center_xy = array([0.0,6.0]);
-					elif b.trials[i].cigarette_loc == 'right':
-						cig_center_xy = array([5.20,-3.0]);
-					elif b.trials[i].cigarette_loc == 'left':	
-						cig_center_xy = array([-5.20,-3.0]);
+						#here, figure out where the alcohol, cigarette, and neutral items were located on each trial
+						if b.trials[i].alcohol_loc == 'up':
+							alc_center_xy = array([0.0,6.0]);
+						elif b.trials[i].alcohol_loc == 'right':
+							alc_center_xy = array([5.20,-3.0]);
+						elif b.trials[i].alcohol_loc == 'left':	
+							alc_center_xy = array([-5.20,-3.0]);
+						else:
+							1/0;
+							
+						if b.trials[i].cigarette_loc == 'up':
+							cig_center_xy = array([0.0,6.0]);
+						elif b.trials[i].cigarette_loc == 'right':
+							cig_center_xy = array([5.20,-3.0]);
+						elif b.trials[i].cigarette_loc == 'left':	
+							cig_center_xy = array([-5.20,-3.0]);
+						else:
+							1/0;
+							
+						if b.trials[i].neutral_loc == 'up':
+							neu_center_xy = array([0.0,6.0]);
+						elif b.trials[i].neutral_loc == 'right':
+							neu_center_xy = array([5.20,-3.0]);
+						elif b.trials[i].neutral_loc == 'left':	
+							neu_center_xy = array([-5.20,-3.0]);
+						else:
+							1/0;							
 						
-					if b.trials[i].neutral_loc == 'up':
-						neu_center_xy = array([0.0,6.0]);
-					elif b.trials[i].neutral_loc == 'right':
-						neu_center_xy = array([5.20,-3.0]);
-					elif b.trials[i].neutral_loc == 'left':	
-						neu_center_xy = array([-5.20,-3.0]);
-					
-					#distance_threshold = 6.0;	
-					#get reference arrays for each substance item for this trial, reference X, Y coordinates for a spatial array correpsonding to 4 by 4 degree square around the picture	
-					alc_xx = linspace(alc_center_xy[0]-distance_threshold,alc_center_xy[0]+distance_threshold,100);
-					alc_yy = linspace(alc_center_xy[1]-distance_threshold,alc_center_xy[1]+distance_threshold,100);
-					cig_xx = linspace(cig_center_xy[0]-distance_threshold,cig_center_xy[0]+distance_threshold,100);
-					cig_yy = linspace(cig_center_xy[1]-distance_threshold,cig_center_xy[1]+distance_threshold,100);
-					neu_xx = linspace(neu_center_xy[0]-distance_threshold,neu_center_xy[0]+distance_threshold,100);
-					neu_yy = linspace(neu_center_xy[1]-distance_threshold,neu_center_xy[1]+distance_threshold,100);
-										
-					#just test to make sure the rfrence coordinates for each item don't overlap
-					if (sum((alc_center_xy == cig_center_xy)) + sum((alc_center_xy == neu_center_xy)) + sum((neu_center_xy == cig_center_xy))) > 1:
-						#the comparison is against 1 because the y coordinates of the left and right picture are the same (-3) and they would sum to 1
-						1/0;
-					
-					#at this point, go through the eye traces and for each point determine if it's within the alcohol, cigarette, or neutral 6 by 6 window using the center coordinates for reference
-					# if it is, compare it's (adjusted, zero-centered coordinates) against the reference array X and Y values (XX and YY) and allocate a 1 to that corresponding location in this subject's alc, cig, or neu combined locations
-					# if there is no data to add (e.g., no looking at that item for that participants, it will still just be a zero)
-					
-					#plot to draw the boundaries of alcohol limits for this trial (sanity check)
-					
-						
-					alc_agg = 0;	
-						
-						
+						#distance_threshold = 6.0;	
+						#get reference arrays for each substance item for this trial, reference X, Y coordinates for a spatial array correpsonding to 4 by 4 degree square around the picture	
+						alc_xx = linspace(alc_center_xy[0]-distance_threshold,alc_center_xy[0]+distance_threshold,20);
+						alc_yy = linspace(alc_center_xy[1]+distance_threshold,alc_center_xy[1]-distance_threshold,20); 
+						cig_xx = linspace(cig_center_xy[0]-distance_threshold,cig_center_xy[0]+distance_threshold,20);
+						cig_yy = linspace(cig_center_xy[1]+distance_threshold,cig_center_xy[1]-distance_threshold,20);
+						neu_xx = linspace(neu_center_xy[0]-distance_threshold,neu_center_xy[0]+distance_threshold,20);
+						neu_yy = linspace(neu_center_xy[1]+distance_threshold,neu_center_xy[1]-distance_threshold,20);
 											
-					fig = figure(); ax = gca();
-					ax.set_xlim(-display_size[0]/2,display_size[0]/2); ax.set_ylim(-display_size[1]/2,display_size[1]/2);
-					xx,yy = meshgrid(alc_xx,alc_yy);
-					for ex, why in zip(xx,yy):
-						ax.plot(ex, why, color='gray', marker='o', alpha = 0.1);
-					xx,yy = meshgrid(cig_xx,cig_yy);
-					for ex, why in zip(xx,yy):
-						ax.plot(ex, why, color='gray', marker='o',alpha=0.1);
-					xx,yy = meshgrid(neu_xx,neu_yy);
-					for ex, why in zip(xx,yy):
-						ax.plot(ex, why, color='gray', marker='o',alpha=0.1);
+						#just test to make sure the rfrence coordinates for each item don't overlap
+						if (sum((alc_center_xy == cig_center_xy)) + sum((alc_center_xy == neu_center_xy)) + sum((neu_center_xy == cig_center_xy))) > 1:
+							#the comparison is against 1 because the y coordinates of the left and right picture are the same (-3) and they would sum to 1
+							1/0;
 						
-					theta = linspace(0,2*pi, 20);
-					alc_circle_x = alc_center_xy[0] + distance_threshold*cos(theta);
-					alc_circle_y = alc_center_xy[1] + distance_threshold*sin(theta);					
-					for t,g in zip(alc_circle_x, alc_circle_y):
-						ax.plot(t,g, color='black', marker='o',);
-					cig_circle_x = cig_center_xy[0] + distance_threshold*cos(theta);
-					cig_circle_y = cig_center_xy[1] + distance_threshold*sin(theta);					
-					for t,g in zip(cig_circle_x, cig_circle_y):
-						ax.plot(t,g, color='black', marker='o',);						
-					neu_circle_x = neu_center_xy[0] + distance_threshold*cos(theta);
-					neu_circle_y = neu_center_xy[1] + distance_threshold*sin(theta);					
-					for t,g in zip(neu_circle_x, neu_circle_y):
-						ax.plot(t,g, color='black', marker='o',);						
+						#at this point, go through the eye traces and for each point determine if it's within the alcohol, cigarette, or neutral 6 by 6 window using the center coordinates for reference
+						# if it is, compare it's (adjusted, zero-centered coordinates) against the reference array X and Y values (XX and YY) and allocate a 1 to that corresponding location in this subject's alc, cig, or neu combined locations
+						# if there is no data to add (e.g., no looking at that item for that participants, it will still just be a zero)
+						
+						# #plot to draw the boundaries of alcohol limits for this trial (sanity check)											
+						# fig = figure(); ax = gca();
+						# ax.set_xlim(-display_size[0]/2,display_size[0]/2); ax.set_ylim(-display_size[1]/2,display_size[1]/2);
+						# xx,yy = meshgrid(alc_xx,alc_yy);
+						# for ex, why in zip(xx,yy):
+						# 	ax.plot(ex, why, color='gray', marker='o', alpha = 0.1);
+						# xx,yy = meshgrid(cig_xx,cig_yy);
+						# for ex, why in zip(xx,yy):
+						# 	ax.plot(ex, why, color='gray', marker='o',alpha=0.1);
+						# xx,yy = meshgrid(neu_xx,neu_yy);
+						# for ex, why in zip(xx,yy):
+						# 	ax.plot(ex, why, color='gray', marker='o',alpha=0.1);
+						# 	
+						# theta = linspace(0,2*pi, 20);
+						# alc_circle_x = alc_center_xy[0] + distance_threshold*cos(theta);
+						# alc_circle_y = alc_center_xy[1] + distance_threshold*sin(theta);					
+						# for t,g in zip(alc_circle_x, alc_circle_y):
+						# 	ax.plot(t,g, color='black', marker='o',);
+						# cig_circle_x = cig_center_xy[0] + distance_threshold*cos(theta);
+						# cig_circle_y = cig_center_xy[1] + distance_threshold*sin(theta);					
+						# for t,g in zip(cig_circle_x, cig_circle_y):
+						# 	ax.plot(t,g, color='black', marker='o',);						
+						# neu_circle_x = neu_center_xy[0] + distance_threshold*cos(theta);
+						# neu_circle_y = neu_center_xy[1] + distance_threshold*sin(theta);					
+						# for t,g in zip(neu_circle_x, neu_circle_y):
+						# 	ax.plot(t,g, color='black', marker='o',);						
+									
+						for data_i,data in enumerate(zip(b.trials[i].eyeX, b.trials[i].eyeY)):					
+							x = data[0]; y = data[1];
+							#check if the X and Y position is within the boundaries for alcohol; boundaries are the endpoints of the X and Y coordinates
+							if sqrt((x-alc_center_xy[0])**2 + (y-alc_center_xy[1])**2)<distance_threshold:
+								#confirm that this was a lookedAtAlcohol instance
+								if b.trials[i].lookedAtAlcohol[data_i]!=1:
+									1/0;
+								#now check where in the alcohol array is the closest distane to the X,Y position of this data point
+								#this will be the minimum of the distance between each alc_xx point and alc_yy point
+								x_x, y_y = meshgrid(alc_xx, alc_yy);
+								minimum = 10000; coors = array([nan,nan]);
+								for xx,yy in zip(flatten(x_x),flatten(y_y)):
+									comparison = sqrt((x-xx)**2 + (y-yy)**2);
+									if comparison < minimum:
+										minimum = comparison;
+										coors[0] = xx; coors[1] = yy;
+										
+								#after this, add a 1 to the appropriate location in this subjects' aggregated alcohol 'map'
+								x_loc = where(coors[0]==alc_xx)[0][0]; #x coordinate
+								y_loc = where(coors[1]==alc_yy)[0][0]; #y coordinate
+								alc_subj_arrays[subj_nr][y_loc,x_loc] += 1; #add the 1 to the location in the corresponding map. NOTE the yloc, xloc coordinate system for indexing with this array. 
 								
-					for data_i,data in enumerate(zip(b.trials[i].eyeX, b.trials[i].eyeY)):					
-						x = data[0]; y = data[1];
-						#check if the X and Y position is within the boundaries for alcohol; boundaries are the endpoints of the X and Y coordinates
-						if sqrt((x-alc_center_xy[0])**2 + (y-alc_center_xy[1])**2)<distance_threshold:
-						#if (x > alc_xx[0])&(x < alc_xx [-1])&(y > alc_yy[0])&(y < alc_yy[-1]):
-							alc_agg +=1;
-							#confirm that this was a lookedAtAlcohol instance
-							if b.trials[i].lookedAtAlcohol[data_i]!=1:
-								1/0;
-							ax.plot(x,y, marker='o', color='red');
-						elif sqrt((x-cig_center_xy[0])**2 + (y-cig_center_xy[1])**2)<distance_threshold:	
-						#elif (x > cig_xx[0])&(x < cig_xx [-1])&(y > cig_yy[0])&(y < cig_yy[-1]):
-							#confirm that this was a lookedAtAlcohol instance
-							if b.trials[i].lookedAtCigarette[data_i]!=1:
-								1/0;
-							ax.plot(x,y, marker='o', color='green');
-						elif sqrt((x-neu_center_xy[0])**2 + (y-neu_center_xy[1])**2)<distance_threshold:
-						#elif (x > neu_xx[0])&(x < neu_xx [-1])&(y > neu_yy[0])&(y < neu_yy[-1]):
-							#confirm that this was a lookedAtAlcohol instance
-							if b.trials[i].lookedAtNeutral[data_i]!=1:
-								1/0;
-							ax.plot(x,y, marker='o', color='blue');							
-							
-							
+								# ax.plot(b.trials[i].eyeX[data_i], b.trials[i].eyeY[data_i], color='red', marker='o'); #for plotting/debugging 
+
+							elif sqrt((x-cig_center_xy[0])**2 + (y-cig_center_xy[1])**2)<distance_threshold:	
+								#confirm that this was a lookedAtAlcohol instance
+								if b.trials[i].lookedAtCigarette[data_i]!=1:
+									1/0;
+								#now check where in the cigarette array is the closest distane to the X,Y position of this data point
+								#this will be the minimum of the distance between each cig_xx point and cig_yy point
+								x_x, y_y = meshgrid(cig_xx, cig_yy);
+								minimum = 10000; coors = array([nan,nan]);
+								for xx,yy in zip(flatten(x_x),flatten(y_y)):
+									comparison = sqrt((x-xx)**2 + (y-yy)**2);
+									if comparison < minimum:
+										minimum = comparison;
+										coors[0] = xx; coors[1] = yy;
+										
+								#after this, add a 1 to the appropriate location in this subjects' aggregated alcohol 'map'
+								x_loc = where(coors[0]==cig_xx)[0][0]; #x coordinate
+								y_loc = where(coors[1]==cig_yy)[0][0]; #y coordinate
+								cig_subj_arrays[subj_nr][y_loc,x_loc] += 1; #add the 1 to the location in the corresponding map. NOTE the yloc, xloc coordinate system for indexing with this array.
 								
-					show()
-					1/0
+							elif sqrt((x-neu_center_xy[0])**2 + (y-neu_center_xy[1])**2)<distance_threshold:
+								#confirm that this was a lookedAtAlcohol instance
+								if b.trials[i].lookedAtNeutral[data_i]!=1:
+									1/0;
+								#now check where in the neutral array is the closest distane to the X,Y position of this data point
+								#this will be the minimum of the distance between each neu_xx point and neu_yy point
+								x_x, y_y = meshgrid(neu_xx, neu_yy);
+								minimum = 10000; coors = array([nan,nan]);
+								for xx,yy in zip(flatten(x_x),flatten(y_y)):
+									comparison = sqrt((x-xx)**2 + (y-yy)**2);
+									if comparison < minimum:
+										minimum = comparison;
+										coors[0] = xx; coors[1] = yy;
+										
+								#after this, add a 1 to the appropriate location in this subjects' aggregated alcohol 'map'
+								x_loc = where(coors[0]==neu_xx)[0][0]; #x coordinate
+								y_loc = where(coors[1]==neu_yy)[0][0]; #y coordinate
+								neu_subj_arrays[subj_nr][y_loc,x_loc] += 1; #add the 1 to the location in the corresponding map. NOTE the yloc, xloc coordinate system for indexing with this array.
+					end_time = time.time();
+					print 'Aggregated total time = %4.2f minutes, completed trial nr %s'%((end_time-start_time)/60.0, b.trials[i].trial_nr);
+				print '\n completed subject %s block nr %s '%(subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
+				end_time = time.time();
+				print 'Aggregated total time = %4.2f minutes \n'%((end_time-start_time)/60.0)
+			1/0;	
+
 							
 						
 						

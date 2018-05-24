@@ -21,9 +21,10 @@ import time
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 
 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Volumes/WORK_HD/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/james/Documents/Python/CRET/data/';  # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+figurepath = '/Users/james/Documents/Python/CRET/figures/';
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -792,7 +793,7 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 	show();
 	
 	
-def compute_heatmaps(block_matrix):
+def compute_heatmaps(block_matrix, id):
 	#determine and normalize all eye traces to assign alcohol to left, cigarette to top, and neutral to right
 	
 	ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
@@ -813,13 +814,18 @@ def compute_heatmaps(block_matrix):
 		alc_subj_arrays = [zeros((20,20)) for su in block_matrix];
 		cig_subj_arrays = [zeros((20,20)) for su in block_matrix];
 		neu_subj_arrays = [zeros((20,20)) for su in block_matrix];
+		
+		#these are arrays for the aggregated data
+		agg_alc_array = zeros((20,20));
+		agg_cig_array = zeros((20,20));
+		agg_neu_array = zeros((20,20));
 
 		for subj_nr, blocks in enumerate(block_matrix):
 			for b in blocks:
 				for i in arange(0,len(b.trials)):
-					if b.trials[i].dropped_sample>0:
+					if (b.trials[i].dropped_sample>0)|(b.trials[i].didntLookAtAnyItems>0):
 						continue; #skip trials with blinks or eye movements away from the screen
-					if b.trials[i].trial_type!=ttype:
+					if (b.trials[i].trial_type!=ttype):
 						continue; #skip trials where this isn't the right trial type
 					
 					if b.trials[i].preferred_category==selected_item:
@@ -962,18 +968,57 @@ def compute_heatmaps(block_matrix):
 					print 'Aggregated total time = %4.2f minutes, completed trial nr %s'%((end_time-start_time)/60.0, b.trials[i].trial_nr);
 				print '\n completed subject %s block nr %s '%(subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
 				end_time = time.time();
-				print 'Aggregated total time = %4.2f minutes \n'%((end_time-start_time)/60.0)
-			1/0;	
+				print 'Aggregated total time = %4.2f minutes \n'%((end_time-start_time)/60.0);
+				if b.block_nr==4:
+					#first save the 'raw' heat maps
+					figure(); imshow(alc_subj_arrays[subj_nr], cmap='hot'); title('%s_selected_%s_raw_ALC_heatmap_subj_%s'%(name, selected_item, subj_nr));
+					savefig(figurepath+'heatmaps/'+'%s_selected_%s_raw_ALC_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
+					figure(); imshow(cig_subj_arrays[subj_nr], cmap='hot'); title('%s_selected_%s_raw_CIG_heatmap_subj_%s'%(name, selected_item, subj_nr));
+					savefig(figurepath+'heatmaps/'+'%s_selected_%s_raw_CIG_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
+					figure(); imshow(neu_subj_arrays[subj_nr], cmap='hot'); title('%s_selected_%s_raw_NEU_heatmap_subj_%s'%(name, selected_item, subj_nr));
+					savefig(figurepath+'heatmaps/'+'%s_selected_%s_raw_NEU_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
+									
+					#then standardize the values (e.g., make them proportions) wrt to the maximum values in this subjct's alcohol, cigarette, or neutral maps (is this right?)
+					#first find the maximum overall for this subject across alc, cig and neu maps
+					alc_max = amax(alc_subj_arrays[subj_nr]);
+					cig_max = amax(cig_subj_arrays[subj_nr]);
+					neu_max = amax(neu_subj_arrays[subj_nr]);
+					subject_max = max(alc_max,cig_max,neu_max); #max for this subject across all maps
+					
+					#then, divide this subjects' maps by this value
+					alc_subj_arrays[subj_nr] = alc_subj_arrays[subj_nr]/float(subject_max);
+					cig_subj_arrays[subj_nr] = cig_subj_arrays[subj_nr]/float(subject_max);
+					neu_subj_arrays[subj_nr] = neu_subj_arrays[subj_nr]/float(subject_max);
+					
+					#now save this subjects' maps again with the standardized values
+					figure(); imshow(alc_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_standardized_ALC_heatmap_subj_%s'%(name, selected_item, subj_nr));
+					savefig(figurepath+'heatmaps/'+'%s_selected_%s_standardized_ALC_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
+					figure(); imshow(cig_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_standardized_CIG_heatmap_subj_%s'%(name, selected_item, subj_nr));
+					savefig(figurepath+'heatmaps/'+'%s_selected_%s_standardized_CIG_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
+					figure(); imshow(neu_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_standardized_NEU_heatmap_subj_%s'%(name, selected_item, subj_nr));
+					savefig(figurepath+'heatmaps/'+'%s_selected_%s_standardized_NEU_heatmap_subj_%s.png'%(name, selected_item, subj_nr));					
+					
+			if subj_nr==0:		
+				1/0;	
+			#after all subjects' have been run through, we want to aggregate them all together by averaging
+			
+			for sualc, sucig, suneu in zip(alc_subj_arrays,cig_subj_arrays,neu_subj_arrays):
+				agg_alc_array += sualc; #add each subjects' heat maps together
+				agg_cig_array += sucig; 
+				agg_neu_array += suneu;
+			
+			agg_alc_array = agg_alc_array/29; #to get the average
+			agg_cig_array = agg_cig_array/29; #to get the average
+			agg_neu_array = agg_neu_array/29; #to get the average
 
-							
-						
-						
-						
-						
-					
-					
-					
-	
+			figure(); imshow(agg_alc_array, cmap='hot', vmin = 0.0, vmax = 1.0); title('heatmaps/'+'%s_selected_%s_averaged_ALC_heatmap_subj_%s'%(name, selected_item, id));
+			savefig(figurepath+'heatmaps/'+'%s_selected_%s_averaged_ALC_heatmap_subj_%s.png'%(name, selected_item, id));
+			figure(); imshow(agg_cig_array , cmap='hot', vmin = 0.0, vmax = 1.0); title('heatmaps/'+'%s_selected_%s_averaged_CIG_heatmap_subj_%s'%(name, selected_item, id));
+			savefig(figurepath+'heatmaps/'+'%s_selected_%s_averaged_CIG_heatmap_subj_%s.png'%(name, selected_item, id));
+			figure(); imshow(agg_neu_array, cmap='hot', vmin = 0.0, vmax = 1.0); title('heatmaps/'+'%s_selected_%s_averaged_NEU_heatmap_subj_%s'%(name, selected_item, id));
+			savefig(figurepath+'heatmaps/'+'%s_selected_%s_averaged_NEU_heatmap_subj_%s.png'%(name, selected_item, id));							
+			show();			
+
 	
 
 def compute_BS_SEM(data_matrix):

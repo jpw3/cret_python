@@ -21,10 +21,10 @@ import time
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 
 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Volumes/WORK_HD/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; #'/Users/james/Documents/Python/CRET/figures/';
+datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/james/Documents/Python/CRET/data/';  # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
+figurepath = '/Users/james/Documents/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -802,7 +802,7 @@ def compute_heatmaps(block_matrix, id):
 		
 	start_time = time.time();
 		
-	for selected_item in ['alcohol','cigarette','neutral']:			
+	for selected_item in ['alcohol','cigarette','neutral']:		 #	
 		
 		#first, get the individual eye traces for each item for each trial where the selected_item was chosen
 		# store each item's eye traces (adding a +1 for the trace being in that location at any time point in the trial) by creating little windows
@@ -1025,8 +1025,7 @@ def compute_heatmaps(block_matrix, id):
 		savefig(figurepath+'heatmaps/'+name+'/'+'%s_selected_%s_averaged_NEU_heatmap_subj_%s.png'%(name, selected_item, id));
 		savefig(figurepath+'heatmaps/'+name+'/'+'%s_selected_%s_averaged_NEU_heatmap_subj_%s.eps'%(name, selected_item, id));
 		show();
-		
-		1/0;	
+			
 	
 
 def compute_BS_SEM(data_matrix):

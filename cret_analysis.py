@@ -1025,7 +1025,209 @@ def compute_heatmaps(block_matrix, id):
 		savefig(figurepath+'heatmaps/'+name+'/'+'%s_selected_%s_averaged_NEU_heatmap_subj_%s.png'%(name, selected_item, id));
 		savefig(figurepath+'heatmaps/'+name+'/'+'%s_selected_%s_averaged_NEU_heatmap_subj_%s.eps'%(name, selected_item, id));
 		show();
-			
+
+
+def compute_aggregated_heatmaps(block_matrix, id, ttype):
+	#determine and normalize all eye traces to assign alcohol to left, cigarette to top, and neutral to right
+	
+	#ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
+	
+	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
+		
+	start_time = time.time();
+		
+	#first, get the individual eye traces for each item for each trial where the selected_item was chosen
+	# store each item's eye traces (adding a +1 for the trace being in that location at any time point in the trial) by creating little windows
+	# e.g., a 4-degree by 4-degree square around each picture
+	#compare against reference X,Y coordinates and place the values into each matrrix accordingly
+	#aggregate this for each participant into a combined map
+		
+	#these are holder arrays for each participant, for each item. Each list holds a 500 by 500 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
+	alc_subj_arrays = [zeros((20,20)) for su in block_matrix];
+	cig_subj_arrays = [zeros((20,20)) for su in block_matrix];
+	neu_subj_arrays = [zeros((20,20)) for su in block_matrix];
+	
+	#these are arrays for the aggregated data
+	agg_alc_array = zeros((20,20));
+	agg_cig_array = zeros((20,20));
+	agg_neu_array = zeros((20,20));
+
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for i in arange(0,len(b.trials)):
+				if (b.trials[i].dropped_sample>0):
+					continue; #skip trials with blinks or eye movements away from the screen
+				elif (b.trials[i].didntLookAtAnyItems>0):
+					continue;
+				if (b.trials[i].trial_type!=ttype):
+					continue; #skip trials where this isn't the right trial type
+
+				#here, figure out where the alcohol, cigarette, and neutral items were located on each trial
+				if b.trials[i].alcohol_loc == 'up':
+					alc_center_xy = array([0.0,6.0]);
+				elif b.trials[i].alcohol_loc == 'right':
+					alc_center_xy = array([5.20,-3.0]);
+				elif b.trials[i].alcohol_loc == 'left':	
+					alc_center_xy = array([-5.20,-3.0]);
+				else:
+					1/0;
+					
+				if b.trials[i].cigarette_loc == 'up':
+					cig_center_xy = array([0.0,6.0]);
+				elif b.trials[i].cigarette_loc == 'right':
+					cig_center_xy = array([5.20,-3.0]);
+				elif b.trials[i].cigarette_loc == 'left':	
+					cig_center_xy = array([-5.20,-3.0]);
+				else:
+					1/0;
+					
+				if b.trials[i].neutral_loc == 'up':
+					neu_center_xy = array([0.0,6.0]);
+				elif b.trials[i].neutral_loc == 'right':
+					neu_center_xy = array([5.20,-3.0]);
+				elif b.trials[i].neutral_loc == 'left':	
+					neu_center_xy = array([-5.20,-3.0]);
+				else:
+					1/0;							
+				
+				#distance_threshold = 6.0;	
+				#get reference arrays for each substance item for this trial, reference X, Y coordinates for a spatial array correpsonding to 4 by 4 degree square around the picture	
+				alc_xx = linspace(alc_center_xy[0]-distance_threshold,alc_center_xy[0]+distance_threshold,20);
+				alc_yy = linspace(alc_center_xy[1]+distance_threshold,alc_center_xy[1]-distance_threshold,20); 
+				cig_xx = linspace(cig_center_xy[0]-distance_threshold,cig_center_xy[0]+distance_threshold,20);
+				cig_yy = linspace(cig_center_xy[1]+distance_threshold,cig_center_xy[1]-distance_threshold,20);
+				neu_xx = linspace(neu_center_xy[0]-distance_threshold,neu_center_xy[0]+distance_threshold,20);
+				neu_yy = linspace(neu_center_xy[1]+distance_threshold,neu_center_xy[1]-distance_threshold,20);
+									
+				#just test to make sure the rfrence coordinates for each item don't overlap
+				if (sum((alc_center_xy == cig_center_xy)) + sum((alc_center_xy == neu_center_xy)) + sum((neu_center_xy == cig_center_xy))) > 1:
+					#the comparison is against 1 because the y coordinates of the left and right picture are the same (-3) and they would sum to 1
+					1/0;
+				
+				#at this point, go through the eye traces and for each point determine if it's within the alcohol, cigarette, or neutral 6 by 6 window using the center coordinates for reference
+				# if it is, compare it's (adjusted, zero-centered coordinates) against the reference array X and Y values (XX and YY) and allocate a 1 to that corresponding location in this subject's alc, cig, or neu combined locations
+				# if there is no data to add (e.g., no looking at that item for that participants, it will still just be a zero)					
+							
+				for data_i,data in enumerate(zip(b.trials[i].eyeX, b.trials[i].eyeY)):					
+					x = data[0]; y = data[1];
+					#check if the X and Y position is within the boundaries for alcohol; boundaries are the endpoints of the X and Y coordinates
+					if sqrt((x-alc_center_xy[0])**2 + (y-alc_center_xy[1])**2)<distance_threshold:
+						#confirm that this was a lookedAtAlcohol instance
+						if b.trials[i].lookedAtAlcohol[data_i]!=1:
+							1/0;
+						#now check where in the alcohol array is the closest distane to the X,Y position of this data point
+						#this will be the minimum of the distance between each alc_xx point and alc_yy point
+						x_x, y_y = meshgrid(alc_xx, alc_yy);
+						minimum = 10000; coors = array([nan,nan]);
+						for xx,yy in zip(flatten(x_x),flatten(y_y)):
+							comparison = sqrt((x-xx)**2 + (y-yy)**2);
+							if comparison < minimum:
+								minimum = comparison;
+								coors[0] = xx; coors[1] = yy;
+								
+						#after this, add a 1 to the appropriate location in this subjects' aggregated alcohol 'map'
+						x_loc = where(coors[0]==alc_xx)[0][0]; #x coordinate
+						y_loc = where(coors[1]==alc_yy)[0][0]; #y coordinate
+						alc_subj_arrays[subj_nr][y_loc,x_loc] += 1; #add the 1 to the location in the corresponding map. NOTE the yloc, xloc coordinate system for indexing with this array. 
+						
+						# ax.plot(b.trials[i].eyeX[data_i], b.trials[i].eyeY[data_i], color='red', marker='o'); #for plotting/debugging 
+
+					elif sqrt((x-cig_center_xy[0])**2 + (y-cig_center_xy[1])**2)<distance_threshold:	
+						#confirm that this was a lookedAtAlcohol instance
+						if b.trials[i].lookedAtCigarette[data_i]!=1:
+							1/0;
+						#now check where in the cigarette array is the closest distane to the X,Y position of this data point
+						#this will be the minimum of the distance between each cig_xx point and cig_yy point
+						x_x, y_y = meshgrid(cig_xx, cig_yy);
+						minimum = 10000; coors = array([nan,nan]);
+						for xx,yy in zip(flatten(x_x),flatten(y_y)):
+							comparison = sqrt((x-xx)**2 + (y-yy)**2);
+							if comparison < minimum:
+								minimum = comparison;
+								coors[0] = xx; coors[1] = yy;
+								
+						#after this, add a 1 to the appropriate location in this subjects' aggregated alcohol 'map'
+						x_loc = where(coors[0]==cig_xx)[0][0]; #x coordinate
+						y_loc = where(coors[1]==cig_yy)[0][0]; #y coordinate
+						cig_subj_arrays[subj_nr][y_loc,x_loc] += 1; #add the 1 to the location in the corresponding map. NOTE the yloc, xloc coordinate system for indexing with this array.
+						
+					elif sqrt((x-neu_center_xy[0])**2 + (y-neu_center_xy[1])**2)<distance_threshold:
+						#confirm that this was a lookedAtAlcohol instance
+						if b.trials[i].lookedAtNeutral[data_i]!=1:
+							1/0;
+						#now check where in the neutral array is the closest distane to the X,Y position of this data point
+						#this will be the minimum of the distance between each neu_xx point and neu_yy point
+						x_x, y_y = meshgrid(neu_xx, neu_yy);
+						minimum = 10000; coors = array([nan,nan]);
+						for xx,yy in zip(flatten(x_x),flatten(y_y)):
+							comparison = sqrt((x-xx)**2 + (y-yy)**2);
+							if comparison < minimum:
+								minimum = comparison;
+								coors[0] = xx; coors[1] = yy;
+								
+						#after this, add a 1 to the appropriate location in this subjects' aggregated alcohol 'map'
+						x_loc = where(coors[0]==neu_xx)[0][0]; #x coordinate
+						y_loc = where(coors[1]==neu_yy)[0][0]; #y coordinate
+						neu_subj_arrays[subj_nr][y_loc,x_loc] += 1; #add the 1 to the location in the corresponding map. NOTE the yloc, xloc coordinate system for indexing with this array.
+				end_time = time.time();
+				print 'Aggregated total time = %4.2f minutes, completed trial nr %s'%((end_time-start_time)/60.0, b.trials[i].trial_nr);
+			print '\n completed subject %s block nr %s '%(subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
+			end_time = time.time();
+			print 'Aggregated total time = %4.2f minutes \n'%((end_time-start_time)/60.0);
+			if b.block_nr==len(blocks):
+				# #first save the 'raw' heat maps
+				# figure(); imshow(alc_subj_arrays[subj_nr], cmap='hot'); title('%s_selected_%s_raw_ALC_heatmap_subj_%s'%(name, selected_item, subj_nr));
+				# savefig(figurepath+'heatmaps/'+'%s_selected_%s_raw_ALC_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
+				# figure(); imshow(cig_subj_arrays[subj_nr], cmap='hot'); title('%s_selected_%s_raw_CIG_heatmap_subj_%s'%(name, selected_item, subj_nr));
+				# savefig(figurepath+'heatmaps/'+'%s_selected_%s_raw_CIG_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
+				# figure(); imshow(neu_subj_arrays[subj_nr], cmap='hot'); title('%s_selected_%s_raw_NEU_heatmap_subj_%s'%(name, selected_item, subj_nr));
+				# savefig(figurepath+'heatmaps/'+'%s_selected_%s_raw_NEU_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
+								
+				#then standardize the values (e.g., make them proportions) wrt to the maximum values in this subjct's alcohol, cigarette, or neutral maps (is this right?)
+				#first find the maximum overall for this subject across alc, cig and neu maps
+				alc_max = amax(alc_subj_arrays[subj_nr]); #[amax(alc_subj_arrays[subj_nr]) if (isnan()) else -2];
+				cig_max = amax(cig_subj_arrays[subj_nr]);
+				neu_max = amax(neu_subj_arrays[subj_nr]);
+				subject_max = max(alc_max,cig_max,neu_max); #max for this subject across all maps
+				
+				#if there is a maximum more than 0, divide by that maximum. Otherwise, do nothing to keep the maps as all zeros (otherwise would be nans...)
+				if subject_max > 0:
+					#then, divide this subjects' maps by this value
+					alc_subj_arrays[subj_nr] = alc_subj_arrays[subj_nr]/float(subject_max);
+					cig_subj_arrays[subj_nr] = cig_subj_arrays[subj_nr]/float(subject_max);
+					neu_subj_arrays[subj_nr] = neu_subj_arrays[subj_nr]/float(subject_max);
+				
+				#now save this subjects' maps again with the standardized values
+				figure(); imshow(alc_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_standardized_ALC_heatmap_subj_%s'%(name, selected_item, subj_nr));
+				savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_standardized_ALC_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
+				figure(); imshow(cig_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_standardized_CIG_heatmap_subj_%s'%(name, selected_item, subj_nr));
+				savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_standardized_CIG_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
+				figure(); imshow(neu_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_standardized_NEU_heatmap_subj_%s'%(name, selected_item, subj_nr));
+				savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_standardized_NEU_heatmap_subj_%s.png'%(name, selected_item, subj_nr));					
+				
+				close('all');
+				
+			#after all subjects' have been run through, we want to aggregate them all together by averaging
+				
+	for sualc, sucig, suneu in zip(alc_subj_arrays,cig_subj_arrays,neu_subj_arrays):
+		agg_alc_array += sualc; #add each subjects' heat maps together
+		agg_cig_array += sucig; 
+		agg_neu_array += suneu;
+	
+	agg_alc_array = agg_alc_array/29.0; #to get the average
+	agg_cig_array = agg_cig_array/29.0; #to get the average
+	agg_neu_array = agg_neu_array/29.0; #to get the average
+
+	figure(); imshow(agg_alc_array, cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_averaged_ALC_heatmap_subj_%s'%(name, selected_item, id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_ALC_heatmap_subj_%s.png'%(name, selected_item, id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_ALC_heatmap_subj_%s.eps'%(name, selected_item, id));			
+	figure(); imshow(agg_cig_array , cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_averaged_CIG_heatmap_subj_%s'%(name, selected_item, id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_CIG_heatmap_subj_%s.png'%(name, selected_item, id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_CIG_heatmap_subj_%s.eps'%(name, selected_item, id));
+	figure(); imshow(agg_neu_array, cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_averaged_NEU_heatmap_subj_%s'%(name, selected_item, id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_NEU_heatmap_subj_%s.png'%(name, selected_item, id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_NEU_heatmap_subj_%s.eps'%(name, selected_item, id));
+	show();			
 	
 
 def compute_BS_SEM(data_matrix):

@@ -21,10 +21,10 @@ import time
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 
 
-datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/james/Documents/Python/CRET/data/';  # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
-shelvepath =  '/Users/james/Documents/Python/CRET/data/'; # '/Users/jameswilmott/Documents/Python/CRET/data/';  #
-figurepath = '/Users/james/Documents/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; #
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Volumes/WORK_HD/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -830,7 +830,7 @@ def compute_heatmaps(block_matrix, id):
 					if (b.trials[i].trial_type!=ttype):
 						continue; #skip trials where this isn't the right trial type
 					
-					if b.trials[i].preferred_category==selected_item:
+					if b.trials[i].preferred_category==selected_item: 
 						
 						#here, figure out where the alcohol, cigarette, and neutral items were located on each trial
 						if b.trials[i].alcohol_loc == 'up':
@@ -1136,6 +1136,7 @@ class trial(object):
 		self.reponse = str(trialData.response); #letter corresponding to presented
 		self.selected_loc = trialData.selected_loc; 
 		self.preferred_item = str(trialData.preferred_item)[:-23];
+		self.preferred_category = nan; #will change later in the loop below
 		#finally, eye position and pupil size information
 		self.drift_shift = trialData.drift_shift;
 

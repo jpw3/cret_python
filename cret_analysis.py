@@ -1198,12 +1198,12 @@ def compute_aggregated_heatmaps(block_matrix, id, ttype):
 					neu_subj_arrays[subj_nr] = neu_subj_arrays[subj_nr]/float(subject_max);
 				
 				#now save this subjects' maps again with the standardized values
-				figure(); imshow(alc_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_standardized_ALC_heatmap_subj_%s'%(name, selected_item, subj_nr));
-				savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_standardized_ALC_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
-				figure(); imshow(cig_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_standardized_CIG_heatmap_subj_%s'%(name, selected_item, subj_nr));
-				savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_standardized_CIG_heatmap_subj_%s.png'%(name, selected_item, subj_nr));
-				figure(); imshow(neu_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_standardized_NEU_heatmap_subj_%s'%(name, selected_item, subj_nr));
-				savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_standardized_NEU_heatmap_subj_%s.png'%(name, selected_item, subj_nr));					
+				figure(); imshow(alc_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_aggregatedacrosschoices_standardized_ALC_heatmap_subj_%s'%(name,  subj_nr));
+				savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_standardized_ALC_heatmap_subj_%s.png'%(name,  subj_nr));
+				figure(); imshow(cig_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_aggregatedacrosschoices_standardized_CIG_heatmap_subj_%s'%(name,  subj_nr));
+				savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_standardized_CIG_heatmap_subj_%s.png'%(name,  subj_nr));
+				figure(); imshow(neu_subj_arrays[subj_nr], cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_aggregatedacrosschoices_standardized_NEU_heatmap_subj_%s'%(name, subj_nr));
+				savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_standardized_NEU_heatmap_subj_%s.png'%(name,  subj_nr));					
 				
 				close('all');
 				
@@ -1218,15 +1218,15 @@ def compute_aggregated_heatmaps(block_matrix, id, ttype):
 	agg_cig_array = agg_cig_array/29.0; #to get the average
 	agg_neu_array = agg_neu_array/29.0; #to get the average
 
-	figure(); imshow(agg_alc_array, cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_averaged_ALC_heatmap_subj_%s'%(name, selected_item, id));
-	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_ALC_heatmap_subj_%s.png'%(name, selected_item, id));
-	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_ALC_heatmap_subj_%s.eps'%(name, selected_item, id));			
-	figure(); imshow(agg_cig_array , cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_averaged_CIG_heatmap_subj_%s'%(name, selected_item, id));
-	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_CIG_heatmap_subj_%s.png'%(name, selected_item, id));
-	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_CIG_heatmap_subj_%s.eps'%(name, selected_item, id));
-	figure(); imshow(agg_neu_array, cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_selected_%s_averaged_NEU_heatmap_subj_%s'%(name, selected_item, id));
-	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_NEU_heatmap_subj_%s.png'%(name, selected_item, id));
-	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_NEU_heatmap_subj_%s.eps'%(name, selected_item, id));
+	figure(); imshow(agg_alc_array, cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_aggregatedacrosschoices_averaged_ALC_heatmap_subj_%s'%(name,  id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_ALC_heatmap_subj_%s.png'%(name,  id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_ALC_heatmap_subj_%s.eps'%(name,  id));			
+	figure(); imshow(agg_cig_array , cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_aggregatedacrosschoices_averaged_CIG_heatmap_subj_%s'%(name,  id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_CIG_heatmap_subj_%s.png'%(name,  id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_CIG_heatmap_subj_%s.eps'%(name, id));
+	figure(); imshow(agg_neu_array, cmap='hot', vmin = 0.0, vmax = 1.0); title('%s_aggregatedacrosschoices_averaged_NEU_heatmap_subj_%s'%(name,  id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_NEU_heatmap_subj_%s.png'%(name, id));
+	savefig(figurepath+'heatmaps/'+name+'/'+'%s_aggregatedacrosschoices_averaged_NEU_heatmap_subj_%s.eps'%(name,  id));
 	show();			
 	
 

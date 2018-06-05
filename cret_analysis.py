@@ -672,6 +672,10 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 	
 	db = subject_data;
 	
+	data = pd.DataFrame(columns = ['sub_id','trial_type','selected_item','looked_at_item','timepoint','mean_fix_likelihood']);	
+	
+	index_counter = 0; #for database calculation
+	
 	#loop through and get all the trials for each subject
 	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
 	
@@ -707,7 +711,7 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 		cig_cue_counts = zeros(shape(cig_cue_gaze_array));
 		cig_cue_subject_means_array = [[] for i in range(1000)];
 		
-		for subj in trial_matrix:
+		for subj_nr,subj in enumerate(trial_matrix):
 			neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
 			neu_individ_subject_counts = zeros(time_duration/time_bin_spacing);
 			alc_individ_subject_sum = zeros(time_duration/time_bin_spacing);
@@ -759,8 +763,21 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 			alc_individ_subject_mean = alc_individ_subject_sum/alc_individ_subject_counts; #calculate the mean for this subject at each time point
 			[alc_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),alc_individ_subject_mean)]; #append this to the array for each subject
 			cig_cue_individ_subject_mean = cig_cue_individ_subject_sum/cig_cue_individ_subject_counts; #calculate the mean for this subject at each time point
-			[cig_cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),cig_cue_individ_subject_mean)]; #append this to the array for each subject   					
-							
+			[cig_cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(1000),cig_cue_individ_subject_mean)]; #append this to the array for each subject
+			
+			for index in arange(1000):
+				#make sure to reverse the time point from index...
+				data.loc[index_counter] = [int(subj_nr+1),int(ttype),selected_item,'alcohol', (999-index), alc_individ_subject_mean[index]];
+				data.loc[index_counter+1] = [int(subj_nr+1),int(ttype),selected_item,'cigarette', (999-index), cig_cue_individ_subject_mean[index]];
+				data.loc[index_counter+2] = [int(subj_nr+1),int(ttype),selected_item,'neutral', (999-index), neu_individ_subject_mean[index]];
+				index_counter+=3;
+			
+			print "completed subject %s.. \n\n"%subj_nr
+			
+			if subj_nr == 27:
+				1/0;		
+				
+		
 		#plot each likelihood looking at items				
 		for  subj_ms, cue_name, c, a in zip([alc_subject_means_array, cig_cue_subject_means_array, neu_subject_means_array], ['alcohol','cigarette','neutral'], colors, alphas):							
 			mews = array([nanmean(subj) for subj in subj_ms]); # gaze_array/counts
@@ -789,7 +806,9 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 		# ax1.set_xticklabels(['','','','','','']);
 		# ax1.set_yticklabels(['','','','','','','','','','','','','','']);
 		# savefig(savepath+'temporal_gaze_profile_selected_%s.eps'%selected_item,dpi=400); #save as .png
-		
+
+	#save the database
+	data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);		
 	show();
 	
 	

@@ -671,9 +671,6 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 	#with respect to time to the decision
 	
 	db = subject_data;
-	
-	data = pd.DataFrame(columns = ['sub_id','trial_type','selected_item','looked_at_item','timepoint','mean_fix_likelihood']);	
-	
 	index_counter = 0; #for database calculation
 	
 	#loop through and get all the trials for each subject
@@ -689,6 +686,9 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 	ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
 	
 	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
+
+	#create 1000 dataframe objects that will correspond to each time point
+	data = [pd.DataFrame(columns = ['sub_id','trial_type','selected_item','looked_at_item','timepoint','mean_fix_likelihood']) for i in arange(1000)];
 		
 	for selected_item in ['alcohol','cigarette','neutral']:		
 		
@@ -767,16 +767,12 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 			
 			for index in arange(1000):
 				#make sure to reverse the time point from index...
-				data.loc[index_counter] = [int(subj_nr+1),int(ttype),selected_item,'alcohol', (999-index), alc_individ_subject_mean[index]];
-				data.loc[index_counter+1] = [int(subj_nr+1),int(ttype),selected_item,'cigarette', (999-index), cig_cue_individ_subject_mean[index]];
-				data.loc[index_counter+2] = [int(subj_nr+1),int(ttype),selected_item,'neutral', (999-index), neu_individ_subject_mean[index]];
-				index_counter+=3;
+				data[index].loc[index_counter] = [int(subj_nr+1),int(ttype),selected_item,'alcohol', (999-index), alc_individ_subject_mean[index]];
+				data[index].loc[index_counter+1] = [int(subj_nr+1),int(ttype),selected_item,'cigarette', (999-index), cig_cue_individ_subject_mean[index]];
+				data[index].loc[index_counter+2] = [int(subj_nr+1),int(ttype),selected_item,'neutral', (999-index), neu_individ_subject_mean[index]];
+			index_counter+=3;
 			
-			print "completed subject %s.. \n\n"%subj_nr
-			
-			if subj_nr == 27:
-				1/0;		
-				
+			print "completed subject %s.. \n\n"%subj_nr	
 		
 		#plot each likelihood looking at items				
 		for  subj_ms, cue_name, c, a in zip([alc_subject_means_array, cig_cue_subject_means_array, neu_subject_means_array], ['alcohol','cigarette','neutral'], colors, alphas):							
@@ -805,10 +801,10 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 		# ax1.set_ylabel(''); ax1.set_xlabel('');
 		# ax1.set_xticklabels(['','','','','','']);
 		# ax1.set_yticklabels(['','','','','','','','','','','','','','']);
-		# savefig(savepath+'temporal_gaze_profile_selected_%s.eps'%selected_item,dpi=400); #save as .png
-
-	#save the database
-	data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);		
+		# savefig(savepath+'temporal_gaze_profile_selected_%s.eps'%selected_item,dpi=400); #save as .png	
+	
+	#save the databases
+	[d.to_csv(savepath+'%s_timepoint_%s_temporal_gaze_profile.csv'%(name, (999-i)),index=False) for d,i in zip(data, arange(1000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);		
 	show();
 	
 	

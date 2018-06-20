@@ -73,6 +73,21 @@ matplotlib.pyplot.rc('font',weight='bold');
 ############################################
 
 
+### These next 4 methods compute the 4 specific dependent measures required for the correlative analysis with cue-reactivity paradigm, per meeting with Rachel 6/14/18 ###
+
+def computeFirstItemLookedAt():
+
+	hey= 'there';
+
+
+
+
+################################################################################################################################################################################
+
+
+
+
+
 def computeProportionSelect(blocks, eyed = 'agg'):
 	db = subject_data;
 	#loop through and get all the trials for each subject
@@ -1605,7 +1620,7 @@ class trial(object):
 		if nansum(self.lookedAtAlcohol) == 0:
 			latestAlc = -1;
 		else:
-			latestAlc = max(where(self.lookedAtAlcohol > 0)[0]);
+			latestAlc = max(where(self.lookedAtAlcohol > 0)[0]);	
 		if nansum(self.lookedAtCigarette) == 0:
 			latestCig = -1;
 		else:
@@ -1635,6 +1650,43 @@ class trial(object):
 			self.lastCategoryLookedAt = 'none';
 			self.lastItemLookedAt = 'none';
 			self.timeLastItemLookedAt = -1;
+			
+			
+		# 5. Using the same (adjusted) analysis as above for the last item looked at, determine the FIRST item looked at within each trial
+		if nansum(self.lookedAtAlcohol) == 0:
+			earliestAlc = -1;
+		else:
+			earliestAlc = min(where(self.lookedAtAlcohol > 0)[0]);	
+		if nansum(self.lookedAtCigarette) == 0:
+			earliestCig = -1;
+		else:
+			earliestCig = min(where(self.lookedAtCigarette > 0)[0]);
+		if nansum(self.lookedAtNeutral) == 0:	
+			earliestNeu = -1;
+		else:
+			earliestNeu = min(where(self.lookedAtNeutral > 0)[0]);
+			
+		#get the ranking of the values. The first rank (1) will be the largest value, and correspond the latest item looked at
+		ranks = stats.rankdata(array([earliestAlc, earliestCig, earliestNeu]), method = 'min');
+				
+		#conditional to determine which item had the lowest rank and thus latest time in the trial it was looked at
+		if ranks[0] == 1:
+			self.firstCategoryLookedAt = 'alcohol';
+			self.firstItemLookedAt = self.presented_pics[where([name in alcohol_filenames for name in self.presented_pics])[0][0]];
+			self.timeFirstItemLookedAt = self.sample_times[earliestAlc];
+		elif ranks[1] == 1:
+			self.firstCategoryLookedAt = 'cigarette';
+			self.firstItemLookedAt = self.presented_pics[where([name in cigarette_filenames for name in self.presented_pics])[0][0]];
+			self.timeFirstItemLookedAt = self.sample_times[earliestCig];
+		elif ranks[2] == 1:
+			self.firstCategoryLookedAt = 'neutral';
+			self.firstItemLookedAt = self.presented_pics[where([name in neutral_filenames for name in self.presented_pics])[0][0]];
+			self.timeFirstItemLookedAt = self.sample_times[earliestNeu];
+		else:
+			self.firstCategoryLookedAt = 'none';
+			self.firstItemLookedAt = 'none';
+			self.timeFirstItemLookedAt = -1;			
+			
 
 
 	def plotSaccadeGetVelocity(self, startingVelCrit):

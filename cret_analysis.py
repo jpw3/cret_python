@@ -75,12 +75,188 @@ matplotlib.pyplot.rc('font',weight='bold');
 
 ### These next 4 methods compute the 4 specific dependent measures required for the correlative analysis with cue-reactivity paradigm, per meeting with Rachel 6/14/18 ###
 
-def computeFirstItemLookedAt():
+def computeFirstItemLookedAt(blocks, eyed='agg'):
+	#this function computes the average proportion of trials that the first item that was looked at was the selected item
+	db = subject_data;
+	
+	#loop through and get all the trials for each subject
+	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
 
-	hey= 'there';
+	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
+	if eyed=='agg':
+		all_substances = [[tee.preferred_category for tee in subject if (((tee.preferred_category=='alcohol')|(tee.preferred_category=='cigarette'))&
+			(tee.dropped_sample == 0)&(tee.skip==0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == 1))] for subject in trial_matrix]; #first get all the selected categories
+		prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #now get proportion of time seleteced alcohol
+		prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
+		#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
+		subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];
+		
+		index_counter=0;
+	
+		data = pd.DataFrame(columns = ['sub_id','trial_type','alc_prop_first_fixated','cig_prop_first_fixated','neu_prop_first_fixated',
+									   'chose_alc_alc_prop_first_fixated','chose_alc_cig_prop_first_fixated','chose_alc_neu_prop_first_fixated',
+									   'chose_cig_alc_prop_first_fixated','chose_cig_cig_prop_first_fixated','chose_cig_neu_prop_first_fixated',
+									   'chose_neu_alc_prop_first_fixated','chose_neu_cig_prop_first_fixated','chose_neu_neu_prop_first_fixated']);
+
+	#get the proportion of trials where the last fixated item was alcohol, cigarettes, and neutral items
+	#get the aggregate breakdwon as well as when they chose each item
+	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):	
+
+		alc_first_fixated = [];
+		cig_first_fixated = [];
+		neu_first_fixated = [];
+		chose_alc_alc_first_fixated = [];
+		chose_alc_cig_first_fixated = [];
+		chose_alc_neu_first_fixated = [];	
+		chose_cig_alc_first_fixated = [];
+		chose_cig_cig_first_fixated = [];
+		chose_cig_neu_first_fixated = [];	
+		chose_neu_alc_first_fixated = [];
+		chose_neu_cig_first_fixated = [];
+		chose_neu_neu_first_fixated = [];	
 
 
+		#first run the analysis for all trials of this trial type, not breaking it down by whether they chose alcohol, cigeratte, or neutral
+		#loop through trials for each subject
+		for subj,sub_id in zip(trial_matrix, ids):
+			alc_subj = [];
+			cig_subj = [];
+			neu_subj = [];	
+			for t in subj:
+				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):				
+					#conditionally append a 1 or 0 based on which item was last looked at in this trial
+					if (t.firstCategoryLookedAt == 'alcohol'):
+						alc_subj.append(1);
+						cig_subj.append(0);
+						neu_subj.append(0);
+					elif (t.firstCategoryLookedAt == 'cigarette'):
+						alc_subj.append(0);
+						cig_subj.append(1);
+						neu_subj.append(0);						
+					elif (t.firstCategoryLookedAt == 'neutral'):
+						alc_subj.append(0);
+						cig_subj.append(0);
+						neu_subj.append(1);
+			alc_first_fixated.append(sum(alc_subj)/float(len(alc_subj)));
+			cig_first_fixated.append(sum(cig_subj)/float(len(cig_subj)));
+			neu_first_fixated.append(sum(neu_subj)/float(len(neu_subj)));
+			
+		#below here append averages to the database 
+		db['%s_%s_alc_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(alc_first_fixated); db['%s_%s_alc_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(alc_first_fixated);
+		db['%s_%s_cig_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(cig_first_fixated); db['%s_%s_cig_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(cig_first_fixated);
+		db['%s_%s_neu_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(neu_first_fixated); db['%s_%s_neu_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(neu_first_fixated);
+		db.sync();
+		
+		#now break it down by which item was chosen
+		for selected_item in ['alcohol','cigarette','neutral']:			
+			#loop through trials for each subject
+			for subj,sub_id in zip(trial_matrix, ids):
+				
+				chose_alc_alc_subj = [];
+				chose_alc_cig_subj = [];
+				chose_alc_neu_subj = [];			
+				chose_cig_alc_subj = [];
+				chose_cig_cig_subj = [];
+				chose_cig_neu_subj = [];
+				chose_neu_alc_subj = [];
+				chose_neu_cig_subj = [];
+				chose_neu_neu_subj = [];				
 
+				for t in subj:
+					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category==selected_item)):        
+				
+						#conditional
+						if selected_item=='alcohol':
+							#conditionally append a 1 or 0 based on which item was last looked at in this trial
+							if (t.firstCategoryLookedAt == 'alcohol'):
+								chose_alc_alc_subj.append(1);
+								chose_alc_cig_subj.append(0);
+								chose_alc_neu_subj.append(0);
+							elif (t.firstCategoryLookedAt == 'cigarette'):
+								chose_alc_alc_subj.append(0);
+								chose_alc_cig_subj.append(1);
+								chose_alc_neu_subj.append(0);						
+							elif (t.firstCategoryLookedAt == 'neutral'):
+								chose_alc_alc_subj.append(0);
+								chose_alc_cig_subj.append(0);
+								chose_alc_neu_subj.append(1);										
+						elif selected_item=='cigarette':				
+							#conditionally append a 1 or 0 based on which item was last looked at in this trial
+							if (t.firstCategoryLookedAt == 'alcohol'):
+								chose_cig_alc_subj.append(1);
+								chose_cig_cig_subj.append(0);
+								chose_cig_neu_subj.append(0);
+							elif (t.firstCategoryLookedAt == 'cigarette'):
+								chose_cig_alc_subj.append(0);
+								chose_cig_cig_subj.append(1);
+								chose_cig_neu_subj.append(0);						
+							elif (t.firstCategoryLookedAt == 'neutral'):
+								chose_cig_alc_subj.append(0);
+								chose_cig_cig_subj.append(0);
+								chose_cig_neu_subj.append(1);															
+						elif selected_item=='neutral':
+							#conditionally append a 1 or 0 based on which item was last looked at in this trial
+							if (t.firstCategoryLookedAt == 'alcohol'):
+								chose_neu_alc_subj.append(1);
+								chose_neu_cig_subj.append(0);
+								chose_neu_neu_subj.append(0);
+							elif (t.firstCategoryLookedAt == 'cigarette'):
+								chose_neu_alc_subj.append(0);
+								chose_neu_cig_subj.append(1);
+								chose_neu_neu_subj.append(0);						
+							elif (t.firstCategoryLookedAt == 'neutral'):
+								chose_neu_alc_subj.append(0);
+								chose_neu_cig_subj.append(0);
+								chose_neu_neu_subj.append(1);
+				#append data to the all subject holders
+				if selected_item=='alcohol':
+					chose_alc_alc_first_fixated.append(sum(chose_alc_alc_subj)/float(len(chose_alc_alc_subj)));
+					chose_alc_cig_first_fixated.append(sum(chose_alc_cig_subj)/float(len(chose_alc_cig_subj)));
+					chose_alc_neu_first_fixated.append(sum(chose_alc_neu_subj)/float(len(chose_alc_neu_subj)));
+				elif selected_item=='cigarette':
+					chose_cig_alc_first_fixated.append(sum(chose_cig_alc_subj)/float(len(chose_cig_alc_subj)));
+					chose_cig_cig_first_fixated.append(sum(chose_cig_cig_subj)/float(len(chose_cig_cig_subj)));
+					chose_cig_neu_first_fixated.append(sum(chose_cig_neu_subj)/float(len(chose_cig_neu_subj)));
+				elif selected_item=='neutral':
+					chose_neu_alc_first_fixated.append(sum(chose_neu_alc_subj)/float(len(chose_neu_alc_subj)));
+					chose_neu_cig_first_fixated.append(sum(chose_neu_cig_subj)/float(len(chose_neu_cig_subj)));
+					chose_neu_neu_first_fixated.append(sum(chose_neu_neu_subj)/float(len(chose_neu_neu_subj)));
+
+		#below here append averages to the database
+		db['%s_%s_chose_alc_alc_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(chose_alc_alc_first_fixated); db['%s_%s_chose_alc_alc_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(chose_alc_alc_first_fixated);
+		db['%s_%s_chose_alc_cig_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(chose_alc_cig_first_fixated); db['%s_%s_chose_alc_cig_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(chose_alc_cig_first_fixated);
+		db['%s_%s_chose_alc_neu_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(chose_alc_neu_first_fixated); db['%s_%s_chose_alc_neu_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(chose_alc_neu_first_fixated);				
+		db['%s_%s_chose_cig_alc_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(chose_cig_alc_first_fixated); db['%s_%s_chose_cig_alc_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(chose_cig_alc_first_fixated);
+		db['%s_%s_chose_cig_cig_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(chose_cig_cig_first_fixated); db['%s_%s_chose_cig_cig_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(chose_cig_cig_first_fixated);
+		db['%s_%s_chose_cig_neu_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(chose_cig_neu_first_fixated); db['%s_%s_chose_cig_neu_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(chose_cig_neu_first_fixated);									
+		db['%s_%s_chose_neu_alc_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(chose_neu_alc_first_fixated); db['%s_%s_chose_neu_alc_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(chose_neu_alc_first_fixated);
+		db['%s_%s_chose_neu_cig_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(chose_neu_cig_first_fixated); db['%s_%s_chose_neu_cig_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(chose_neu_cig_first_fixated);
+		db['%s_%s_chose_neu_neu_mean_prop_first_fixated_item'%(eyed,name)] = nanmean(chose_neu_neu_first_fixated); db['%s_%s_chose_neu_neu_bs_sems_prop_first_fixated_item'%(eyed,name)] = compute_BS_SEM(chose_neu_neu_first_fixated);	
+		db.sync();
+	
+		
+		#below here append all the data to the DataFrame and then save it as a .csv		
+		for sub_id, alc, cig, neu, alc_alc, alc_cig, alc_neu, cig_alc, cig_cig, cig_neu, neu_alc, neu_cig, neu_neu \
+			in zip(ids, alc_first_fixated, cig_first_fixated, neu_first_fixated, \
+			chose_alc_alc_first_fixated, chose_alc_cig_first_fixated, chose_alc_neu_first_fixated, \
+			chose_cig_alc_first_fixated, chose_cig_cig_first_fixated, chose_cig_neu_first_fixated, \
+			chose_neu_alc_first_fixated, chose_neu_cig_first_fixated, chose_neu_neu_first_fixated):
+
+			#confirm that alc, cig, neu, etc 
+			
+			data.loc[index_counter] = [sub_id, name, mean(alc), mean(cig), mean(neu), \
+									   mean(alc_alc), mean(alc_cig), mean(alc_neu), \
+									mean(cig_alc), mean(cig_cig), mean(cig_neu), \
+									mean(neu_alc), mean(neu_cig), mean(neu_neu)];
+			index_counter+=1;
+	
+	if eyed=='agg':
+		data.to_csv(savepath+'avg_first_fixated_item.csv',index=False);		
+		
+		
+		
+		
+		
 
 ################################################################################################################################################################################
 
@@ -130,6 +306,8 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 		prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
 		#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
 		subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];
+
+		index_counter=0;
 
 		# ##Build an average database instance of each value for each subject for high vs low preferred trials and the subsets of high preferred trials
 		# data_preference = pd.DataFrame(columns = ['sub_id','subject_cue','selected','neu_mean_time_looking_at_pref','neu_mean_percentage_looking_at_pref',
@@ -320,7 +498,6 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 		db.sync();
 		
 		#finally aggregate all of the data for each subject and each breakdown together and store it in the DataFrame (and then turn it into the .csv)
-		index_counter=0;
 		for sub_id, chose_alc, chose_cig, chose_neu, neu_time, neu_prop, cig_time, cig_prop, alc_time, alc_prop, agg_rts, \
 		alc_neu_time, alc_neu_prop, alc_cig_time, alc_cig_prop, alc_alc_time, alc_alc_prop, alc_agg_rts, \
 		cig_neu_time, cig_neu_prop, cig_cig_time, cig_cig_prop, cig_alc_time, cig_alc_prop, cig_agg_rts, \
@@ -451,6 +628,8 @@ def computeLastItemLookedAt(blocks, eyed = 'agg'):
 		prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_substances]; #then proportion of times selecting cigarette
 		#then find which proportion is greater and define whether that subject's cue is alcohol or cigarette
 		subject_cues = ['alcohol' if (a>c) else 'cigarette' for a,c in zip(prop_chose_alc,prop_chose_cig)];
+		
+		index_counter=0;		
 	
 		data = pd.DataFrame(columns = ['sub_id','trial_type','alc_prop_last_fixated','cig_prop_last_fixated','neu_prop_last_fixated',
 									   'chose_alc_alc_prop_last_fixated','chose_alc_cig_prop_last_fixated','chose_alc_neu_prop_last_fixated',
@@ -514,20 +693,18 @@ def computeLastItemLookedAt(blocks, eyed = 'agg'):
 		db.sync();
 	
 		#now break it down by which item was chosen
-		for selected_item in ['alcohol','cigarette','neutral']:
-			
-			chose_alc_alc_subj = [];
-			chose_alc_cig_subj = [];
-			chose_alc_neu_subj = [];			
-			chose_cig_alc_subj = [];
-			chose_cig_cig_subj = [];
-			chose_cig_neu_subj = [];
-			chose_neu_alc_subj = [];
-			chose_neu_cig_subj = [];
-			chose_neu_neu_subj = [];
-			
+		for selected_item in ['alcohol','cigarette','neutral']:			
 			#loop through trials for each subject
 			for subj,sub_id in zip(trial_matrix, ids):
+				chose_alc_alc_subj = [];
+				chose_alc_cig_subj = [];
+				chose_alc_neu_subj = [];			
+				chose_cig_alc_subj = [];
+				chose_cig_cig_subj = [];
+				chose_cig_neu_subj = [];
+				chose_neu_alc_subj = [];
+				chose_neu_cig_subj = [];
+				chose_neu_neu_subj = [];
 
 				for t in subj:
 					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category==selected_item)):         #1)==high_pref_trial
@@ -602,8 +779,6 @@ def computeLastItemLookedAt(blocks, eyed = 'agg'):
 		db.sync();
 		
 		#below here append all the data to the DataFrame and then save it as a .csv
-	
-		index_counter=0;
 		for sub_id, alc, cig, neu, alc_alc, alc_cig, alc_neu, cig_alc, cig_cig, cig_neu, neu_alc, neu_cig, neu_neu \
 			in zip(ids, alc_last_fixated, cig_last_fixated, neu_last_fixated, \
 			chose_alc_alc_last_fixated, chose_alc_cig_last_fixated, chose_alc_neu_last_fixated, \

@@ -379,8 +379,8 @@ def computeTotalTimeLookingatEachItem(blocks, eyed = 'agg'):
 		data.to_csv(savepath+'avg_total_time_fixating_item.csv',index=False);	
 
 
-def computeItemSustainedResponse(blocks, eyed = 'agg'):
-	# determine which item had the longest continuous amount of time fixated in each trial (not necessarrilly the item with largest amount of time)
+def computeSustainedResponses(blocks, eyed = 'agg'):
+	# determine the continuous amount of time fixated at each item in each trial (not necessarrilly the item with largest amount of time)
 	#compute this for all trial types, and then do it for breakdown of which item was selected
 	db = subject_data;
 	
@@ -395,6 +395,51 @@ def computeItemSustainedResponse(blocks, eyed = 'agg'):
 									   'chose_cig_alc_avg_sustained_response','chose_cig_cig_avg_sustained_response','chose_cig_neu_avg_sustained_response',
 									   'chose_neu_alc_avg_sustained_response','chose_neu_cig_avg_sustained_response','chose_neu_neu_avg_sustained_response']);		
 
+	#get the avg sustained response at each of the alcohol, cigarettes, and neutral items
+	#get the aggregate breakdown as well as when they chose each item
+	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):
+		
+		alc_sr = [];
+		cig_sr = [];
+		neu_sr = [];
+		chose_alc_alc_sr = [];
+		chose_alc_cig_sr = [];
+		chose_alc_neu_sr = [];	
+		chose_cig_alc_sr = [];
+		chose_cig_cig_sr = [];
+		chose_cig_neu_sr = [];	
+		chose_neu_alc_sr = [];
+		chose_neu_cig_sr = [];
+		chose_neu_neu_sr = [];
+
+		#first run the analysis for all trials of this trial type, not breaking it down by whether they chose alcohol, cigeratte, or neutral
+		#loop through trials for each subject
+		for subj,sub_id in zip(trial_matrix, ids):
+			alc_subj = [];
+			cig_subj = [];
+			neu_subj = [];			
+			for t in subj:
+				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):				
+					#append the duration of longest continuous fixation ("sustained response") for each item per trial
+					
+					
+					
+					
+					
+					alc_subj.append(t.timeLookingAtAlcohol);
+					cig_subj.append(t.timeLookingAtCigarette);
+					neu_subj.append(t.timeLookingAtNeutral);
+			alc_total_time.append(mean(alc_subj));
+			cig_total_time.append(mean(cig_subj));
+			neu_total_time.append(mean(neu_subj));	
+
+
+from itertools import groupby
+def encode(input_string):
+    return [(len(list(g)), k) for k,g in groupby(input_string)]
+ 
+def decode(lst):
+    return ''.join(c * n for n,c in lst)
 
 
 ################################################################################################################################################################################

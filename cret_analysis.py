@@ -379,6 +379,24 @@ def computeTotalTimeLookingatEachItem(blocks, eyed = 'agg'):
 		data.to_csv(savepath+'avg_total_time_fixating_item.csv',index=False);	
 
 
+def computeItemSustainedResponse(blocks, eyed = 'agg'):
+	# determine which item had the longest continuous amount of time fixated in each trial (not necessarrilly the item with largest amount of time)
+	#compute this for all trial types, and then do it for breakdown of which item was selected
+	db = subject_data;
+	
+	#loop through and get all the trials for each subject
+	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
+
+	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
+	if eyed=='agg':
+		index_counter=0; #index counter for the DataFrame object		
+		data = pd.DataFrame(columns = ['sub_id','trial_type','alc_avg_sustained_response','cig_avg_sustained_response','neu_avg_sustained_response',
+									   'chose_alc_alc_avg_sustained_response','chose_alc_cig_avg_sustained_response','chose_alc_neu_avg_tsustained_response',
+									   'chose_cig_alc_avg_sustained_response','chose_cig_cig_avg_sustained_response','chose_cig_neu_avg_sustained_response',
+									   'chose_neu_alc_avg_sustained_response','chose_neu_cig_avg_sustained_response','chose_neu_neu_avg_sustained_response']);		
+
+
+
 ################################################################################################################################################################################
 
 

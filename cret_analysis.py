@@ -288,9 +288,9 @@ def computeTotalTimeLookingatEachItem(blocks, eyed = 'agg'):
 			for t in subj:
 				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):				
 					#append the amount of raw time looking at each item to the corresponding array
-					alc_subj.append(timeLookingAtAlcohol);
-					cig_subj.append(timeLookingAtCigarette);
-					neu_subj.append(timeLookingAtNeutral);
+					alc_subj.append(t.timeLookingAtAlcohol);
+					cig_subj.append(t.timeLookingAtCigarette);
+					neu_subj.append(t.timeLookingAtNeutral);
 			alc_total_time.append(mean(alc_subj));
 			cig_total_time.append(mean(cig_subj));
 			neu_total_time.append(mean(neu_subj));		
@@ -322,17 +322,17 @@ def computeTotalTimeLookingatEachItem(blocks, eyed = 'agg'):
 						#conditional
 						if selected_item=='alcohol':
 							#append the amount of raw time looking at each item to the corresponding array
-							chose_alc_alc_subj.append(timeLookingAtAlcohol);
-							chose_alc_cig_subj.append(timeLookingAtCigarette);
-							chose_alc_neu_subj.append(timeLookingAtNeutral);									
+							chose_alc_alc_subj.append(t.timeLookingAtAlcohol);
+							chose_alc_cig_subj.append(t.timeLookingAtCigarette);
+							chose_alc_neu_subj.append(t.timeLookingAtNeutral);									
 						elif selected_item=='cigarette':				
-							chose_cig_alc_subj.append(timeLookingAtAlcohol);
-							chose_cig_cig_subj.append(timeLookingAtCigarette);
-							chose_cig_neu_subj.append(timeLookingAtNeutral);															
+							chose_cig_alc_subj.append(t.timeLookingAtAlcohol);
+							chose_cig_cig_subj.append(t.timeLookingAtCigarette);
+							chose_cig_neu_subj.append(t.timeLookingAtNeutral);															
 						elif selected_item=='neutral':
-							chose_neu_alc_subj.append(timeLookingAtAlcohol);
-							chose_neu_cig_subj.append(timeLookingAtCigarette);
-							chose_neu_neu_subj.append(timeLookingAtNeutral);						
+							chose_neu_alc_subj.append(t.timeLookingAtAlcohol);
+							chose_neu_cig_subj.append(t.timeLookingAtCigarette);
+							chose_neu_neu_subj.append(t.timeLookingAtNeutral);						
 		
 				#append data to the all subject holders
 				if selected_item=='alcohol':

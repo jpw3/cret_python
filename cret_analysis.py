@@ -563,8 +563,242 @@ def computeSustainedResponses(blocks, eyed = 'agg'):
 			index_counter+=1;					
 
 	if eyed=='agg':
-		data.to_csv(savepath+'avg_sustained_response_item.csv',index=False);			
+		data.to_csv(savepath+'avg_sustained_response_item.csv',index=False);
 		
+		
+def computeNrFixations(blocks, eyed='agg'):		
+	# determine the number of unique fixations to each item in a trial
+	#compute this for all trial types, and then do it for breakdown of which item was selected
+	db = subject_data;
+	
+	rexp_pattern = re.compile(r'01'); #this regular expression pattern looks for strings with a 1 or anything continuous run of 1s
+	
+	#loop through and get all the trials for each subject
+	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
+
+	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
+	if eyed=='agg':
+		index_counter=0; #index counter for the DataFrame object		
+		data = pd.DataFrame(columns = ['sub_id','trial_type','alc_avg_nr_fixations','cig_avg_nr_fixations','neu_avg_nr_fixations',
+									   'chose_alc_alc_avg_nr_fixations','chose_alc_cig_avg_nr_fixations','chose_alc_neu_avg_nr_fixations',
+									   'chose_cig_alc_avg_nr_fixations','chose_cig_cig_avg_nr_fixations','chose_cig_neu_avg_nr_fixations',
+									   'chose_neu_alc_avg_nr_fixations','chose_neu_cig_avg_nr_fixations','chose_neu_neu_avg_nr_fixations']);		
+
+	#get the avg sustained response at each of the alcohol, cigarettes, and neutral items
+	#get the aggregate breakdown as well as when they chose each item
+	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):
+		
+		alc_nr_fix = [];
+		cig_nr_fix = [];
+		neu_nr_fix = [];
+		chose_alc_alc_nr_fix = [];
+		chose_alc_cig_nr_fix = [];
+		chose_alc_neu_nr_fix = [];	
+		chose_cig_alc_nr_fix = [];
+		chose_cig_cig_nr_fix = [];
+		chose_cig_neu_nr_fix = [];	
+		chose_neu_alc_nr_fix = [];
+		chose_neu_cig_nr_fix = [];
+		chose_neu_neu_nr_fix = [];
+
+		#first run the analysis for all trials of this trial type, not breaking it down by whether they chose alcohol, cigeratte, or neutral
+		#loop through trials for each subject
+		for subj,sub_id in zip(trial_matrix, ids):
+			alc_subj = [];
+			cig_subj = [];
+			neu_subj = [];			
+			for t in subj:
+				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):				
+					#get the duration of longest continuous fixation ("sustained response") for each item per trial
+					
+					str_alc = ''.join(str(int(g)) for g in t.lookedAtAlcohol if not(isnan(g))); #first get the array into a string
+					run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
+					#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
+					nr_fixs = sum([1 for r in run_lengths_alc]);
+					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+					if str_alc[0]=='1':
+						nr_fixs +=1;
+					if (nr_fixs==0): alc_subj.append(0);
+					else: alc_subj.append(nr_fixs); #append nr of fixations
+					
+					str_cig = ''.join(str(int(g)) for g in t.lookedAtCigarette if not(isnan(g))); #parse cigarette
+					run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
+					nr_fixs = sum([1 for r in run_lengths_cig]);
+					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+					if str_cig[0]=='1':
+						nr_fixs +=1;
+					if (nr_fixs==0): cig_subj.append(0);
+					else: cig_subj.append(nr_fixs);				
+
+					str_neu = ''.join(str(int(g)) for g in t.lookedAtNeutral if not(isnan(g))); #do the parsing for neutral..
+					run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
+					nr_fixs = sum([1 for r in run_lengths_neu]);
+					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+					if str_neu[0]=='1':
+						nr_fixs +=1;
+					if (nr_fixs==0): neu_subj.append(0);
+					else: neu_subj.append(nr_fixs);	
+										
+			alc_nr_fix.append(mean(alc_subj));
+			cig_nr_fix.append(mean(cig_subj));
+			neu_nr_fix.append(mean(neu_subj));
+			
+		#below here append averages to the database 
+		db['%s_%s_alc_mean_nr_fix'%(eyed,name)] = nanmean(alc_nr_fix); db['%s_%s_alc_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(alc_nr_fix);
+		db['%s_%s_cig_mean_nr_fix'%(eyed,name)] = nanmean(cig_nr_fix); db['%s_%s_cig_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(cig_nr_fix);
+		db['%s_%s_neu_mean_nr_fix'%(eyed,name)] = nanmean(neu_nr_fix); db['%s_%s_neu_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(neu_nr_fix);
+		db.sync();		
+
+
+		#now break it down by which item was chosen
+		for selected_item in ['alcohol','cigarette','neutral']:			
+			#loop through trials for each subject
+			for subj,sub_id in zip(trial_matrix, ids):
+				
+				chose_alc_alc_subj = [];
+				chose_alc_cig_subj = [];
+				chose_alc_neu_subj = [];			
+				chose_cig_alc_subj = [];
+				chose_cig_cig_subj = [];
+				chose_cig_neu_subj = [];
+				chose_neu_alc_subj = [];
+				chose_neu_cig_subj = [];
+				chose_neu_neu_subj = [];
+
+				for t in subj:
+					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category==selected_item)):
+						
+						#conditional
+						if selected_item=='alcohol':
+							str_alc = ''.join(str(int(g)) for g in t.lookedAtAlcohol if not(isnan(g))); #first get the array into a string
+							run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
+							#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
+							nr_fixs = sum([1 for r in run_lengths_alc]);
+							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+							if str_alc[0]=='1':
+								nr_fixs +=1;
+							if (nr_fixs==0): chose_alc_alc_subj.append(0);
+							else: chose_alc_alc_subj.append(nr_fixs); #append nr of fixations
+							
+							str_cig = ''.join(str(int(g)) for g in t.lookedAtCigarette if not(isnan(g))); #parse cigarette
+							run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
+							nr_fixs = sum([1 for r in run_lengths_cig]);
+							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+							if str_cig[0]=='1':
+								nr_fixs +=1;
+							if (nr_fixs==0): chose_alc_cig_subj.append(0);
+							else: chose_alc_cig_subj.append(nr_fixs);				
+		
+							str_neu = ''.join(str(int(g)) for g in t.lookedAtNeutral if not(isnan(g))); #do the parsing for neutral..
+							run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
+							nr_fixs = sum([1 for r in run_lengths_neu]);
+							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+							if str_neu[0]=='1':
+								nr_fixs +=1;
+							if (nr_fixs==0): chose_alc_neu_subj.append(0);
+							else: chose_alc_neu_subj.append(nr_fixs);			
+									
+						elif selected_item=='cigarette':				
+							str_alc = ''.join(str(int(g)) for g in t.lookedAtAlcohol if not(isnan(g))); #first get the array into a string
+							run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
+							#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
+							nr_fixs = sum([1 for r in run_lengths_alc]);
+							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+							if str_alc[0]=='1':
+								nr_fixs +=1;
+							if (nr_fixs==0): chose_cig_alc_subj.append(0);
+							else: chose_cig_alc_subj.append(nr_fixs); #append the max, if there is one
+							
+							str_cig = ''.join(str(int(g)) for g in t.lookedAtCigarette if not(isnan(g))); #parse cigarette
+							run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
+							nr_fixs = sum([1 for r in run_lengths_cig]);
+							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+							if str_cig[0]=='1':
+								nr_fixs +=1;
+							if (nr_fixs==0): chose_cig_cig_subj.append(0);
+							else: chose_cig_cig_subj.append(nr_fixs);				
+		
+							str_neu = ''.join(str(int(g)) for g in t.lookedAtNeutral if not(isnan(g))); #do the parsing for neutral..
+							run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
+							nr_fixs = sum([1 for r in run_lengths_neu]);
+							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+							if str_neu[0]=='1':
+								nr_fixs +=1;
+							if (nr_fixs==0): chose_cig_neu_subj.append(0);
+							else: chose_cig_neu_subj.append(nr_fixs);			
+							
+						elif selected_item=='neutral':
+							str_alc = ''.join(str(int(g)) for g in t.lookedAtAlcohol if not(isnan(g))); #first get the array into a string
+							run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
+							#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
+							nr_fixs = sum([1 for r in run_lengths_alc]);
+							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+							if str_alc[0]=='1':
+								nr_fixs +=1;
+							if (nr_fixs==0): chose_neu_alc_subj.append(0);
+							else: chose_neu_alc_subj.append(nr_fixs); #append the max, if there is one
+							
+							str_cig = ''.join(str(int(g)) for g in t.lookedAtCigarette if not(isnan(g))); #parse cigarette
+							run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
+							nr_fixs = sum([1 for r in run_lengths_cig]);
+							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+							if str_cig[0]=='1':
+								nr_fixs +=1;
+							if (nr_fixs==0): chose_neu_cig_subj.append(0);
+							else: chose_neu_cig_subj.append(nr_fixs);				
+		
+							str_neu = ''.join(str(int(g)) for g in t.lookedAtNeutral if not(isnan(g))); #do the parsing for neutral..
+							run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
+							nr_fixs = sum([1 for r in run_lengths_neu]);
+							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+							if str_neu[0]=='1':
+								nr_fixs +=1;
+							if (nr_fixs==0): chose_neu_neu_subj.append(0);
+							else: chose_neu_neu_subj.append(nr_fixs);			
+							
+				#append data to the all subject holders
+				if selected_item=='alcohol':
+					chose_alc_alc_nr_fix.append(mean(chose_alc_alc_subj));
+					chose_alc_cig_nr_fix.append(mean(chose_alc_cig_subj));
+					chose_alc_neu_nr_fix.append(mean(chose_alc_neu_subj));
+				elif selected_item=='cigarette':
+					chose_cig_alc_nr_fix.append(mean(chose_cig_alc_subj));
+					chose_cig_cig_nr_fix.append(mean(chose_cig_cig_subj));
+					chose_cig_neu_nr_fix.append(mean(chose_cig_neu_subj));
+				elif selected_item=='neutral':
+					chose_neu_alc_nr_fix.append(mean(chose_neu_alc_subj));
+					chose_neu_cig_nr_fix.append(mean(chose_neu_cig_subj));
+					chose_neu_neu_nr_fix.append(mean(chose_neu_neu_subj));							
+							
+		#below here append averages to the database
+		db['%s_%s_chose_alc_alc_mean_nr_fix'%(eyed,name)] = nanmean(chose_alc_alc_nr_fix); db['%s_%s_chose_alc_alc_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_alc_alc_nr_fix);
+		db['%s_%s_chose_alc_cig_mean_nr_fix'%(eyed,name)] = nanmean(chose_alc_cig_nr_fix); db['%s_%s_chose_alc_cig_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_alc_cig_nr_fix);
+		db['%s_%s_chose_alc_neu_mean_nr_fix'%(eyed,name)] = nanmean(chose_alc_neu_nr_fix); db['%s_%s_chose_alc_neu_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_alc_neu_nr_fix);				
+		db['%s_%s_chose_cig_alc_mean_nr_fix'%(eyed,name)] = nanmean(chose_cig_alc_nr_fix); db['%s_%s_chose_cig_alc_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_cig_alc_nr_fix);
+		db['%s_%s_chose_cig_cig_mean_nr_fix'%(eyed,name)] = nanmean(chose_cig_cig_nr_fix); db['%s_%s_chose_cig_cig_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_cig_cig_nr_fix);
+		db['%s_%s_chose_cig_neu_mean_nr_fix'%(eyed,name)] = nanmean(chose_cig_neu_nr_fix); db['%s_%s_chose_cig_neu_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_cig_neu_nr_fix);									
+		db['%s_%s_chose_neu_alc_mean_nr_fix'%(eyed,name)] = nanmean(chose_neu_alc_nr_fix); db['%s_%s_chose_neu_alc_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_neu_alc_nr_fix);
+		db['%s_%s_chose_neu_cig_mean_nr_fix'%(eyed,name)] = nanmean(chose_neu_cig_nr_fix); db['%s_%s_chose_neu_cig_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_neu_cig_nr_fix);
+		db['%s_%s_chose_neu_neu_mean_nr_fix'%(eyed,name)] = nanmean(chose_neu_neu_nr_fix); db['%s_%s_chose_neu_neu_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_neu_neu_nr_fix);	
+		db.sync();
+
+		#below here append all the data to the DataFrame and then save it as a .csv		
+		for sub_id, alc, cig, neu, alc_alc, alc_cig, alc_neu, cig_alc, cig_cig, cig_neu, neu_alc, neu_cig, neu_neu \
+			in zip(ids, alc_nr_fix, cig_nr_fix, neu_nr_fix, \
+			chose_alc_alc_nr_fix, chose_alc_cig_nr_fix, chose_alc_neu_nr_fix, \
+			chose_cig_alc_nr_fix, chose_cig_cig_nr_fix, chose_cig_neu_nr_fix, \
+			chose_neu_alc_nr_fix, chose_neu_cig_nr_fix, chose_neu_neu_nr_fix):
+
+			#confirm that alc, cig, neu, etc 
+			
+			data.loc[index_counter] = [sub_id, name, mean(alc), mean(cig), mean(neu), \
+									   mean(alc_alc), mean(alc_cig), mean(alc_neu), \
+									mean(cig_alc), mean(cig_cig), mean(cig_neu), \
+									mean(neu_alc), mean(neu_cig), mean(neu_neu)];
+			index_counter+=1;					
+
+	if eyed=='agg':
+		data.to_csv(savepath+'avg_nr_fixation_item.csv',index=False);
 		
 
 ################################################################################################################################################################################

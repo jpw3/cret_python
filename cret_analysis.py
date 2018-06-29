@@ -13,6 +13,7 @@ import matplotlib.lines as mlines
 import scipy.signal as ssignal
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
 import time
+import re #string parsing, etc
 
 ############################################
 ## Specify some universal parameters ##
@@ -21,10 +22,10 @@ import time
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 
 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Volumes/WORK_HD/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; #'/Users/james/Documents/Python/CRET/figures/'; #
+datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #/'Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -384,6 +385,8 @@ def computeSustainedResponses(blocks, eyed = 'agg'):
 	#compute this for all trial types, and then do it for breakdown of which item was selected
 	db = subject_data;
 	
+	rexp_pattern = re.compile(r'1+'); #this regular expression pattern looks for strings with a 1 or anything continuous run of 1s
+	
 	#loop through and get all the trials for each subject
 	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
 
@@ -420,15 +423,26 @@ def computeSustainedResponses(blocks, eyed = 'agg'):
 			neu_subj = [];			
 			for t in subj:
 				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):				
-					#append the duration of longest continuous fixation ("sustained response") for each item per trial
+					#get the duration of longest continuous fixation ("sustained response") for each item per trial
 					
+					str_alc = ''.join(str(int(g)) for g in t.lookedAtAlcohol if not(isnan(g))); #first get the array into a string
+					run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
+					#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
+					if not(run_lengths_alc): alc_subj.append(0)
+					else: alc_subj.append(max(run_lengths_alc)); #append the max, if there is one
 					
+					str_cig = ''.join(str(int(g)) for g in t.lookedAtCigarette if not(isnan(g))); #parse cigarette
+					run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
+					if not(run_lengths_cig): cig_subj.append(0)
+					else: cig_subj.append(max(run_lengths_cig)); 					
+
+					str_neu = ''.join(str(int(g)) for g in t.lookedAtNeutral if not(isnan(g))); #do the parsing for neutral..
+					run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
+					if not(run_lengths_neu): neu_subj.append(0)
+					else: neu_subj.append(max(run_lengths_neu));
 					
+					1/0
 					
-					
-					alc_subj.append(t.timeLookingAtAlcohol);
-					cig_subj.append(t.timeLookingAtCigarette);
-					neu_subj.append(t.timeLookingAtNeutral);
 			alc_total_time.append(mean(alc_subj));
 			cig_total_time.append(mean(cig_subj));
 			neu_total_time.append(mean(neu_subj));	

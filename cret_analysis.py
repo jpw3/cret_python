@@ -1512,7 +1512,7 @@ def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
 	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
 	
 	#collect which trial type to run this analysis for
-	ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
+	#ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
 	
 	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
 	
@@ -1520,7 +1520,7 @@ def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
 		
 		trial_index_counter= 0;
 	
-		data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item'],['t_%s' for t in linspace(1,2000,2000)]]));
+		data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item'],['t_%s'%(t) for t in linspace(1,2000,2000)]]));
 		#see what this looks like as a dataframe. this dataframe will hold each new trial for the subject...
 	
 		1/0

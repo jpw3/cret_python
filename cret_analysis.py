@@ -1503,6 +1503,29 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 	#save the databases
 	[d.to_csv(savepath+'%s_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (1999-i)),index=False) for d,i in zip(data, arange(2000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);
 	# ends here
+
+
+def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
+	#collects each participants' trial data where they didn't blink or look down, holding only the 2000 time points before the decision
+	
+	#loop through and get all the trials for each subject
+	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
+	
+	#collect which trial type to run this analysis for
+	ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
+	
+	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
+	
+	for subj_nr,subj in enumerate(trial_matrix):
+		
+		trial_index_counter= 0;
+	
+		data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item'],['t_%s' for t in linspace(1,2000,2000)]]));
+		#see what this looks like as a dataframe. this dataframe will hold each new trial for the subject...
+	
+		1/0
+	
+	
 	
 	
 	

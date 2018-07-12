@@ -1527,7 +1527,12 @@ def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
 			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):
 				gaze_data = [nan for i in range(2000)]; #this will be length 2000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans
 				#keep the start of the array nans until the timepoint when the trial has data for it
-				trial_start_index = 2000-len(t.lookedAtNeutral); 
+				trial_start_index = 2000-len(t.lookedAtNeutral);
+				
+				#trials longer than 2000 ms will be trimmed to 2000 ms
+				if trial_start_index < 0:
+					trial_start_index = 0;
+				
 				iterator = 0;
 				#now go through for the 2000 time points prior to decision and score whether the paricipants was looking at 
 				for i in (arange(2000)+1):
@@ -1562,7 +1567,7 @@ def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
 		print "completed subject %s.. \n\n"%subj_nr	
 
 	#save the database
-	data.to_csv(savepath+'%s_trialdata.csv',index=False); 
+	data.to_csv(savepath+'%s_trialdata.csv'%name,index=False); 
 	# ends here
 	
 	

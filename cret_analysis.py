@@ -1516,17 +1516,54 @@ def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
 	
 	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
 	
+	data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item'],['t_%s'%(t) for t in linspace(1,2000,2000)]])); #add all participants together to the same dataFrame for simplicty
+	#SCORING FOR ITEM (entry at t_XX): 0 = not looked at any item, 1 = looked at alcohol, 2 = looked at cigarette, 3 = looked at neutral, nan = timepoint didn't exist in the trial
+	trial_index_counter = 0;
+	
 	for subj_nr,subj in enumerate(trial_matrix):
-		
-		trial_index_counter= 0;
-	
-		data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item'],['t_%s'%(t) for t in linspace(1,2000,2000)]]));
-		#see what this looks like as a dataframe. this dataframe will hold each new trial for the subject...
-	
-		1/0
-	
-	
-	
+
+		for t in subj:
+			#conditional to differentiate between trials that should be skipped for this trial type, etc.
+			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):
+				gaze_data = [nan for i in range(2000)]; #this will be length 2000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans
+				#keep the start of the array nans until the timepoint when the trial has data for it
+				trial_start_index = 2000-len(t.lookedAtNeutral); 
+				iterator = 0;
+				#now go through for the 2000 time points prior to decision and score whether the paricipants was looking at 
+				for i in (arange(2000)+1):
+					if (i>len(t.lookedAtNeutral)):
+						continue;					
+					elif (isnan(t.lookedAtNeutral[-i]) & isnan(t.lookedAtAlcohol[-i]) & isnan(t.lookedAtCigarette[-i])):
+						#at this point, there was a nan inserted because the participant did not look at each item
+						#when there are no items looked at, include a 0
+						gaze_data[trial_start_index+iterator] = 0;
+					elif (t.lookedAtAlcohol[-i]==1):
+						gaze_data[trial_start_index+iterator] = 1;
+					elif (t.lookedAtCigarette[-i]==1):						
+						gaze_data[trial_start_index+iterator] = 2;						
+					elif (t.lookedAtNeutral[-i]==1):	
+						gaze_data[trial_start_index+iterator] = 3;
+					iterator+=1;
+				#for ease of the regression computation, get the selected item into a numerical representation, same mapping as with item looked at
+				if t.preferred_category=='alcohol':
+					selected_item = 1;
+				elif t.preferred_category=='cigarette':
+					selected_item = 2;
+				elif t.preferred_category=='neutral':
+					selected_item = 3;					
+				#at this point have collected data for gaze profile together
+				#get all data points together for ease of incorporating into the dataFrame
+				this_trials_data = concatenate([[int(subj_nr+1), ttype, selected_item],gaze_data]); #subject nr, trial_type, selected_item, then each timepoint data
+				
+				#now translate this to the dataframe for this participant
+				data.loc[trial_index_counter] = this_trials_data;
+				trial_index_counter += 1; #index for next trial
+				
+		print "completed subject %s.. \n\n"%subj_nr	
+
+	#save the database
+	data.to_csv(savepath+'%s_trialdata.csv',index=False); 
+	# ends here
 	
 	
 def computeTemporalGazeProfile(blocks, eyed = 'agg'):

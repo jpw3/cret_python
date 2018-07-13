@@ -1416,23 +1416,23 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 	
 	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
 
-	#create 1000 dataframe objects that will correspond to each time point
+	#create 2000 dataframe objects that will correspond to each time point
 	data = [pd.DataFrame(columns = ['sub_id','trial_type','selected_item','looked_at_item','timepoint','nr_trials','mean_fix_likelihood']) for i in arange(2000)];
 	
 	for selected_item in ['alcohol','cigarette','neutral']:		
 		#define arrays for the neutral, alcohol and cigarette items
-		neu_gaze_array = zeros(time_duration/time_bin_spacing);
-		neu_counts = zeros(shape(neu_gaze_array));
-		neu_subject_means_array = [[] for i in range(2000)]; #use this to store each individual subjects' mean for each time point
-		neu_subject_agg_counts = []; 
-		alc_gaze_array = zeros(time_duration/time_bin_spacing);
-		alc_counts = zeros(shape(alc_gaze_array));
-		alc_subject_means_array = [[] for i in range(2000)];
-		alc_subject_agg_counts = []; 
-		cig_cue_gaze_array = zeros(time_duration/time_bin_spacing);
-		cig_cue_counts = zeros(shape(cig_cue_gaze_array));
-		cig_cue_subject_means_array = [[] for i in range(2000)];
-		cig_subject_agg_counts = []; 
+		# neu_gaze_array = zeros(time_duration/time_bin_spacing);
+		# neu_counts = zeros(shape(neu_gaze_array));
+		# neu_subject_means_array = [[] for i in range(2000)]; #use this to store each individual subjects' mean for each time point
+		# neu_subject_agg_counts = []; 
+		# alc_gaze_array = zeros(time_duration/time_bin_spacing);
+		# alc_counts = zeros(shape(alc_gaze_array));
+		# alc_subject_means_array = [[] for i in range(2000)];
+		# alc_subject_agg_counts = []; 
+		# cig_cue_gaze_array = zeros(time_duration/time_bin_spacing);
+		# cig_cue_counts = zeros(shape(cig_cue_gaze_array));
+		# cig_cue_subject_means_array = [[] for i in range(2000)];
+		# cig_subject_agg_counts = []; 
 	
 		for subj_nr,subj in enumerate(trial_matrix):
 			neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
@@ -1452,20 +1452,20 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 						if (i>len(t.lookedAtNeutral)):
 							continue;
 						elif (isnan(t.lookedAtNeutral[-i])):
-							continue;
-						neu_gaze_array[-i] += t.lookedAtNeutral[-i];
-						neu_counts[-i] += 1;
+							continue; #nan means they weren't looking at anything at this timepoint
+						# neu_gaze_array[-i] += t.lookedAtNeutral[-i];
+						# neu_counts[-i] += 1;
 						#put the individual subject data together
 						neu_individ_subject_sum[-i] += t.lookedAtNeutral[-i];
-						neu_individ_subject_counts[-i] += 1;				
+						neu_individ_subject_counts[-i] += 1;
 					for i in (arange(2000)+1):
 						if (i>len(t.lookedAtAlcohol)):
 							continue;
 						elif (isnan(t.lookedAtAlcohol[-i])):
 							continue;
 						#store the alcohol gaze patterns as the cue item
-						alc_gaze_array[-i] += t.lookedAtAlcohol[-i];
-						alc_counts[-i] += 1;
+						# alc_gaze_array[-i] += t.lookedAtAlcohol[-i];
+						# alc_counts[-i] += 1;
 						#put the individual subject data together
 						alc_individ_subject_sum[-i] += t.lookedAtAlcohol[-i];
 						alc_individ_subject_counts[-i] += 1;				
@@ -1475,27 +1475,27 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 						elif (isnan(t.lookedAtCigarette[-i])):
 							continue;							
 						#store the cigarette items as the not_cue item
-						cig_cue_gaze_array[-i] += t.lookedAtCigarette[-i];
-						cig_cue_counts[-i] += 1;
+						# cig_cue_gaze_array[-i] += t.lookedAtCigarette[-i];
+						# cig_cue_counts[-i] += 1;
 						#put the individual subject data together
 						cig_cue_individ_subject_sum[-i] += t.lookedAtCigarette[-i];
 						cig_cue_individ_subject_counts[-i] += 1;		
 
 			neu_individ_subject_mean = neu_individ_subject_sum/neu_individ_subject_counts; #calculate the mean for this subject at each time point
-			[neu_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),neu_individ_subject_mean)]; #append this to the array for each subject
-			[neu_subject_agg_counts.append(ct) for ct in neu_individ_subject_counts]; #store number of trials here		
+			# [neu_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),neu_individ_subject_mean)]; #append this to the array for each subject
+			# [neu_subject_agg_counts.append(ct) for ct in neu_individ_subject_counts]; #store number of trials here		
 			alc_individ_subject_mean = alc_individ_subject_sum/alc_individ_subject_counts; #calculate the mean for this subject at each time point
-			[alc_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),alc_individ_subject_mean)]; #append this to the array for each subject
-			[alc_subject_agg_counts.append(ct) for ct in alc_individ_subject_counts];
+			# [alc_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),alc_individ_subject_mean)]; #append this to the array for each subject
+			# [alc_subject_agg_counts.append(ct) for ct in alc_individ_subject_counts];
 			cig_cue_individ_subject_mean = cig_cue_individ_subject_sum/cig_cue_individ_subject_counts; #calculate the mean for this subject at each time point
-			[cig_cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),cig_cue_individ_subject_mean)]; #append this to the array for each subject
-			[cig_subject_agg_counts.append(ct) for ct in cig_cue_individ_subject_counts];
-
+			# [cig_cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),cig_cue_individ_subject_mean)]; #append this to the array for each subject
+			# [cig_subject_agg_counts.append(ct) for ct in cig_cue_individ_subject_counts];
+			
 			for index in arange(2000):
 				#make sure to reverse the time point from index...
-				data[index].loc[index_counter] = [int(subj_nr+1),int(ttype),selected_item,'alcohol', (1999-index), alc_subject_agg_counts[index], alc_individ_subject_mean[index]];
-				data[index].loc[index_counter+1] = [int(subj_nr+1),int(ttype),selected_item,'cigarette', (1999-index), cig_subject_agg_counts[index], cig_cue_individ_subject_mean[index]];
-				data[index].loc[index_counter+2] = [int(subj_nr+1),int(ttype),selected_item,'neutral', (1999-index), neu_subject_agg_counts[index], neu_individ_subject_mean[index]];
+				data[index].loc[index_counter] = [int(subj_nr+1),int(ttype),selected_item,'alcohol', (1999-index), alc_individ_subject_counts[index], alc_individ_subject_mean[index]];
+				data[index].loc[index_counter+1] = [int(subj_nr+1),int(ttype),selected_item,'cigarette', (1999-index), cig_cue_individ_subject_counts[index], cig_cue_individ_subject_mean[index]];
+				data[index].loc[index_counter+2] = [int(subj_nr+1),int(ttype),selected_item,'neutral', (1999-index), neu_individ_subject_counts[index], neu_individ_subject_mean[index]];
 			index_counter+=3;
 						
 			print "completed subject %s.. \n\n"%subj_nr	

@@ -1419,20 +1419,29 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 	#create 2000 dataframe objects that will correspond to each time point
 	data = [pd.DataFrame(columns = ['sub_id','trial_type','selected_item','looked_at_item','timepoint','nr_trials','mean_fix_likelihood']) for i in arange(2000)];
 	
-	for selected_item in ['alcohol','cigarette','neutral']:		
+	for selected_item in ['cigarette','alcohol','neutral']:
+		
+		fig = figure(); ax1 = gca();
+		ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,2000]);
+		ax1.set_ylabel('Likelihood of fixating',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=11);
+		ax1.set_xticks([0,500, 1000, 1500, 2000]);
+		ax1.set_xticklabels(['-2000', '-1500', '-1000', '-500', '0']);
+		colors = ['red','blue', 'green']; alphas = [1.0, 1.0, 1.0]; legend_lines = [];		count = 0;
+		
+		
 		#define arrays for the neutral, alcohol and cigarette items
-		# neu_gaze_array = zeros(time_duration/time_bin_spacing);
-		# neu_counts = zeros(shape(neu_gaze_array));
-		# neu_subject_means_array = [[] for i in range(2000)]; #use this to store each individual subjects' mean for each time point
-		# neu_subject_agg_counts = []; 
-		# alc_gaze_array = zeros(time_duration/time_bin_spacing);
-		# alc_counts = zeros(shape(alc_gaze_array));
-		# alc_subject_means_array = [[] for i in range(2000)];
-		# alc_subject_agg_counts = []; 
-		# cig_cue_gaze_array = zeros(time_duration/time_bin_spacing);
-		# cig_cue_counts = zeros(shape(cig_cue_gaze_array));
-		# cig_cue_subject_means_array = [[] for i in range(2000)];
-		# cig_subject_agg_counts = []; 
+		neu_gaze_array = zeros(time_duration/time_bin_spacing);
+		neu_counts = zeros(shape(neu_gaze_array));
+		neu_subject_means_array = [[] for i in range(2000)]; #use this to store each individual subjects' mean for each time point
+		neu_subject_agg_counts = []; 
+		alc_gaze_array = zeros(time_duration/time_bin_spacing);
+		alc_counts = zeros(shape(alc_gaze_array));
+		alc_subject_means_array = [[] for i in range(2000)];
+		alc_subject_agg_counts = []; 
+		cig_cue_gaze_array = zeros(time_duration/time_bin_spacing);
+		cig_cue_counts = zeros(shape(cig_cue_gaze_array));
+		cig_cue_subject_means_array = [[] for i in range(2000)];
+		cig_subject_agg_counts = []; 
 	
 		for subj_nr,subj in enumerate(trial_matrix):
 			neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
@@ -1445,7 +1454,7 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 			for t in subj:
 				#conditional to differentiate between not-cue trials when selecteing the non-cue or not
 				#the second conditional include nuetral trials that were preferred only
-				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&((t.preferred_category == selected_item))):
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category == selected_item)):
 					#neutral is always the same...
 					#cycle through each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
 					for i in (arange(2000)+1):
@@ -1453,8 +1462,8 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 							continue;
 						elif (isnan(t.lookedAtNeutral[-i])):
 							continue; #nan means they weren't looking at anything at this timepoint
-						# neu_gaze_array[-i] += t.lookedAtNeutral[-i];
-						# neu_counts[-i] += 1;
+						neu_gaze_array[-i] += t.lookedAtNeutral[-i];
+						neu_counts[-i] += 1;
 						#put the individual subject data together
 						neu_individ_subject_sum[-i] += t.lookedAtNeutral[-i];
 						neu_individ_subject_counts[-i] += 1;
@@ -1464,8 +1473,8 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 						elif (isnan(t.lookedAtAlcohol[-i])):
 							continue;
 						#store the alcohol gaze patterns as the cue item
-						# alc_gaze_array[-i] += t.lookedAtAlcohol[-i];
-						# alc_counts[-i] += 1;
+						alc_gaze_array[-i] += t.lookedAtAlcohol[-i];
+						alc_counts[-i] += 1;
 						#put the individual subject data together
 						alc_individ_subject_sum[-i] += t.lookedAtAlcohol[-i];
 						alc_individ_subject_counts[-i] += 1;				
@@ -1475,21 +1484,21 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 						elif (isnan(t.lookedAtCigarette[-i])):
 							continue;							
 						#store the cigarette items as the not_cue item
-						# cig_cue_gaze_array[-i] += t.lookedAtCigarette[-i];
-						# cig_cue_counts[-i] += 1;
+						cig_cue_gaze_array[-i] += t.lookedAtCigarette[-i];
+						cig_cue_counts[-i] += 1;
 						#put the individual subject data together
 						cig_cue_individ_subject_sum[-i] += t.lookedAtCigarette[-i];
 						cig_cue_individ_subject_counts[-i] += 1;		
 
 			neu_individ_subject_mean = neu_individ_subject_sum/neu_individ_subject_counts; #calculate the mean for this subject at each time point
-			# [neu_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),neu_individ_subject_mean)]; #append this to the array for each subject
-			# [neu_subject_agg_counts.append(ct) for ct in neu_individ_subject_counts]; #store number of trials here		
+			[neu_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),neu_individ_subject_mean)]; #append this to the array for each subject
+			[neu_subject_agg_counts.append(ct) for ct in neu_individ_subject_counts]; #store number of trials here		
 			alc_individ_subject_mean = alc_individ_subject_sum/alc_individ_subject_counts; #calculate the mean for this subject at each time point
-			# [alc_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),alc_individ_subject_mean)]; #append this to the array for each subject
-			# [alc_subject_agg_counts.append(ct) for ct in alc_individ_subject_counts];
+			[alc_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),alc_individ_subject_mean)]; #append this to the array for each subject
+			[alc_subject_agg_counts.append(ct) for ct in alc_individ_subject_counts];
 			cig_cue_individ_subject_mean = cig_cue_individ_subject_sum/cig_cue_individ_subject_counts; #calculate the mean for this subject at each time point
-			# [cig_cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),cig_cue_individ_subject_mean)]; #append this to the array for each subject
-			# [cig_subject_agg_counts.append(ct) for ct in cig_cue_individ_subject_counts];
+			[cig_cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),cig_cue_individ_subject_mean)]; #append this to the array for each subject
+			[cig_subject_agg_counts.append(ct) for ct in cig_cue_individ_subject_counts];
 			
 			for index in arange(2000):
 				#make sure to reverse the time point from index...
@@ -1499,6 +1508,27 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 			index_counter+=3;
 						
 			print "completed subject %s.. \n\n"%subj_nr	
+
+		#plot each likelihood looking at items				
+		for  subj_ms, cue_name, c, a in zip([alc_subject_means_array, cig_cue_subject_means_array, neu_subject_means_array], ['alcohol','cigarette','neutral'], colors, alphas):							
+			mews = array([nanmean(subj) for subj in subj_ms]); # gaze_array/counts
+			sems = array([compute_BS_SEM(subj) for subj in subj_ms]);
+			ax1.plot(linspace(0,2000,2000), mews, lw = 4.0, color = c, alpha = a);
+			#plot the errorbars
+			#for x,m,s in zip(linspace(0,1000,1000),mews,sems):
+			ax1.fill_between(linspace(0,2000,2000), mews-sems, mews+sems, color = c, alpha = a*0.4);
+			legend_lines.append(mlines.Line2D([],[],color=c,lw=6,alpha = a, label='likelihood(looking at %s) '%cue_name));
+		#plot the sum of each for a sanity emasure to ensure they equate to one
+		#agg = [(nanmean(a)+nanmean(b)+nanmean(c)) for a,b,c in zip(alc_subject_means_array, cig_cue_subject_means_array, neu_subject_means_array)];
+		#ax1.plot(linspace(0,1000,1000),agg,color = 'gray', lw = 3.0);
+		#legend_lines.append(mlines.Line2D([],[],color='gray',lw=4, alpha = 1.0, label='sum of all'));
+		ax1.plot(linspace(0,2000,2000),linspace(0.33,0.333,2000),color = 'gray', lw = 3.0, ls='dashed');
+		legend_lines.append(mlines.Line2D([],[],color='gray',lw=4, alpha = 1.0, ls = 'dashed', label='random'));	
+		ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+		ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+		ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+		ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2], legend_lines[3]],loc = 2,ncol=1,fontsize = 11); # legend_lines[4]]
+		title('%s Average Temporal Gaze Profile, \n Chose %s Trials'%(name, selected_item), fontsize = 22);
 
 	#save the databases
 	[d.to_csv(savepath+'%s_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (1999-i)),index=False) for d,i in zip(data, arange(2000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);
@@ -1597,7 +1627,7 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 	#create 1000 dataframe objects that will correspond to each time point
 	data = [pd.DataFrame(columns = ['sub_id','trial_type','selected_item','looked_at_item','timepoint','mean_fix_likelihood']) for i in arange(1000)];
 		
-	for selected_item in ['alcohol','cigarette','neutral']:		
+	for selected_item in ['cigarette','alcohol','neutral']:		
 		
 		
 		fig = figure(); ax1 = gca();
@@ -1708,7 +1738,9 @@ def computeTemporalGazeProfile(blocks, eyed = 'agg'):
 		# ax1.set_ylabel(''); ax1.set_xlabel('');
 		# ax1.set_xticklabels(['','','','','','']);
 		# ax1.set_yticklabels(['','','','','','','','','','','','','','']);
-		# savefig(savepath+'temporal_gaze_profile_selected_%s.eps'%selected_item,dpi=400); #save as .png	
+		# savefig(savepath+'temporal_gaze_profile_selected_%s.eps'%selected_item,dpi=400); #save as .png
+		
+		1/0
 	
 	#save the databases
 	[d.to_csv(savepath+'%s_timepoint_%s_temporal_gaze_profile.csv'%(name, (999-i)),index=False) for d,i in zip(data, arange(1000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);		

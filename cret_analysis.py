@@ -1397,6 +1397,115 @@ def computeLastItemLookedAt(blocks, eyed = 'agg'):
 	# 	cue_vs_not_cue_data.to_csv(savepath+'last_item_cue_not_cue_high_pref_trial_data.csv',index=False);
 
 
+def computeLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
+	#performs the temporal gaze profile analysis from function below, but does ot for the STIMULUS-LOCKED data
+	#i.e. looks at the 2000 ms prior to decision
+
+	db = subject_data;
+	index_counter = 0; #for database calculation
+	
+	time_bin_spacing = 0.001;
+	time_duration = 2.0;
+
+	#loop through and get all the trials for each subject
+	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
+	
+	#collect which trial type to run this analysis for
+	#ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
+	
+	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
+	
+	#create 2000 dataframe objects that will correspond to each time point
+	data = [pd.DataFrame(columns = ['sub_id','trial_type','selected_item','looked_at_item','timepoint','nr_trials','nr_trials_used_for_likelihood','mean_fix_likelihood']) for i in arange(2000)];
+	#nr of trials used is the total number of trials used for tht time point (a trial where at least one item was looked at)
+	#nr_trials_used_for_likelihood is the nr of trials where that specific item was looked at, at the given timepoint
+	
+	for selected_item in ['cigarette','alcohol','neutral']:
+		
+		# fig = figure(); ax1 = gca();
+		# ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,2000]);
+		# ax1.set_ylabel('Likelihood of fixating',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=11);
+		# ax1.set_xticks([0,500, 1000, 1500, 2000]);
+		# ax1.set_xticklabels(['-2000', '-1500', '-1000', '-500', '0']);
+		# colors = ['red','blue', 'green']; alphas = [1.0, 1.0, 1.0]; legend_lines = [];		count = 0;	
+	
+		# #define arrays for the neutral, alcohol and cigarette items
+		# neu_gaze_array = zeros(time_duration/time_bin_spacing);
+		# neu_counts = zeros(shape(neu_gaze_array));
+		# neu_subject_means_array = [[] for i in range(2000)]; #use this to store each individual subjects' mean for each time point
+		# neu_subject_agg_counts = []; 
+		# alc_gaze_array = zeros(time_duration/time_bin_spacing);
+		# alc_counts = zeros(shape(alc_gaze_array));
+		# alc_subject_means_array = [[] for i in range(2000)];
+		# alc_subject_agg_counts = []; 
+		# cig_cue_gaze_array = zeros(time_duration/time_bin_spacing);
+		# cig_cue_counts = zeros(shape(cig_cue_gaze_array));
+		# cig_cue_subject_means_array = [[] for i in range(2000)];
+		# cig_subject_agg_counts = []; 	
+	
+		for subj_nr,subj in enumerate(trial_matrix):
+			neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+			neu_individ_subject_counts = zeros(time_duration/time_bin_spacing);
+			neu_individ_subject_nrusedtrials = zeros(time_duration/time_bin_spacing);
+			alc_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+			alc_individ_subject_counts = zeros(time_duration/time_bin_spacing);
+			alc_individ_subject_nrusedtrials = zeros(time_duration/time_bin_spacing);			
+			cig_cue_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+			cig_cue_individ_subject_counts = zeros(time_duration/time_bin_spacing);
+			cig_individ_subject_nrusedtrials = zeros(time_duration/time_bin_spacing);	
+	
+			for t in subj:
+				#conditional to differentiate between not-cue trials when selecteing the non-cue or not
+				#the second conditional include nuetral trials that were preferred only
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category == selected_item)):
+					#cycle through each time point, aggregating the data accordingly
+					
+					
+					t.lookedAtNeutral[0] = 9;
+					
+					for i in (arange(2000)):
+						if (i>len(t.lookedAtNeutral)):
+							continue;
+						elif (isnan(t.lookedAtNeutral[i])):
+							continue; #nan means they weren't looking at anything at this timepoint
+						neu_gaze_array[i] += t.lookedAtNeutral[i];
+						neu_counts[i] += 1;
+						#put the individual subject data together
+						neu_individ_subject_sum[i] += t.lookedAtNeutral[i];
+						neu_individ_subject_counts[i] += 1;
+						neu_individ_subject_nrusedtrials[i] += t.lookedAtNeutral[i];
+						
+						1/0
+						
+						
+						
+					for i in (arange(2000)+1):
+						if (i>len(t.lookedAtAlcohol)):
+							continue;
+						elif (isnan(t.lookedAtAlcohol[-i])):
+							continue;
+						#store the alcohol gaze patterns as the cue item
+						alc_gaze_array[-i] += t.lookedAtAlcohol[-i];
+						alc_counts[-i] += 1;
+						#put the individual subject data together
+						alc_individ_subject_sum[-i] += t.lookedAtAlcohol[-i];
+						alc_individ_subject_counts[-i] += 1;
+						alc_individ_subject_nrusedtrials[-i] += t.lookedAtAlcohol[-i]; 
+					for i in (arange(2000)+1):
+						if (i>len(t.lookedAtCigarette)):
+							continue;
+						elif (isnan(t.lookedAtCigarette[-i])):
+							continue;							
+						#store the cigarette items as the not_cue item
+						cig_cue_gaze_array[-i] += t.lookedAtCigarette[-i];
+						cig_cue_counts[-i] += 1;
+						#put the individual subject data together
+						cig_cue_individ_subject_sum[-i] += t.lookedAtCigarette[-i];
+						cig_cue_individ_subject_counts[-i] += 1;
+						cig_individ_subject_nrusedtrials[-i] += t.lookedAtCigarette[-i];	
+
+
+
 def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 	#performs the temporal gaze profile analysis from function below, but looks at a longer time frame
 	#i.e. looks at the 2000 ms prior to decision

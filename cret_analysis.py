@@ -1420,7 +1420,7 @@ def computeLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 	#nr of trials used is the total number of trials used for tht time point (a trial where at least one item was looked at)
 	#nr_trials_used_for_likelihood is the nr of trials where that specific item was looked at, at the given timepoint
 	
-	for selected_item in ['cigarette','alcohol','neutral']:
+	for selected_item in ['alcohol','cigarette','neutral']:
 		
 		fig = figure(); ax1 = gca();
 		ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,2000]);
@@ -1539,7 +1539,7 @@ def computeLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 		title('STIMULUS LOCKED %s Average Temporal Gaze Profile, \n Chose %s Trials'%(name, selected_item), fontsize = 22);
 
 	#save the databases
-	[d.to_csv(savepath+'STIMLOCKED_%s_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (1999-i)),index=False) for d,i in zip(data, arange(2000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);
+	[d.to_csv(savepath+'STIMLOCKED_%s_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (i)),index=False) for d,i in zip(data, arange(2000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);
 	# ends here
 
 	print "\n\ncompleted trial type %s.. \n\n\n\n"%name

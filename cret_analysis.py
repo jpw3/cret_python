@@ -2019,7 +2019,8 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 
 
 def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
-	#collects each participants' trial data where they didn't blink or look down, holding only the 2000 time points before the decision
+	#collects each participants' trial data where they didn't blink or look down
+	#do this for the STIMULUS-LOCKED data
 	
 	#loop through and get all the trials for each subject
 	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
@@ -2041,6 +2042,8 @@ def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
 				gaze_data = [nan for i in range(2000)]; #this will be length 2000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans
 				#keep the start of the array nans until the timepoint when the trial has data for it
 				trial_start_index = 2000-len(t.lookedAtNeutral);
+				
+				1/0
 				
 				#trials longer than 2000 ms will be trimmed to 2000 ms
 				if trial_start_index < 0:
@@ -2080,7 +2083,7 @@ def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
 		print "completed subject %s.. \n\n"%subj_nr	
 
 	#save the database
-	data.to_csv(savepath+'%s_trialdata.csv'%name,index=False); 
+	data.to_csv(savepath+'/stim_locked/'+'%s_trialdata.csv'%name,index=False); 
 	# ends here
 	
 	

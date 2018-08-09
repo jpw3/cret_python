@@ -2041,29 +2041,27 @@ def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
 			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):
 				gaze_data = [nan for i in range(2000)]; #this will be length 2000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans
 				#keep the start of the array nans until the timepoint when the trial has data for it
-				trial_start_index = 2000-len(t.lookedAtNeutral);
-				
-				1/0
-				
+				trial_end_index = len(t.lookedAtNeutral);
+
 				#trials longer than 2000 ms will be trimmed to 2000 ms
-				if trial_start_index < 0:
-					trial_start_index = 0;
+				if trial_end_index > 2000:
+					trial_end_index = 2000;
 				
 				iterator = 0;
 				#now go through for the 2000 time points prior to decision and score whether the paricipants was looking at 
 				for i in (arange(2000)+1):
-					if (i>len(t.lookedAtNeutral)):
+					if (i>trial_end_index):
 						continue;					
 					elif (isnan(t.lookedAtNeutral[-i]) & isnan(t.lookedAtAlcohol[-i]) & isnan(t.lookedAtCigarette[-i])):
 						#at this point, there was a nan inserted because the participant did not look at each item
 						#when there are no items looked at, include a 0
-						gaze_data[trial_start_index+iterator] = 0;
+						gaze_data[iterator] = 0;
 					elif (t.lookedAtAlcohol[-i]==1):
-						gaze_data[trial_start_index+iterator] = 1;
+						gaze_data[iterator] = 1;
 					elif (t.lookedAtCigarette[-i]==1):						
-						gaze_data[trial_start_index+iterator] = 2;						
+						gaze_data[iterator] = 2;						
 					elif (t.lookedAtNeutral[-i]==1):	
-						gaze_data[trial_start_index+iterator] = 3;
+						gaze_data[iterator] = 3;
 					iterator+=1;
 				#for ease of the regression computation, get the selected item into a numerical representation, same mapping as with item looked at
 				if t.preferred_category=='alcohol':

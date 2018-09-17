@@ -2049,20 +2049,21 @@ def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
 				
 				iterator = 0;
 				#now go through for the 2000 time points prior to decision and score whether the paricipants was looking at 
-				for i in (arange(2000)+1):
-					if (i>trial_end_index):
+				for i in (arange(2000)):
+					if (i>=trial_end_index):
 						continue;					
-					elif (isnan(t.lookedAtNeutral[-i]) & isnan(t.lookedAtAlcohol[-i]) & isnan(t.lookedAtCigarette[-i])):
+					elif (isnan(t.lookedAtNeutral[i]) & isnan(t.lookedAtAlcohol[i]) & isnan(t.lookedAtCigarette[i])):
 						#at this point, there was a nan inserted because the participant did not look at each item
 						#when there are no items looked at, include a 0
 						gaze_data[iterator] = 0;
-					elif (t.lookedAtAlcohol[-i]==1):
+					elif (t.lookedAtAlcohol[i]==1):
 						gaze_data[iterator] = 1;
-					elif (t.lookedAtCigarette[-i]==1):						
+					elif (t.lookedAtCigarette[i]==1):						
 						gaze_data[iterator] = 2;						
-					elif (t.lookedAtNeutral[-i]==1):	
+					elif (t.lookedAtNeutral[i]==1):	
 						gaze_data[iterator] = 3;
 					iterator+=1;
+					
 				#for ease of the regression computation, get the selected item into a numerical representation, same mapping as with item looked at
 				if t.preferred_category=='alcohol':
 					selected_item = 1;
@@ -2103,16 +2104,57 @@ def collectTemporalGazeWRTFirstSaccade(blocks, ttype, eyed = 'agg'):
 	#SCORING FOR ITEM (entry at t_XX): 0 = not looked at any item, 1 = looked at alcohol, 2 = looked at cigarette, 3 = looked at neutral, nan = timepoint didn't exist in the trial
 	trial_index_counter = 0;
 	
+	for subj_nr,subj in enumerate(trial_matrix):
+
+		for t in subj:
+			#conditional to differentiate between trials that should be skipped for this trial type, etc.
+			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.nr_saccades > 0)):
+				gaze_data = [nan for i in range(2000)]; #this will be length 2000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans
+				#keep the start of the array nans until the timepoint when the trial has data for it
+				
+				#get the indexes corresponding to the onset of the first saccade and the end of the trial
+				trial_start_index = where(t.isSaccade)[0][0];
+				trial_end_index = len(t.lookedAtNeutral);
 	
+				#trials longer than 2000 ms will be trimmed to 2000 ms
+				if trial_end_index > (2000 + trial_start_index):
+					trial_end_index = (2000 + trial_start_index);
+				
+				iterator = 0;
 	
-	1/0
-	
-	
-	
-	
-	
-	
-	
+				#now go through for the 2000 time points prior to decision and score whether the paricipants was looking at 
+				for i in (linspace(trial_start_index,(2000+trial_start_index), ((2000+trial_start_index)-trial_start_index)+1)):
+					if (i>=trial_end_index):
+						continue;
+					elif (isnan(t.lookedAtNeutral[i]) & isnan(t.lookedAtAlcohol[i]) & isnan(t.lookedAtCigarette[i])):
+					#at this point, there was a nan inserted because the participant did not look at each item
+					#when there are no items looked at, include a 0
+						gaze_data[iterator] = 0;
+					elif (t.lookedAtAlcohol[i]==1):
+						gaze_data[iterator] = 1;
+					elif (t.lookedAtCigarette[i]==1):						
+						gaze_data[iterator] = 2;						
+					elif (t.lookedAtNeutral[i]==1):	
+						gaze_data[iterator] = 3;
+					iterator+=1;
+
+				#for ease of the regression computation, get the selected item into a numerical representation, same mapping as with item looked at
+				if t.preferred_category=='alcohol':
+					selected_item = 1;
+				elif t.preferred_category=='cigarette':
+					selected_item = 2;
+				elif t.preferred_category=='neutral':
+					selected_item = 3;					
+				#at this point have collected data for gaze profile together
+				#get all data points together for ease of incorporating into the dataFrame
+				this_trials_data = concatenate([[int(subj_nr+1), ttype, selected_item],gaze_data]); #subject nr, trial_type, selected_item, then each timepoint data
+				
+				#now translate this to the dataframe for this participant
+				data.loc[trial_index_counter] = this_trials_data;
+				trial_index_counter += 1; #index for next trial
+				
+		print "completed subject %s.. \n\n"%subj_nr		
+
 	#save the database
 	data.to_csv(savepath+'/stim_locked/'+'%s_WRTFirstSaccade_trialdata.csv'%name,index=False); 
 	# ends here	

@@ -73,6 +73,115 @@ matplotlib.pyplot.rc('font',weight='bold');
 ## Data Analysis Methods ##
 ############################################
 
+## this subsequent function determines aspects of the eye tracking data set such as time until first saccade, dwell time on first saccade, etc.
+
+def computeEarlyTrialData(blocks, eyed='agg'):
+	
+	#import trial-specific data for all participants
+	hp_trial_data = pd.read_csv(savepath+'/stim_locked/high_pref_trialdata.csv');
+	hcla_trial_data = pd.read_csv(savepath+'/stim_locked/highC_lowA_trialdata.csv');
+	lcha_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_highA_trialdata.csv');
+	lp_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_lowA_trialdata.csv');
+	
+	#collect all the data trial for the first participant (cret 03)
+	
+	trial_data = pd.concat([hp_trial_data[hp_trial_data['subject_nr']==1], hcla_trial_data[hcla_trial_data['subject_nr']==1], lcha_trial_data[lcha_trial_data['subject_nr']==1], lp_trial_data[lp_trial_data['subject_nr']==1]]);
+	
+	ttFS = []; #time to first saccades, average for each participant
+	
+	for b in blocks:
+		trials = [tri for bee in b for tri in bee.trials];
+		times = []; #to store the time to first saccades for this participant
+		
+		choices = [];
+		
+		for t in trials:
+			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)):
+				
+				binaryList = list(t.isSaccade.astype(int));
+				
+				firstIndex = binaryList.index(1) if (1 in binaryList) else -1; #get the first index of a '1' in the isSaccade vector, indicating this is when the first saccade occurred
+				
+				timeToFirstSaccade = firstIndex + 1 if (firstIndex > 0) else -1; #get the time point in ms of the first saccade to this trial, -1 means no saccade occurred
+	
+				#add this time to the list if they made a saccade in this time window
+				if (timeToFirstSaccade > 0):
+					times.append(timeToFirstSaccade);
+					choices.append(t.preferred_category)
+			
+		1/0;	
+		
+			#incorporate a conditional to match the trial type
+
+
+
+def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
+	#collects each participants' trial data where they didn't blink or look down
+	#do this for the STIMULUS-LOCKED data
+	
+	#loop through and get all the trials for each subject
+	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
+	
+	#collect which trial type to run this analysis for
+	#ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
+	
+	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
+	
+	data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item','block_nr','trial_nr'],['t_%s'%(t) for t in linspace(1,2000,2000)]])); #add all participants together to the same dataFrame for simplicty
+	#SCORING FOR ITEM (entry at t_XX): 0 = not looked at any item, 1 = looked at alcohol, 2 = looked at cigarette, 3 = looked at neutral, nan = timepoint didn't exist in the trial
+	trial_index_counter = 0;
+	
+	for subj_nr,subj in zip(ids, trial_matrix):    #enumerate(trial_matrix):
+
+		for t in subj:
+			#conditional to differentiate between trials that should be skipped for this trial type, etc.
+			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):
+				gaze_data = [nan for i in range(2000)]; #this will be length 2000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans
+				#keep the start of the array nans until the timepoint when the trial has data for it
+				trial_end_index = len(t.lookedAtNeutral);
+
+				#trials longer than 2000 ms will be trimmed to 2000 ms
+				if trial_end_index > 2000:
+					trial_end_index = 2000;
+				
+				iterator = 0;
+				#now go through for the 2000 time points prior to decision and score whether the paricipants was looking at 
+				for i in (arange(2000)):
+					if (i>=trial_end_index):
+						continue;					
+					elif (isnan(t.lookedAtNeutral[i]) & isnan(t.lookedAtAlcohol[i]) & isnan(t.lookedAtCigarette[i])):
+						#at this point, there was a nan inserted because the participant did not look at each item
+						#when there are no items looked at, include a 0
+						gaze_data[iterator] = 0;
+					elif (t.lookedAtAlcohol[i]==1):
+						gaze_data[iterator] = 1;
+					elif (t.lookedAtCigarette[i]==1):						
+						gaze_data[iterator] = 2;						
+					elif (t.lookedAtNeutral[i]==1):	
+						gaze_data[iterator] = 3;
+					iterator+=1;
+					
+				#for ease of the regression computation, get the selected item into a numerical representation, same mapping as with item looked at
+				if t.preferred_category=='alcohol':
+					selected_item = 1;
+				elif t.preferred_category=='cigarette':
+					selected_item = 2;
+				elif t.preferred_category=='neutral':
+					selected_item = 3;					
+				#at this point have collected data for gaze profile together
+				#get all data points together for ease of incorporating into the dataFrame
+				this_trials_data = concatenate([[subj_nr, ttype, selected_item, t.block_nr, t.trial_nr],gaze_data]); #subject nr, trial_type, selected_item, then each timepoint data   int(subj_nr+1)
+				
+				#now translate this to the dataframe for this participant
+				data.loc[trial_index_counter] = this_trials_data;
+				trial_index_counter += 1; #index for next trial
+				
+		print "completed subject %s.. \n\n"%subj_nr	
+
+	#save the database
+	data.to_csv(savepath+'/stim_locked/'+'%s_trialdata.csv'%name,index=False); 
+	# ends here
+
 
 ### These next 4 methods compute the 4 specific dependent measures required for the correlative analysis with cue-reactivity paradigm, per meeting with Rachel 6/14/18 ###
 
@@ -2196,74 +2305,6 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 	#save the databases
 	[d.to_csv(savepath+'%s_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (1999-i)),index=False) for d,i in zip(data, arange(2000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);
 	# ends here
-
-
-def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
-	#collects each participants' trial data where they didn't blink or look down
-	#do this for the STIMULUS-LOCKED data
-	
-	#loop through and get all the trials for each subject
-	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
-	
-	#collect which trial type to run this analysis for
-	#ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
-	
-	name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
-	
-	data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item'],['t_%s'%(t) for t in linspace(1,2000,2000)]])); #add all participants together to the same dataFrame for simplicty
-	#SCORING FOR ITEM (entry at t_XX): 0 = not looked at any item, 1 = looked at alcohol, 2 = looked at cigarette, 3 = looked at neutral, nan = timepoint didn't exist in the trial
-	trial_index_counter = 0;
-	
-	for subj_nr,subj in enumerate(trial_matrix):
-
-		for t in subj:
-			#conditional to differentiate between trials that should be skipped for this trial type, etc.
-			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)):
-				gaze_data = [nan for i in range(2000)]; #this will be length 2000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans
-				#keep the start of the array nans until the timepoint when the trial has data for it
-				trial_end_index = len(t.lookedAtNeutral);
-
-				#trials longer than 2000 ms will be trimmed to 2000 ms
-				if trial_end_index > 2000:
-					trial_end_index = 2000;
-				
-				iterator = 0;
-				#now go through for the 2000 time points prior to decision and score whether the paricipants was looking at 
-				for i in (arange(2000)):
-					if (i>=trial_end_index):
-						continue;					
-					elif (isnan(t.lookedAtNeutral[i]) & isnan(t.lookedAtAlcohol[i]) & isnan(t.lookedAtCigarette[i])):
-						#at this point, there was a nan inserted because the participant did not look at each item
-						#when there are no items looked at, include a 0
-						gaze_data[iterator] = 0;
-					elif (t.lookedAtAlcohol[i]==1):
-						gaze_data[iterator] = 1;
-					elif (t.lookedAtCigarette[i]==1):						
-						gaze_data[iterator] = 2;						
-					elif (t.lookedAtNeutral[i]==1):	
-						gaze_data[iterator] = 3;
-					iterator+=1;
-					
-				#for ease of the regression computation, get the selected item into a numerical representation, same mapping as with item looked at
-				if t.preferred_category=='alcohol':
-					selected_item = 1;
-				elif t.preferred_category=='cigarette':
-					selected_item = 2;
-				elif t.preferred_category=='neutral':
-					selected_item = 3;					
-				#at this point have collected data for gaze profile together
-				#get all data points together for ease of incorporating into the dataFrame
-				this_trials_data = concatenate([[int(subj_nr+1), ttype, selected_item],gaze_data]); #subject nr, trial_type, selected_item, then each timepoint data
-				
-				#now translate this to the dataframe for this participant
-				data.loc[trial_index_counter] = this_trials_data;
-				trial_index_counter += 1; #index for next trial
-				
-		print "completed subject %s.. \n\n"%subj_nr	
-
-	#save the database
-	data.to_csv(savepath+'/stim_locked/'+'%s_trialdata.csv'%name,index=False); 
-	# ends here
 	
 	
 	
@@ -3106,37 +3147,45 @@ class trial(object):
 				y = ssignal.filtfilt(b,a,self.velocities,padtype='odd'); #get the filtered velocity data		
 				self.filtered_velocities = y; #append the filtered velocities to this trial instance
 				
-				#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
-				startingVelCrit = 60; #christie used a velocity threshold of 100 degrees/second
+				#if there is a NaN in the filtered velocities data, it means we lost samples of data from this trial (they looked down, etc.)
+				#we want to skip this trial, so I'll set self. skip to 1
 				
-				########## Here, plotting of eye traces occurs ############
+				if isnan(self.filtered_velocities).any():
+					self.skip = 1;
+					self.isSaccade = [-1];
+				else:
 				
-				[endingVelCrit, nr_saccades] = self.plotSaccadeGetVelocity(startingVelCrit);
-				
-				
-				# #if the subejct has already been completed, then I want to use the ending threshold values I calculated already
-				# #first check if the id is in the list of completed ids, then pull the threshold
-				# if self.dropped_sample > 0:
-				# 	endingVelCrit = -1;
-				# 	nr_saccades = -1;
-				# 	skip_trial = 1;
-				# elif self.sub_id in completed_velocity_ids:
-				# 	endingVelCrit = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['saccade_velocity_criterion'];
-				# 	nr_saccades = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['nr_saccades'];
-				# 	skip_trial = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['skip_trial'];
-				# else:
-				# 	[endingVelCrit, nr_saccades, skip_trial] = self.plotSaccadeGetVelocity(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
-				# 	#add this trial's criterion to the database and save it
-				# 	subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit, skip_trial];
-				# 	subject_saccade_criteria.to_csv(savepath+'subject_saccade_criteria_each_trial.csv',index=False);
-				
-				#save the velocity threshold and the isSaccade truth vector to the array
-				self.saccadeCriterion = endingVelCrit; #degrees/sec
-				self.nr_saccades = nr_saccades;
-				# self.skip_trial = skip_trial;
-				# self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
-				
-				#1/0;
+					#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
+					startingVelCrit = 75; #christie used a velocity threshold of 100 degrees/second
+					
+					########## Here, plotting of eye traces occurs ############
+					
+					[endingVelCrit, nr_saccades] = self.plotSaccadeGetVelocity(startingVelCrit);
+					
+					
+					# #if the subejct has already been completed, then I want to use the ending threshold values I calculated already
+					# #first check if the id is in the list of completed ids, then pull the threshold
+					# if self.dropped_sample > 0:
+					# 	endingVelCrit = -1;
+					# 	nr_saccades = -1;
+					# 	skip_trial = 1;
+					# elif self.sub_id in completed_velocity_ids:
+					# 	endingVelCrit = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['saccade_velocity_criterion'];
+					# 	nr_saccades = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['nr_saccades'];
+					# 	skip_trial = subject_saccade_criteria[(subject_saccade_criteria['sub_id']==self.sub_id)&(subject_saccade_criteria['block_nr']==self.block_nr)&(subject_saccade_criteria['trial_nr']==self.trial_nr)]['skip_trial'];
+					# else:
+					# 	[endingVelCrit, nr_saccades, skip_trial] = self.plotSaccadeGetVelocity(startingVelCrit); #call this method defined below to adjust the velocity criterion as needed
+					# 	#add this trial's criterion to the database and save it
+					# 	subject_saccade_criteria.loc[len(subject_saccade_criteria)] = [self.sub_id, self.block_nr, self.trial_nr, nr_saccades, endingVelCrit, skip_trial];
+					# 	subject_saccade_criteria.to_csv(savepath+'subject_saccade_criteria_each_trial.csv',index=False);
+					
+					#save the velocity threshold and the isSaccade truth vector to the array
+					self.saccadeCriterion = endingVelCrit; #degrees/sec
+					self.nr_saccades = nr_saccades;
+					# self.skip_trial = skip_trial;
+					# self.isSaccade = self.filtered_velocities > self.saccadeCriterion;
+					
+					#1/0;
 				
 				############ End plotting of eye traces #################
 				
@@ -3358,8 +3407,11 @@ class trial(object):
 
 	def plotSaccadeGetVelocity(self, startingVelCrit):
 		
-		print; print "'a' = accept this trial, 'c' = crash, 's' = skip this trial"; print;
-		print ; print "To adjust threshold, just type new threshold: " ; print ;
+		## December 4 2018 - currently not plotting of setting velocity threshold for ech trial, instead sticking with 100 degrees / second threshold for all trials
+		#plotting code is commented out
+		# 
+		# print; print "'a' = accept this trial, 'c' = crash, 's' = skip this trial"; print;
+		# print ; print "To adjust threshold, just type new threshold: " ; print ;
 		
 		#must make this iterative to that I can adjust the velocity threshold until it is appropriate for this trial	
 		new_crit = startingVelCrit;
@@ -3370,77 +3422,80 @@ class trial(object):
 		
 		while resp!=('a'):
 			
-			# #plot the different saccades for the given trial for use in debugging	
+			# # #plot the different saccades for the given trial for use in debugging	
 			# fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
 			# ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
-			# legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','fuschia','gold','yellowgreen'];
-			#first plot the eye traces with respect to the velocity data
-			#if the eye is in movements, use the color array above. otheriwse use black to denote fixation
-			saccade_counter = 0; nr_saccades = 0;
-			for i,xx,yy,issac in zip(range(len(self.sample_times)),
-												 self.eyeX, self.eyeY, isSaccade):
-				#plot the eye trace in black if not saccading
-				if issac < 1:
-					# ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
-					#conditional to switch to the next saccade color
-					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
-					if (isSaccade[i-1]==True)&(i>0):  					
-						saccade_counter+=1;
-						# if saccade_counter > len(colors):
-						# 	saccade_counter=0;					
-				else:
-					# ax.plot(xx, yy, color = colors[saccade_counter], marker = 'o', ms = 4);
-					if (isSaccade[i-1]==False)&(i>0):  
-						nr_saccades+=1;
-						# legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));
-					
+			legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','gold','yellowgreen',
+			 							 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred'];
+			# #first plot the eye traces with respect to the velocity data
+			# #if the eye is in movements, use the color array above. otheriwse use black to denote fixation
+			# saccade_counter = 0; nr_saccades = 0;
+			# for i,xx,yy,issac in zip(range(len(self.sample_times)),
+			# 									 self.eyeX, self.eyeY, isSaccade):
+			# 	#plot the eye trace in black if not saccading
+			# 	if issac < 1:
+			# 		ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
+			# 		#conditional to switch to the next saccade color
+			# 		#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
+			# 		if (isSaccade[i-1]==True)&(i>0):  					
+			# 			saccade_counter+=1;
+			# 			if saccade_counter > len(colors):
+			# 				saccade_counter=0;					
+			# 	else:
+			# 		ax.plot(xx, yy, color = colors[saccade_counter], marker = 'o', ms = 4);
+			# 		if (isSaccade[i-1]==False)&(i>0):  
+			# 			nr_saccades+=1;
+			# 			legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));
+			# 		
 			# ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
 			# ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
 			# ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
 			# ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
 			# title('Eye Trace and Position Velocity \nSubject %s, Block %s, Trial %s'%(self.sub_id, self.block_nr, self.trial_nr), fontsize = 22);
-			
+			# 
 			# #now plot the velocity data in an inset plot	
 			# ia = inset_axes(ax, width="30%", height="30%", loc=1); #set the inset axes as percentages of the original axis size
-			# saccade_counter = 0; nr_saccades = 0;
-			# for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),
-			# 									 self.filtered_velocities, self.velocities, isSaccade):
-			# 	#plot the eye trace in black if not saccading
-			# 	plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
-			# 	if issac < 1:
-			# 		plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);
-			# 		#conditional to switch to the next saccade color
-			# 		#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
-			# 		if (isSaccade[i-1]==True)&(i>0):			
-			# 			saccade_counter+=1;
-			# 			if saccade_counter > len(colors):
-			# 				saccade_counter=0;
-			# 	else:
-			# 		plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);
-			# 		if (isSaccade[i-1]==False)&(i>0):  
-			# 			nr_saccades+=1;
+			saccade_counter = 0; nr_saccades = 0;
+			for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),
+												 self.filtered_velocities, self.velocities, isSaccade):
+				#plot the eye trace in black if not saccading
+			#	plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
+				if issac < 1:
+			#		plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);
+					#conditional to switch to the next saccade color
+					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
+					if (isSaccade[i-1]==True)&(i>0):			
+						saccade_counter+=1;
+						if saccade_counter > len(colors):
+							saccade_counter=0;
+				else:
+			#		plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);
+					if (isSaccade[i-1]==False)&(i>0):  
+						nr_saccades+=1;
 			# #plot the velocity trheshold and set labels
 			# plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(new_crit,new_crit+0.01,len(self.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
 			# ia.set_ylabel('Velocity', fontsize = 14); ia.set_xlabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
 			# 
 			# fig.text(0.7, 0.4, 'CURRENT VELOCITY \n THRESHOLD: %s deg/s'%(new_crit),size=16,weight='bold');
-			
+
 			resp = 'a';
-			
+		
 			# resp = raw_input();	#wait for the button press to move to next trial
-			if resp.isdigit(): #adjust the threshold here
-				new_crit = float(resp);
-			elif resp == 'c':
-				1/0;
-			elif resp == 'a':
-				endingVelCrit = new_crit;
-			elif resp == 's':
-				endingVelCrit = -1; #this is a flag for skipping this trial
-				nr_saccades = -1;
-				skip_trial = 1;
-			else:
-				new_crit = new_crit;
+			# if resp.isdigit(): #adjust the threshold here
+			# 	new_crit = float(resp);
+			# elif resp == 'c':
+			# 	1/0;
+			# elif resp == 'a':
+			# 	endingVelCrit = new_crit;
+			# elif resp == 's':
+			# 	endingVelCrit = -1; #this is a flag for skipping this trial
+			# 	nr_saccades = -1;
+			# 	skip_trial = 1;
+			# else:
+			# 	new_crit = new_crit;
 			# close('all');
+			
+			endingVelCrit = startingVelCrit;
 		return [endingVelCrit, nr_saccades];
 
 ############################################

@@ -3138,10 +3138,7 @@ class Block(object):
 			block_data['sub_id'] = self.sub_id; block_data['block_nr'] = self.block_nr;
 			block_data['completed'] = 0;
 		
-		self.trials = [trial(trialData, block_data) for trialData in matStructure.trial_data];
-		
-		1/0;
-		
+		self.trials = [trial(trialData, block_data) for trialData in matStructure.trial_data];		
 		#save the velocity threshold criterion data
 		block_data.to_csv(shelvepath+'/velocity_thresholds/'+'subject_%s_block%s_velthresholds.csv'%(self.sub_id, self.block_nr));
 
@@ -3287,7 +3284,7 @@ class trial(object):
 					#check if this subject has been completed. if so, find the corresponding trial velocity threshold and skip trial
 					if isnan(velCrit):
 						#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
-						startingVelCrit = 75; #christie used a velocity threshold of 100 degrees/second
+						startingVelCrit = 55; #christie used a velocity threshold of 100 degrees/second
 					else:
 						startingVelCrit = velCrit;
 						self.skip = sk;
@@ -3304,8 +3301,6 @@ class trial(object):
 					#save the velocity threshold and the isSaccade truth vector to the array
 					self.saccadeCriterion = endingVelCrit; #degrees/sec
 					self.nr_saccades = nr_saccades;
-					
-					1/0
 				
 				############ End plotting of eye traces #################
 				
@@ -3618,7 +3613,7 @@ class trial(object):
 			elif resp == 's':
 				endingVelCrit = -1; #this is a flag for skipping this trial
 				nr_saccades = -1;
-				self.skip_trial = 1;
+				self.skip = 1;
 				resp = 'a';
 			else:
 				new_crit = new_crit;

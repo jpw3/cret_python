@@ -3129,10 +3129,9 @@ class Block(object):
 		self.dp = matStructure.dp;
 		
 		if os.path.isfile(shelvepath+'/velocity_thresholds/'+'subject_%s_block%s_velthresholds.csv'%(self.sub_id, self.block_nr)):
-			block_data = pd.read_csv(shelvepath+'/velocity_thresholds/'+'subject_%s_block%s_velthresholds.csv'%(self.sub_id, self.block_nr));
+			block_data = pd.read_csv(shelvepath+'/velocity_thresholds/'+'subject_%s_block%s_velthresholds.csv'%(self.sub_id, self.block_nr),index_col=0);
 			print('\n Loaded existing data for subject %s , block %s \n'%(self.sub_id, self.block_nr));
-			
-			1/0;
+
 		else:
 			l = len(matStructure.trial_data);
 			block_data = pd.DataFrame(columns = ['sub_id', 'block_nr', 'trial_number','completed','endingVelCrit','skip_trial'],

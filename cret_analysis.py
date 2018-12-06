@@ -3139,7 +3139,8 @@ class Block(object):
 			block_data['sub_id'] = self.sub_id; block_data['block_nr'] = self.block_nr;
 			block_data['completed'] = 0;
 		
-		self.trials = [trial(trialData, block_data) for trialData in matStructure.trial_data];		
+		self.trials = [trial(trialData, block_data) for trialData in matStructure.trial_data];
+
 		#save the velocity threshold criterion data
 		block_data.to_csv(shelvepath+'/velocity_thresholds/'+'subject_%s_block%s_velthresholds.csv'%(self.sub_id, self.block_nr));
 

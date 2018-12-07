@@ -23,9 +23,9 @@ import os.path
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 
 
-datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Volumes/WORK_HD/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Volumes/WORK_HD/code/Python/CRET/data/'; # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; #'/Volumes/WORK_HD/code/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
 figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; #'/Volumes/WORK_HD/code/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data

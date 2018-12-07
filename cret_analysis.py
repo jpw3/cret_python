@@ -3290,6 +3290,27 @@ class trial(object):
 					else:
 						startingVelCrit = velCrit;
 						self.skip = sk;
+						
+					# 	
+					# 	
+					# #plot this for looks
+					# new_crit = 60;
+					# 
+					# isSaccade = self.filtered_velocities > new_crit;
+					# #now plot the velocity data in an inset plot	
+					# figure();ia = gca(); #ia = inset_axes(ax, width="30%", height="30%", loc=1); #set the inset axes as percentages of the original axis size
+					# saccade_counter = 0; nr_saccades = 0;
+					# for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),
+					# 									 self.filtered_velocities, self.velocities, isSaccade):
+					# 	#plot the eye trace
+					# 	plot(i, orig_vel, color = 'gray', marker = '*', ms = 2.0, alpha = 0.5);
+					# 	plot(i, filt_vel, color = 'red', marker = '*', ms = 2.0);  #
+					# 
+					# #plot the velocity trheshold and set labels
+					# plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(new_crit,new_crit+0.01,len(self.sample_times)), color = 'black', ls = 'dashed', lw = 1.0);
+					# ia.set_ylabel('Velocity', fontsize = 14); ia.set_xlabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
+					# 	
+					# 1/0;	
 					
 					########## Here, plotting of eye traces occurs ############
 					
@@ -3542,14 +3563,16 @@ class trial(object):
 		
 		while resp!=('a'):
 			
-			isSaccade = self.filtered_velocities > new_crit; #identify where a saccade was based on the velocity criterion
+			isSaccade = self.filtered_velocities > new_crit; #identify where a saccade was based on the velocity criterion     filtered_
 			self.isSaccade = isSaccade; #append the isSaccade vector to the trial object
 			
 			# #plot the different saccades for the given trial for use in debugging	
 			fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
 			ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
 			legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','gold','yellowgreen',
-			 							 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred'];
+			 							 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred','bisque','olivedrab','seagreen','darkcyan','cadetblue',
+										 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew','acqua',
+										 'indigo','lightpink','peru','slateblue'];
 			#first plot the eye traces with respect to the velocity data
 			#if the eye is in movements, use the color array above. otheriwse use black to denote fixation
 			saccade_counter = 0; nr_saccades = 0;
@@ -3584,7 +3607,7 @@ class trial(object):
 				#plot the eye trace in black if not saccading
 				plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
 				if issac < 1:
-					plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);
+					plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);  #
 					#conditional to switch to the next saccade color
 					#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
 					if (isSaccade[i-1]==True)&(i>0):			
@@ -3592,7 +3615,7 @@ class trial(object):
 						if saccade_counter > len(colors):
 							saccade_counter=0;
 				else:
-					plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5);
+					plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5); #filt_vel
 					if (isSaccade[i-1]==False)&(i>0):  
 						nr_saccades+=1;
 			#plot the velocity trheshold and set labels

@@ -23,9 +23,9 @@ import os.path
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 
 
-datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #'/Volumes/WORK_HD/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  #'/Volumes/WORK_HD/code/Python/CRET/data/'; # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; #'/Volumes/WORK_HD/code/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
 figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; #'/Volumes/WORK_HD/code/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
@@ -3286,7 +3286,7 @@ class trial(object):
 					#check if this subject has been completed. if so, find the corresponding trial velocity threshold and skip trial
 					if isnan(velCrit):
 						#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
-						startingVelCrit = 55; #christie used a velocity threshold of 100 degrees/second
+						startingVelCrit = 70; #55; #christie used a velocity threshold of 100 degrees/second
 					else:
 						startingVelCrit = velCrit;
 						self.skip = sk;

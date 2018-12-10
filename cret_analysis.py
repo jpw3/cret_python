@@ -27,7 +27,7 @@ import os.path
 datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
 savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
 shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; #'/Volumes/WORK_HD/code/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -103,14 +103,14 @@ def computeEarlyTrialData(blocks, eyed='agg'):
 	ax.add_artist(circle2);
 	ax.add_artist(circle3);
 	
-	ttFS = []; #time to first saccades, average for each participant
+	#ttFS = []; #time to first saccades, average for each participant. for use when doing this for all participants at the same time
 	
 	for b in blocks:
 		trials = [tri for bee in b for tri in bee.trials];
 		times = []; #to store the time to first saccades for this participant
 		
 		for t in trials:
-			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)):
+			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)): #&(sqrt(t.eyeX**2 + t.eyeY**2) < 2)
 				
 				#first plot the eye trace for this trial's first saccade
 				saccade_counter = 0;
@@ -126,6 +126,10 @@ def computeEarlyTrialData(blocks, eyed='agg'):
 							if (t.isSaccade[i-1]==True)&(i>0):
 								ax.plot(xx, yy, marker = 'x', color = 'red', ms = 15);
 								saccade_counter+=1;
+							
+							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
+							if (i == range(len(t.sample_times))[-1]):
+								saccade_counter = 100;
 						# else:
 						# 	if ((t.isSaccade[i-1]==False)&(i>0))|(i==0):
 						# 		ax.plot(xx, yy, marker = 'x', color = 'green', ms = 7);
@@ -146,11 +150,248 @@ def computeEarlyTrialData(blocks, eyed='agg'):
 	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
 	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
 	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
-	title('First Saccade Endpoints, Subject %s'%(t.sub_id), fontsize = 22);					
-			
+	title('First Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
+
+	#histogram the time until first saccades
+	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
+	hist(times);
+	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('First saccade latencies', fontsize = 14);			
+	mew_latency = mean(times);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
+	
+	#save the figure
+	savefig(figurepath+'ALLTRIALS_first_saccade_data_subj_%s.png'%(t.sub_id));	
+	
+	## #now create the figures for the second saccade data
+	
+	#first create circles indicating where I'm crediting item assignment
+	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
+	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
+	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
+	
+	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[0]/2,display_size[0]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
+	#add the circles
+	ax.add_artist(circle1);
+	ax.add_artist(circle2);
+	ax.add_artist(circle3);	
+	
+	dwell_times = [];
+	
+	for b in blocks:
+		trials = [tri for bee in b for tri in bee.trials];
+		times = []; #to store the time to first saccades for this participant
+		
+		for t in trials:
+			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)): # &(t.nr_saccades>1)):
+				
+				dt = 0; #dwell time for this participants
+				
+				#first plot the eye trace for this trial's first saccade
+				saccade_counter = 0;
+				
+				while saccade_counter<2:
+					for i,xx,yy,issac in zip(range(len(t.sample_times)),
+														 t.eyeX, t.eyeY, t.isSaccade):
+						#plot the eye trace in black if not saccading
+						if issac < 1:
+							if (saccade_counter==1)&(t.isSaccade[i-1]==False):
+								dt+=1;							
+							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
+							if (t.isSaccade[i-1]==True)&(i>0):
+								#conditional checks if it's the second saccade or not								
+								if saccade_counter==1:
+									ax.plot(xx, yy, marker = 'x', color = 'blue', ms = 15);
+								saccade_counter+=1;
+								
+							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
+							if (i == range(len(t.sample_times))[-1]):
+								saccade_counter = 100;								
+								
+				#add this time to the list if they made a saccade in this time window
+				if (dt > 0):
+					dwell_times.append(dt);				
+					
+	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
+	title('Second Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
+
+	#histogram the time until first saccades
+	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
+	hist(dwell_times);
+	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('Second saccade latencies', fontsize = 14);			
+	mew_latency = mean(dwell_times);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
+	
+	#save the figure
+	savefig(figurepath+'ALLTRIALS_second_saccade_data_subj_%s.png'%(t.sub_id));
+	
 	1/0;	
 		
 			#incorporate a conditional to match the trial type
+			
+			
+##the following function does the same thing as above, but only for trials where the first saccade started at the origin
+
+def computeEarlyTrialDataOriginStartTrialsOnly(blocks, eyed='agg'):
+	
+	# #import trial-specific data for all participants
+	# hp_trial_data = pd.read_csv(savepath+'/stim_locked/high_pref_trialdata.csv');
+	# hcla_trial_data = pd.read_csv(savepath+'/stim_locked/highC_lowA_trialdata.csv');
+	# lcha_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_highA_trialdata.csv');
+	# lp_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_lowA_trialdata.csv');
+	# 
+	# #collect all the data trial for the first participant (cret 03)
+	# 
+	# trial_data = pd.concat([hp_trial_data[hp_trial_data['subject_nr']==1], hcla_trial_data[hcla_trial_data['subject_nr']==1], lcha_trial_data[lcha_trial_data['subject_nr']==1], lp_trial_data[lp_trial_data['subject_nr']==1]]);
+	#choices = [];
+	
+	#create plot to show first saccades
+	#first create circles indicating where I'm crediting item assignment
+	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
+	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
+	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
+
+	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[0]/2,display_size[0]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
+	#add the circles
+	ax.add_artist(circle1);
+	ax.add_artist(circle2);
+	ax.add_artist(circle3);
+	
+	#ttFS = []; #time to first saccades, average for each participant. for use when doing this for all participants at the same time
+	
+	for b in blocks:
+		trials = [tri for bee in b for tri in bee.trials];
+		times = []; #to store the time to first saccades for this participant
+		
+		for t in trials:
+			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2)): #
+				
+				#first plot the eye trace for this trial's first saccade
+				saccade_counter = 0;
+				
+				while saccade_counter==0:
+					for i,xx,yy,issac in zip(range(len(t.sample_times)),
+														 t.eyeX, t.eyeY, t.isSaccade):
+						#plot the eye trace in black if not saccading
+						if issac < 1:
+							#ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
+							#conditional to switch to the next saccade color
+							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
+							if (t.isSaccade[i-1]==True)&(i>0):
+								ax.plot(xx, yy, marker = 'x', color = 'red', ms = 15);
+								saccade_counter+=1;
+							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
+							if (i == range(len(t.sample_times))[-1]):
+								saccade_counter = 100;
+					
+				#timing of first saccade
+				
+				binaryList = list(t.isSaccade.astype(int));			
+				firstIndex = binaryList.index(1) if (1 in binaryList) else -1; #get the first index of a '1' in the isSaccade vector, indicating this is when the first saccade occurre			
+				timeToFirstSaccade = firstIndex + 1 if (firstIndex > 0) else -1; #get the time point in ms of the first saccade to this trial, -1 means no saccade occurred
+	
+				#add this time to the list if they made a saccade in this time window
+				if (timeToFirstSaccade > 0):
+					times.append(timeToFirstSaccade); #choices.append(t.preferred_category)			
+					
+	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
+	title('First Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
+
+	#histogram the time until first saccades
+	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
+	hist(times);
+	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('First saccade latencies', fontsize = 14);			
+	mew_latency = mean(times);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
+	
+	#save the figure
+	savefig(figurepath+'ORIGINSTARTTRIALS_first_saccade_data_subj_%s.png'%(t.sub_id));	
+	
+	## #now create the figures for the second saccade data
+	
+	#first create circles indicating where I'm crediting item assignment
+	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
+	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
+	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
+	
+	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[0]/2,display_size[0]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
+	#add the circles
+	ax.add_artist(circle1);
+	ax.add_artist(circle2);
+	ax.add_artist(circle3);	
+	
+	dwell_times = [];
+	
+	for b in blocks:
+		trials = [tri for bee in b for tri in bee.trials];
+		times = []; #to store the time to first saccades for this participant
+		
+		for t in trials:
+			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2)): # &(t.nr_saccades>1)):
+				
+				dt = 0; #dwell time for this participants
+				
+				#first plot the eye trace for this trial's first saccade
+				saccade_counter = 0;
+				
+				while saccade_counter<2:
+					for i,xx,yy,issac in zip(range(len(t.sample_times)),
+														 t.eyeX, t.eyeY, t.isSaccade):
+						#plot the eye trace in black if not saccading
+						if issac < 1:
+							if (saccade_counter==1)&(t.isSaccade[i-1]==False):
+								dt+=1;							
+							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
+							if (t.isSaccade[i-1]==True)&(i>0):
+								#conditional checks if it's the second saccade or not								
+								if saccade_counter==1:
+									ax.plot(xx, yy, marker = 'x', color = 'blue', ms = 15);
+								saccade_counter+=1;
+							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
+							if (i == range(len(t.sample_times))[-1]):
+								saccade_counter = 100;
+								
+				#add this time to the list if they made a saccade in this time window
+				if (dt > 0):
+					dwell_times.append(dt);				
+					
+	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
+	title('Second Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
+
+	#histogram the time until first saccades
+	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
+	hist(dwell_times);
+	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('Second saccade latencies', fontsize = 14);			
+	mew_latency = mean(dwell_times);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
+	
+	#save the figure
+	savefig(figurepath+'ORIGINSTARTTRIALS_second_saccade_data_subj_%s.png'%(t.sub_id));
+	
+	1/0;	
+			
+			
+			
+			
 
 
 

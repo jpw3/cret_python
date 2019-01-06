@@ -3844,10 +3844,13 @@ class trial(object):
 			ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
 			legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','gold','yellowgreen',
 			  							 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred','bisque','olivedrab','seagreen','darkcyan','cadetblue',
-			 							 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew','acqua',
+			 							 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew',
 			 							 'indigo','lightpink','peru','slateblue', 'red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','gold','yellowgreen',
 			  							 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred','bisque','olivedrab','seagreen','darkcyan','cadetblue',
-			 							 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew','acqua',
+			 							 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew',
+			 							 'indigo','lightpink','peru','slateblue','red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','gold','yellowgreen',
+			  							 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred','bisque','olivedrab','seagreen','darkcyan','cadetblue',
+			 							 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew',
 			 							 'indigo','lightpink','peru','slateblue'];
 			#first plot the eye traces with respect to the velocity data
 			#if the eye is in movements, use the color array above. otheriwse use black to denote fixation

@@ -3564,7 +3564,7 @@ class trial(object):
 					#check if this subject has been completed. if so, find the corresponding trial velocity threshold and skip trial
 					if isnan(velCrit):
 						#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
-						startingVelCrit = 95; #70; #55; #christie used a velocity threshold of 100 degrees/second
+						startingVelCrit = 70; #55; #christie used a velocity threshold of 100 degrees/second
 					else:
 						startingVelCrit = velCrit;
 						self.skip = sk;

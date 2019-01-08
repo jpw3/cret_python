@@ -23,10 +23,16 @@ import os.path
 
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 
-datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+
+# 
+# datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+# savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+# shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+# figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -3914,11 +3920,7 @@ class trial(object):
 													 self.eyeX, self.eyeY, isSaccade):
 					#plot the eye trace in black if not saccading
 					if issac < 1:
-						#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
-						if (isSaccade[i-1]==True)&(i>0):  					
-							saccade_counter+=1;
-							if saccade_counter > len(colors):
-								saccade_counter=0;					
+						foo = 'bar';			
 					else:
 						if (isSaccade[i-1]==False)&(i>0):  
 							nr_saccades+=1;

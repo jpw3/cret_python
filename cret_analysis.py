@@ -3501,7 +3501,7 @@ class trial(object):
 				else:
 					samp_times.append(time);
 					#check if the sample was very large (e.g., blink or look away) and set the corresponding values to NaNs
-					if (abs(x_pos)>100)|(abs(y_pos)>100):
+					if (abs(x_pos)>(0.5*display_size[0]))|(abs(y_pos)>(0.5*display_size[1])):
 						x_pos = nan; y_pos = nan; pup_s = nan;
 						self.dropped_sample = 1;
 					eyeX.append(x_pos);
@@ -3564,7 +3564,7 @@ class trial(object):
 					#check if this subject has been completed. if so, find the corresponding trial velocity threshold and skip trial
 					if isnan(velCrit):
 						#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity
-						startingVelCrit = 70; #55; #christie used a velocity threshold of 100 degrees/second
+						startingVelCrit = 80; #55; #christie used a velocity threshold of 100 degrees/second
 					else:
 						startingVelCrit = velCrit;
 						self.skip = sk;

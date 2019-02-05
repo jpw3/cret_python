@@ -95,6 +95,7 @@ def computeEarlyTrialData(blocks, eyed='agg'):
 	# trial_data = pd.concat([hp_trial_data[hp_trial_data['subject_nr']==1], hcla_trial_data[hcla_trial_data['subject_nr']==1], lcha_trial_data[lcha_trial_data['subject_nr']==1], lp_trial_data[lp_trial_data['subject_nr']==1]]);
 	#choices = [];
 	
+	trial_counter = 0;
 	#create plot to show first saccades
 	#first create circles indicating where I'm crediting item assignment
 	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
@@ -115,7 +116,9 @@ def computeEarlyTrialData(blocks, eyed='agg'):
 		times = []; #to store the time to first saccades for this participant
 		
 		for t in trials:
-			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)): #&(sqrt(t.eyeX**2 + t.eyeY**2) < 2)
+			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)): #&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2)&(t.trial_type=='high_pref')):
+				
+				trial_counter+=1;
 				
 				#first plot the eye trace for this trial's first saccade
 				saccade_counter = 0;
@@ -124,7 +127,7 @@ def computeEarlyTrialData(blocks, eyed='agg'):
 					for i,xx,yy,issac in zip(range(len(t.sample_times)),
 														 t.eyeX, t.eyeY, t.isSaccade):
 						#plot the eye trace in black if not saccading
-						if issac < 1:
+						if issac == 0:
 							#ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
 							#conditional to switch to the next saccade color
 							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
@@ -166,6 +169,7 @@ def computeEarlyTrialData(blocks, eyed='agg'):
 	#add text detailing the mean saccadic latency
 	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
 	
+	
 	#save the figure
 	savefig(figurepath+'ALLTRIALS_first_saccade_data_subj_%s.png'%(t.sub_id));	
 	
@@ -201,7 +205,7 @@ def computeEarlyTrialData(blocks, eyed='agg'):
 					for i,xx,yy,issac in zip(range(len(t.sample_times)),
 														 t.eyeX, t.eyeY, t.isSaccade):
 						#plot the eye trace in black if not saccading
-						if issac < 1:
+						if issac == 0:
 							if (saccade_counter==1)&(t.isSaccade[i-1]==False):
 								dt+=1;							
 							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
@@ -271,14 +275,15 @@ def computeEarlyTrialDataOriginStartTrialsOnly(blocks, eyed='agg'):
 	ax.add_artist(circle3);
 	
 	#ttFS = []; #time to first saccades, average for each participant. for use when doing this for all participants at the same time
-	
+	trial_counter = 0;
 	for b in blocks:
 		trials = [tri for bee in b for tri in bee.trials];
 		times = []; #to store the time to first saccades for this participant
 		
 		for t in trials:
-			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2)): #
+			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2)): #&(t.trial_type==1)): #
 				
+				trial_counter+=1;
 				#first plot the eye trace for this trial's first saccade
 				saccade_counter = 0;
 				
@@ -286,7 +291,7 @@ def computeEarlyTrialDataOriginStartTrialsOnly(blocks, eyed='agg'):
 					for i,xx,yy,issac in zip(range(len(t.sample_times)),
 														 t.eyeX, t.eyeY, t.isSaccade):
 						#plot the eye trace in black if not saccading
-						if issac < 1:
+						if issac == 0:
 							#ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
 							#conditional to switch to the next saccade color
 							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
@@ -357,7 +362,7 @@ def computeEarlyTrialDataOriginStartTrialsOnly(blocks, eyed='agg'):
 					for i,xx,yy,issac in zip(range(len(t.sample_times)),
 														 t.eyeX, t.eyeY, t.isSaccade):
 						#plot the eye trace in black if not saccading
-						if issac < 1:
+						if issac == 0:
 							if (saccade_counter==1)&(t.isSaccade[i-1]==False):
 								dt+=1;							
 							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
@@ -394,10 +399,6 @@ def computeEarlyTrialDataOriginStartTrialsOnly(blocks, eyed='agg'):
 	
 	1/0;	
 			
-			
-			
-			
-
 
 
 def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
@@ -483,7 +484,7 @@ def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
 					for i,xx,yy,issac in zip(range(len(t.sample_times)),
 														 t.eyeX, t.eyeY, isSaccade):
 						#plot the eye trace in black if not saccading
-						if issac < 1:
+						if issac == 0:
 							ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
 							#conditional to switch to the next saccade color
 							#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
@@ -510,7 +511,7 @@ def collectTemporalGazeProfileTrials(blocks, ttype, eyed = 'agg'):
 														 t.filtered_velocities, t.velocities, isSaccade):
 						#plot the eye trace in black if not saccading
 						plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
-						if issac < 1:
+						if issac == 0:
 							plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);
 							#conditional to switch to the next saccade color
 							#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
@@ -3588,8 +3589,6 @@ class trial(object):
 						startingVelCrit = velCrit;
 						self.skip = sk;
 						
-					# 	
-					# 	
 					# #plot this for looks
 					# new_crit = 60;
 					# 
@@ -3620,6 +3619,8 @@ class trial(object):
 					
 					#save the velocity threshold and the isSaccade truth vector to the array
 					self.saccadeCriterion = endingVelCrit; #degrees/sec
+					if self.saccadeCriterion == -1:
+						self.isSaccade = [-1];
 					self.nr_saccades = nr_saccades;
 				
 				############ End plotting of eye traces #################
@@ -3631,6 +3632,8 @@ class trial(object):
 				self.filtered_velocities = -1;
 				self.skip = 1;
 				self.isSaccade = [-1];
+				self.saccadeCriterion = -1;
+				self.nr_saccades = -1;
 				#save these values to the DataFrame
 				df['skip_trial'].iloc[self.trial_nr-1] = 1;
 				df['completed'].iloc[self.trial_nr-1] = 1;
@@ -3860,7 +3863,9 @@ class trial(object):
 		
 		while resp!=('a'):
 			
-			isSaccade = self.filtered_velocities > new_crit; #identify where a saccade was based on the velocity criterion     filtered_
+			isSaccade = self.filtered_velocities > new_crit; #identify where a saccade was based on the velocity criterion     filtered
+			if new_crit == -1:
+				self.isSaccade = [-1]; #assign the isSaccade vector to be a -1 if there were no saccades made
 			self.isSaccade = isSaccade; #append the isSaccade vector to the trial object
 			
 			#determine if I did this trial/block before. If so, need need to re-plot (takes too much time)
@@ -3884,7 +3889,7 @@ class trial(object):
 				for i,xx,yy,issac in zip(range(len(self.sample_times)),
 													 self.eyeX, self.eyeY, isSaccade):
 					#plot the eye trace in black if not saccading
-					if issac < 1:
+					if issac == 0:
 						ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
 						#conditional to switch to the next saccade color
 						#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
@@ -3911,7 +3916,7 @@ class trial(object):
 													 self.filtered_velocities, self.velocities, isSaccade):
 					#plot the eye trace in black if not saccading
 					plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
-					if issac < 1:
+					if issac == 0:
 						plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);  #
 						#conditional to switch to the next saccade color
 						#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
@@ -3938,7 +3943,7 @@ class trial(object):
 				for i,xx,yy,issac in zip(range(len(self.sample_times)),
 													 self.eyeX, self.eyeY, isSaccade):
 					#plot the eye trace in black if not saccading
-					if issac < 1:
+					if issac == 0:
 						foo = 'bar';			
 					else:
 						if (isSaccade[i-1]==False)&(i>0):  

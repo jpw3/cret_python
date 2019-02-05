@@ -29,16 +29,16 @@ import os.path
 
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 # 
-# datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-# savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-# shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-# figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 
-datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+# datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+# savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+# shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+# figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -111,20 +111,193 @@ def compute_BS_SEM(data_matrix):
 ## Trial Exclusion Information ##
 ############################################
 
-def calculateExcludedTrialInformation(trials):
+def calculateExcludedTrialInformation(block_matrix):
 # This function determines how many trials are excluded
 # according to the following criteria:
 # 1. Blinks/looking down at the keyboard
 # 2. Didn't move their eyes
 # 3. Eyes were not focused within 2.5 degrees of visual angle at trial start
 
-	foo = 'bar';
+# 1. Calculate the percentage and raw number of trials excluded for a dropped sample
+# I will do this for each trial type and aggregated
+
+#aggregated
+	# Pre-allocate data structure holders
+	nr_trials_excluded = [[0] for su in block_matrix];
+	total_nr_trials = [[0] for su in block_matrix];
+
+	#loop through each trial and score whether trial was excluded because of a dropped sample
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for t in b.trials:
+				total_nr_trials[subj_nr][0] += 1;
+				if t.dropped_sample == 1:
+					nr_trials_excluded[subj_nr][0] += 1;
+
+	# Calculate percentages
+	perc_trials_excluded = array([float(nr[0])/tot[0] if tot>0 else 0 for nr,tot in zip(nr_trials_excluded, total_nr_trials)]);
+	
+	mew_raw = mean(array(nr_trials_excluded));
+	raw_sem = compute_BS_SEM(array(nr_trials_excluded));
+	mew_perc = mean(perc_trials_excluded);
+	perc_sem = compute_BS_SEM(perc_trials_excluded);
+	
+	print('\n\n DROPPED SAMPLE (BLINKS OR LOOKED DOWN AT THE KEYBOARD) EXCLUSION INFORMATION \n\n\n')
+	print('\n Average nr of trials excluded for %s subjects: %4.1f \n'%(len(block_matrix),mew_raw));
+	print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(raw_sem));
+	print('\n Average percentage of trials excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
+	print('\n Between-subjects standard error of the mean: %4.3f \n\n\n'%(perc_sem));
+
+#broken down by trial type
+	for name,ttype in zip(['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'],[1,2,3,4]):
+		nr_trials_excluded_tt = [[0] for su in block_matrix];
+		total_nr_trials_tt = [[0] for su in block_matrix];
+	
+		#loop through each trial and score whether trial was excluded because of a dropped sample
+		for subj_nr, blocks in enumerate(block_matrix):
+			for b in blocks:
+				for t in b.trials:
+					if t.trial_type==ttype:
+						total_nr_trials_tt[subj_nr][0] += 1;
+						if t.dropped_sample == 1:
+							nr_trials_excluded_tt[subj_nr][0] += 1;
+	
+		# Calculate percentages		
+		perc_trials_excluded_tt = [float(nr[0])/tot[0] if (tot[0]>0) else 0 for nr,tot in zip(nr_trials_excluded_tt, total_nr_trials_tt)];
+
+		# if ttype==4:	
+		# 	1/0
+		mew_raw = mean(array(nr_trials_excluded_tt));
+		raw_sem = compute_BS_SEM(array(nr_trials_excluded_tt));
+		mew_perc = mean(perc_trials_excluded_tt);
+		perc_sem = compute_BS_SEM(perc_trials_excluded_tt);
+		
+		print('\n\n TRIAL TYPE %s \n\n'%name)
+		print('\n Average nr of trials excluded for %s subjects: %4.1f \n'%(len(block_matrix),mew_raw));
+		print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(raw_sem));
+		print('\n Average percentage of trials excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
+		print('\n Between-subjects standard error of the mean: %4.3f \n\n\n\n'%(perc_sem));
 
 
+# 2. Calculate percentage and raw number of trials excluded for not looking at anything
 
+# I will do this for each trial type and aggregated
 
+# Pre-allocate data structure holders
+	nr_trials_excluded = [[0] for su in block_matrix];
+	total_nr_trials = [[0] for su in block_matrix];
 
+#loop through each trial and score whether trial was excluded because of a dropped sample
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for t in b.trials:
+				total_nr_trials[subj_nr][0] += 1;
+				if (t.dropped_sample==0) & (t.didntLookAtAnyItems == 1):  #hold the dropped samples to zero to make sure I am getting the marginal values here
+					nr_trials_excluded[subj_nr][0] += 1;
 
+# Calculate percentages
+	perc_trials_excluded = [float(nr[0])/tot[0] for nr,tot in zip(nr_trials_excluded, total_nr_trials)];
+	
+	mew_raw = mean(array(nr_trials_excluded));
+	raw_sem = compute_BS_SEM(array(nr_trials_excluded));
+	mew_perc = mean(perc_trials_excluded);
+	perc_sem = compute_BS_SEM(perc_trials_excluded);
+	
+	print('\n\n DIDNT LOOK AT ANY ITEMS EXCLUSION INFORMATION \n\n\n')
+	print('\n Average nr of trials excluded for %s subjects: %4.1f \n'%(len(block_matrix),mew_raw));
+	print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(raw_sem));
+	print('\n Average percentage of trials excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
+	print('\n Between-subjects standard error of the mean: %4.3f \n\n\n'%(perc_sem));
+
+#broken down by trial type
+	for name,ttype in zip(['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'],[1,2,3,4]):
+		nr_trials_excluded_tt = [[0] for su in block_matrix];
+		total_nr_trials_tt = [[0] for su in block_matrix];
+	
+		#loop through each trial and score whether trial was excluded because of a dropped sample
+		for subj_nr, blocks in enumerate(block_matrix):
+			for b in blocks:
+				for t in b.trials:
+					if t.trial_type==ttype:
+						total_nr_trials_tt[subj_nr][0] += 1;
+						if (t.dropped_sample==0) & (t.didntLookAtAnyItems == 1):
+							nr_trials_excluded_tt[subj_nr][0] += 1;
+	
+		# Calculate percentages		
+		perc_trials_excluded_tt = [float(nr[0])/tot[0] if (tot[0]>0) else 0 for nr,tot in zip(nr_trials_excluded_tt, total_nr_trials_tt)];
+
+		# if ttype==4:	
+		# 	1/0
+
+		mew_raw = mean(array(nr_trials_excluded_tt));
+		raw_sem = compute_BS_SEM(array(nr_trials_excluded_tt));
+		mew_perc = mean(perc_trials_excluded_tt);
+		perc_sem = compute_BS_SEM(perc_trials_excluded_tt);
+		
+		print('\n\n TRIAL TYPE %s \n\n'%name)
+		print('\n Average nr of trials excluded for %s subjects: %4.1f \n'%(len(block_matrix),mew_raw));
+		print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(raw_sem));
+		print('\n Average percentage of trials excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
+		print('\n Between-subjects standard error of the mean: %4.3f \n\n\n\n'%(perc_sem));
+
+#3. Calculate the nr of trials where eyes were not focused within 2.5 degrees of visual angle at trial start
+# Pre-allocate data structure holders
+	nr_trials_excluded = [[0] for su in block_matrix];
+	total_nr_trials = [[0] for su in block_matrix];
+
+#loop through each trial and score whether trial was excluded because of a dropped sample
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for t in b.trials:
+				total_nr_trials[subj_nr][0] += 1;
+				if (t.dropped_sample==0) & (t.didntLookAtAnyItems == 0) & (sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) > 2.5):  #hold the dropped samples to zero to make sure I am getting the marginal values here
+					nr_trials_excluded[subj_nr][0] += 1;
+
+# Calculate percentages
+	perc_trials_excluded = [float(nr[0])/tot[0] for nr,tot in zip(nr_trials_excluded, total_nr_trials)];
+	
+	mew_raw = mean(array(nr_trials_excluded));
+	raw_sem = compute_BS_SEM(array(nr_trials_excluded));
+	mew_perc = mean(perc_trials_excluded);
+	perc_sem = compute_BS_SEM(perc_trials_excluded);
+	
+	print('\n\n INITIAL FIXATION NOT AT CENTER OF DISPLAY EXCLUSION INFORMATION \n\n\n')
+	print('\n Average nr of trials excluded for %s subjects: %4.1f \n'%(len(block_matrix),mew_raw));
+	print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(raw_sem));
+	print('\n Average percentage of trials excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
+	print('\n Between-subjects standard error of the mean: %4.3f \n\n\n'%(perc_sem));
+	
+#broken down by trial type
+	for name,ttype in zip(['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'],[1,2,3,4]):
+		nr_trials_excluded_tt = [[0] for su in block_matrix];
+		total_nr_trials_tt = [[0] for su in block_matrix];
+	
+		#loop through each trial and score whether trial was excluded because of a dropped sample
+		for subj_nr, blocks in enumerate(block_matrix):
+			for b in blocks:
+				for t in b.trials:
+					if t.trial_type==ttype:
+						total_nr_trials_tt[subj_nr][0] += 1;
+						if (t.dropped_sample==0) & (t.didntLookAtAnyItems == 0) & (sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) > 2.5):
+							nr_trials_excluded_tt[subj_nr][0] += 1;
+	
+		# Calculate percentages		
+		perc_trials_excluded_tt = [float(nr[0])/tot[0] if (tot[0]>0) else 0 for nr,tot in zip(nr_trials_excluded_tt, total_nr_trials_tt)];
+
+		# if ttype==4:	
+		# 	1/0
+
+		mew_raw = mean(array(nr_trials_excluded_tt));
+		raw_sem = compute_BS_SEM(array(nr_trials_excluded_tt));
+		mew_perc = mean(perc_trials_excluded_tt);
+		perc_sem = compute_BS_SEM(perc_trials_excluded_tt);
+		
+		print('\n\n TRIAL TYPE %s \n\n'%name)
+		print('\n Average nr of trials excluded for %s subjects: %4.1f \n'%(len(block_matrix),mew_raw));
+		print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(raw_sem));
+		print('\n Average percentage of trials excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
+		print('\n Between-subjects standard error of the mean: %4.3f \n\n\n\n'%(perc_sem));
+		
 
 ############################################
 ## Saccadic Endpoint Heat Map ##

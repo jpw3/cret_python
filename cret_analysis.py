@@ -3392,6 +3392,22 @@ def getAllSubjectBlocks():
     #print "Done getting all subject blocks..\n";
     return blocks;
 
+#this gets the subject blocks for a specified subset of subjects
+#'indexes' should be an array or list that specifies which indices
+#should be used to correspondingly import the data from the 'ids' structures
+def getSubsetSubjectBlocks(indexes):
+	indexes = array(indexes); #cast the variables so that the index vector is an array
+	# id_indexes = range(len(ids)); #get the full list of indexes
+	# bool_arr = [True if (idx in indexes) else False for idx in id_indexes];
+	# #^create a boolean array of truth values corresponding to subjects I care about 
+	blocks = [[] for i in range(len(ids))]; #create a list of empty lists to append the individual blocks to
+	for i, sub_id in zip(indexes, ids[0:indexes[-1]]):    #bool_arr
+		blocks[i] = loadAllBlocks(sub_id);
+		print "Imported data for subject %s\n"%sub_id;
+    #print "Done getting all subject blocks..\n";
+	return blocks;		
+
+
 ############################################
 ## Data Structures ###
 ############################################

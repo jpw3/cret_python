@@ -238,7 +238,17 @@ def createFirstSaccadeEndpointMap(block_matrix, ttype):
 				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('%s_FIRST_SACCADE_heatmap_subj_%s'%(name, subj_nr));
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_FIRSTSACCADE_heatmap_subj_%s.png'%(name, subj_nr));
 				
-				
+# 3. Aggregate across subjects by finding the average fixation accumulation		
+			
+	for su in zip(subj_arrays):
+		agg_array += su[0]; #add each subjects' heat maps together	
+	agg_array = agg_array/len(block_matrix); #to get the average
+	
+	#create and save the figure
+	figure(); imshow(agg_array, cmap='hot'); title('%s_FIRST_SACCADE_heatmap_subj_%s'%(name,'ALLSUBJECTS'));
+	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_FIRST_SACCADES_heatmap_subj_%s.png'%(name,'ALLSUBJECTS'));
+	
+	
 def createFirstSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 # This function does the same as above, but does so by collapsing across trial types
 
@@ -418,7 +428,7 @@ def createAllSaccadeEndpointMap(block_matrix, ttype):
 									minimum = 10000; coors = array([nan,nan]); #this pre-allocates a very large minimum and an array to hold the indices for the spatial position array
 									#loop through and keep checking against each x,y pair
 									for ex,why in zip(flatten(x_x),flatten(y_y)):
-										comparison = sqrt((first_sac_end[0]-ex)**2 + (first_sac_end[1]-why)**2);
+										comparison = sqrt((sac_end[0]-ex)**2 + (sac_end[1]-why)**2);
 										if comparison < minimum:
 											minimum = comparison;
 											coors[0] = ex; coors[1] = why;
@@ -515,7 +525,7 @@ def createAllSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 									minimum = 10000; coors = array([nan,nan]); #this pre-allocates a very large minimum and an array to hold the indices for the spatial position array
 									#loop through and keep checking against each x,y pair
 									for ex,why in zip(flatten(x_x),flatten(y_y)):
-										comparison = sqrt((first_sac_end[0]-ex)**2 + (first_sac_end[1]-why)**2);
+										comparison = sqrt((sac_end[0]-ex)**2 + (sac_end[1]-why)**2);
 										if comparison < minimum:
 											minimum = comparison;
 											coors[0] = ex; coors[1] = why;

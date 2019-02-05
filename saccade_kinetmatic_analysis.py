@@ -83,5 +83,52 @@ matplotlib.rcParams['hatch.color'] = 'black';
 matplotlib.pyplot.rc('font',weight='bold');
 
 ############################################
+############################################
 ## Data Analysis Methods ##
 ############################################
+############################################
+
+def compute_BS_SEM(data_matrix):
+    #calculate the between-subjects standard error of the mean. trial_matrix should be matrix of trials including each subject
+    #should only pass trials matrix into this function after segmenting into relevant conditions
+	
+	#for now until otherwise decided, find the BS-sems using only the point estimates that I have for each conditions
+	#This involves cutting out the items that are NaNs
+	
+	nan_truth_arr = [isnan(d) for d in data_matrix]; #find where a Nan exists in the array
+	data = [r for r,l in zip(data_matrix,nan_truth_arr) if (l==False)]; #this collects only the non-Nans in the datamatrix and makes a list of them
+	
+	n = len(data);	 #data_matrix
+	grand_mew = mean(data); 
+	err = data - grand_mew; #_matrix
+	squared_err = err**2;
+	MSE = sum(squared_err)/(n-1);	
+	denom = sqrt(n);
+	standard_error_estimate=sqrt(MSE)/float(denom);
+	return standard_error_estimate;
+
+############################################
+## Trial Exclusion Information ##
+############################################
+
+def calculateExcludedTrialInformation(trials):
+# This function determines how many trials are excluded
+# according to the following criteria:
+# 1. Blinks/looking down at the keyboard
+# 2. Didn't move their eyes
+# 3. Eyes were not focused within 2.5 degrees of visual angle at trial start
+
+	foo = 'bar';
+
+
+
+
+
+
+
+
+
+
+
+
+

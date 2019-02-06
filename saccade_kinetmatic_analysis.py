@@ -29,16 +29,16 @@ import os.path
 
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 # 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+# datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+# savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+# shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+# figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 
-# datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-# savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-# shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-# figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -297,7 +297,118 @@ def calculateExcludedTrialInformation(block_matrix):
 		print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(raw_sem));
 		print('\n Average percentage of trials excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
 		print('\n Between-subjects standard error of the mean: %4.3f \n\n\n\n'%(perc_sem));
-		
+
+
+############################################
+## Saccade Kinematic Data ##
+############################################
+
+# Determine the saccdic latency for first and all saccades:
+# 1. Distribution of onsets latencies
+# 2. Average onset latencies
+
+def computeFirstSaccadeKinetmatics(block_matrix):
+
+# Start with computing saccadic onset latencies for first saccades only
+	# Pre-allocate data structure holders
+	onset_latencies = [[] for su in block_matrix];
+	amplitudes = [[] for su in block_matrix];
+
+	#loop through each trial and score whether trial was excluded because of a dropped sample
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for t in b.trials:
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&
+					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):      #&(t.trial_type==ttype)
+					
+					if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
+						
+						sac_start_time = 0;
+						sac_start_pos = array([]);						
+						sac_end_time = 0;
+						sac_end_pos = array([]);
+						
+						#Below here goes through each trial and pulls out the first saccde
+						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+						# we get to the end of the trial
+						
+						saccade_counter = 0;
+						while saccade_counter==0:
+							for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+																 t.eyeX, t.eyeY, t.isSaccade):
+								#if no saccade has been made yet, keep running through the isSaccade array
+								# issac < 1 will be zero at all non-saccading time points, including the start
+								if issac == 0:
+									#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+									if (t.isSaccade[ii-1]==True)&(ii>0):
+										sac_end_time = t.sample_times[ii];
+										sac_end_pos = array([xx,yy]);
+										saccade_counter+=1;
+									
+									#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
+									if (ii == range(len(t.sample_times))[-1]):
+										saccade_counter = 100;
+										
+								elif issac == 1:
+									#get the starting point for this saccade as well as the time
+									#the first transition between 0 and 1 will be the first saccade start
+									if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+										sac_start_time = t.sample_times[ii];
+										sac_start_pos = array([xx,yy]);
+						
+						#calculate the latency and amplitude, then save to the subject's array
+						onset_latencies[subj_nr].append(sac_start_time);
+						amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
+											
+	#now calculate population stats for latency and amplitude, and plot
+	all_lats = [l for lat in onset_latencies for l in lat];
+	all_amps = [a for am in amplitudes for a in am];
+	mew_latencies = array([mean(lat) for lat in onset_latencies]);
+	latencies_sems = compute_BS_SEM(mew_latencies);
+	mew_amps = array([mean(lat) for lat in amplitudes]);
+	amps_sems = compute_BS_SEM(mew_amps);
+
+
+	#plot the distribution of saccadid latencies across all participants
+	
+	fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
+	#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
+	ax1.set_ylabel('Frequency',size=18); ax1.set_xlabel('Onset latency',size=18,labelpad=15);
+	ax1.hist(all_lats);
+
+	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	title('Population average saccadic latencies for first saccades', fontsize = 22);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.7, 0.48, 'MEAN LATENCY:\n %s +- %s ms '%(round(mean(mew_latencies)),round(latencies_sems)),size=16,weight='bold');
+
+	#save the figure
+	savefig(figurepath+ 'SaccadeKinematics/' + 'FIRST_SACCADE_ONSET_DISTRIBUTION_ALLSUBJECTS.png');	
+
+
+
+	#now plot distribution of amplitudes
+	
+	fig = figure(figsize = (12.8,7.64)); ax=gca(); #grid(True);
+	#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
+	ax.set_ylabel('Frequency',size=18); ax.set_xlabel('Saccade amplitude',size=18,labelpad=15);
+	ax.hist(all_amps, color = 'darkgray');
+
+	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	title('Population average saccadic amplitudes for first saccades', fontsize = 22);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.75, 0.48, 'MEAN AMPLITUDE:\n %s +- %s degrees '%(round(mean(mew_amps)),round(amps_sems)),size=16,weight='bold');
+
+	#save the figure
+	savefig(figurepath+ 'SaccadeKinematics/' + 'FIRST_SACCADE_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');	
+
+	
+	1/0
 
 ############################################
 ## Saccadic Endpoint Heat Map ##

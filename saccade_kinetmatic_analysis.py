@@ -408,7 +408,76 @@ def computeFirstSaccadeKinetmatics(block_matrix):
 	savefig(figurepath+ 'SaccadeKinematics/' + 'FIRST_SACCADE_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');	
 
 	
-	1/0
+def computeAllSaccadeKinetmatics(block_matrix):
+
+# Start with computing saccadic onset latencies for first saccades only
+	# Pre-allocate data structure holders
+	onset_latencies = [[] for su in block_matrix];
+	amplitudes = [[] for su in block_matrix];
+
+	#loop through each trial and score whether trial was excluded because of a dropped sample
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for t in b.trials:
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&
+					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):      #&(t.trial_type==ttype)
+					
+					if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
+						
+						sac_start_time = 0;
+						sac_start_pos = array([]);						
+						sac_end_time = 0;
+						sac_end_pos = array([]);
+						
+						#Below here goes through each trial and pulls out the first saccde
+						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+						# we get to the end of the trial
+						
+						saccade_counter = 0;
+						for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+															 t.eyeX, t.eyeY, t.isSaccade):
+							#if no saccade has been made yet, keep running through the isSaccade array
+							# issac < 1 will be zero at all non-saccading time points, including the start
+							if issac == 0:
+								#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+								if (t.isSaccade[ii-1]==True)&(ii>0):
+									sac_end_time = t.sample_times[ii];
+									sac_end_pos = array([xx,yy]);
+									amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
+									sac_lat_start_calculation = sac_end_time; #set this variable as the first onset latency
+									saccade_counter+=1;
+								
+								#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
+								if (ii == range(len(t.sample_times))[-1]):
+									saccade_counter = 100;
+									
+							elif issac == 1:
+								#get the starting point for this saccade as well as the time
+								#the first transition between 0 and 1 will be the first saccade start
+								if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+									sac_start_time = t.sample_times[ii];
+									sac_start_pos = array([xx,yy]);
+									onset_latencies[subj_nr].append(sac_start_time);
+									
+								elif (t.isSaccade[ii-1]==False)&(ii>0):
+									sac_start_time = t.sample_times[ii];
+									sac_start_pos = array([xx,yy]);
+									onset_latencies[subj_nr].append(sac_start_time-sac_lat_start_calculation);
+											
+	#now calculate population stats for latency and amplitude, and plot
+	all_lats = [l for lat in onset_latencies for l in lat];
+	all_amps = [a for am in amplitudes for a in am];
+	mew_latencies = array([mean(lat) for lat in onset_latencies]);
+	latencies_sems = compute_BS_SEM(mew_latencies);
+	mew_amps = array([mean(lat) for lat in amplitudes]);
+	amps_sems = compute_BS_SEM(mew_amps);
+
+	1/0;
+
+
+	
+	
+	
 
 ############################################
 ## Saccadic Endpoint Heat Map ##

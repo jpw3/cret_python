@@ -414,6 +414,7 @@ def computeAllSaccadeKinetmatics(block_matrix):
 	# Pre-allocate data structure holders
 	onset_latencies = [[] for su in block_matrix];
 	amplitudes = [[] for su in block_matrix];
+	nr_saccades = [[0] for su in block_matrix];
 
 	#loop through each trial and score whether trial was excluded because of a dropped sample
 	for subj_nr, blocks in enumerate(block_matrix):
@@ -441,15 +442,17 @@ def computeAllSaccadeKinetmatics(block_matrix):
 							if issac == 0:
 								#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
 								if (t.isSaccade[ii-1]==True)&(ii>0):
+									nr_saccades[subj_nr][0] += 1;
+									saccade_counter+=1;
 									sac_end_time = t.sample_times[ii];
 									sac_end_pos = array([xx,yy]);
 									amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
+									
+									if saccade_counter>1:     #already have the onset latency for the first saccade
+										onset_latencies[subj_nr].append(sac_start_time-sac_lat_start_calculation);
+									
 									sac_lat_start_calculation = sac_end_time; #set this variable as the first onset latency
-									saccade_counter+=1;
-								
-								#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
-								if (ii == range(len(t.sample_times))[-1]):
-									saccade_counter = 100;
+
 									
 							elif issac == 1:
 								#get the starting point for this saccade as well as the time
@@ -462,7 +465,7 @@ def computeAllSaccadeKinetmatics(block_matrix):
 								elif (t.isSaccade[ii-1]==False)&(ii>0):
 									sac_start_time = t.sample_times[ii];
 									sac_start_pos = array([xx,yy]);
-									onset_latencies[subj_nr].append(sac_start_time-sac_lat_start_calculation);
+									
 											
 	#now calculate population stats for latency and amplitude, and plot
 	all_lats = [l for lat in onset_latencies for l in lat];
@@ -472,12 +475,147 @@ def computeAllSaccadeKinetmatics(block_matrix):
 	mew_amps = array([mean(lat) for lat in amplitudes]);
 	amps_sems = compute_BS_SEM(mew_amps);
 
+
+	#plot the distribution of saccadid latencies across all participants
+	
+	fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
+	#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
+	ax1.set_ylabel('Frequency',size=18); ax1.set_xlabel('Onset latency',size=18,labelpad=15);
+	ax1.hist(all_lats, color = 'red');
+
+	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	title('Population average saccadic latencies for ALL saccades', fontsize = 22);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.7, 0.48, 'MEAN LATENCY:\n %s +- %s ms '%(round(mean(mew_latencies)),round(latencies_sems)),size=16,weight='bold');
+
+	#save the figure
+	savefig(figurepath+ 'SaccadeKinematics/' + 'ALL_SACCADE_ONSET_DISTRIBUTION_ALLSUBJECTS.png');	
+
+
+
+	#now plot distribution of amplitudes
+	
+	fig = figure(figsize = (12.8,7.64)); ax=gca(); #grid(True);
+	#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
+	ax.set_ylabel('Frequency',size=18); ax.set_xlabel('Saccade amplitude',size=18,labelpad=15);
+	ax.hist(all_amps, color = 'darkgray');
+
+	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	title('Population average saccadic amplitudes for ALL saccades', fontsize = 22);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.75, 0.48, 'MEAN AMPLITUDE:\n %s +- %s degrees '%(round(mean(mew_amps)),round(amps_sems)),size=16,weight='bold');
+
+	#save the figure
+	savefig(figurepath+ 'SaccadeKinematics/' + 'ALL_SACCADE_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');	
+	
 	1/0;
 
 
+def computeAllExceptFirstSaccadeKinetmatics(block_matrix):
+#computes saccade information for all saccades, minus the first saccade
+# Start with computing saccadic onset latencies for first saccades only
+	# Pre-allocate data structure holders
+	onset_latencies = [[] for su in block_matrix];
+	amplitudes = [[] for su in block_matrix];
+	nr_saccades = [[0] for su in block_matrix];
+
+	#loop through each trial and score whether trial was excluded because of a dropped sample
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for t in b.trials:
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&
+					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):      #&(t.trial_type==ttype)
+					
+					if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
+						
+						sac_start_time = 0;
+						sac_start_pos = array([]);						
+						sac_end_time = 0;
+						sac_end_pos = array([]);
+						
+						#Below here goes through each trial and pulls out the first saccde
+						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+						# we get to the end of the trial
+						
+						saccade_counter = 0;
+						for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+															 t.eyeX, t.eyeY, t.isSaccade):
+							#if no saccade has been made yet, keep running through the isSaccade array
+							# issac < 1 will be zero at all non-saccading time points, including the start
+							if issac == 0:
+								#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+								if (t.isSaccade[ii-1]==True)&(ii>0):
+									saccade_counter+=1;
+									sac_end_time = t.sample_times[ii];
+									sac_end_pos = array([xx,yy]);
+									nr_saccades[subj_nr][0] += 1;
+									#only dd amplitudes of there is more than the first saccade
+									if saccade_counter > 1:
+										onset_latencies[subj_nr].append(sac_start_time-sac_lat_start_calculation);
+										amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
+									sac_lat_start_calculation = sac_end_time; #set this variable 
+										
+							elif issac == 1:
+								#get the starting point for this saccade as well as the time
+								#the first transition between 0 and 1 will be the first saccade start
+								if (t.isSaccade[ii-1]==False)&(ii>0):
+									sac_start_time = t.sample_times[ii];
+									sac_start_pos = array([xx,yy]);
+									
+											
+	#now calculate population stats for latency and amplitude, and plot
+	all_lats = [l for lat in onset_latencies for l in lat];
+	all_amps = [a for am in amplitudes for a in am];
+	mew_latencies = array([mean(lat) for lat in onset_latencies]);
+	latencies_sems = compute_BS_SEM(mew_latencies);
+	mew_amps = array([mean(lat) for lat in amplitudes]);
+	amps_sems = compute_BS_SEM(mew_amps);
+
+	#plot the distribution of saccadid latencies across all participants
 	
+	fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
+	#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
+	ax1.set_ylabel('Frequency',size=18); ax1.set_xlabel('Onset latency',size=18,labelpad=15);
+	ax1.hist(all_lats, color = 'red', bins = [0,50,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,950,1000]);
+
+	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	title('Population average saccadic latencies for OTHER saccades', fontsize = 22);
 	
+	#add text detailing the mean saccadic latency
+	fig.text(0.7, 0.48, 'MEAN LATENCY:\n %s +- %s ms '%(round(mean(mew_latencies)),round(latencies_sems)),size=16,weight='bold');
+
+	#save the figure
+	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_ONSET_DISTRIBUTION_ALLSUBJECTS.png');	
+
+
+
+	#now plot distribution of amplitudes
 	
+	fig = figure(figsize = (12.8,7.64)); ax=gca(); #grid(True);
+	#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
+	ax.set_ylabel('Frequency',size=18); ax.set_xlabel('Saccade amplitude',size=18,labelpad=15);
+	ax.hist(all_amps, color = 'darkgray');
+
+	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	title('Population average saccadic amplitudes for OTHER saccades', fontsize = 22);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.75, 0.48, 'MEAN AMPLITUDE:\n %s +- %s degrees '%(round(mean(mew_amps)),round(amps_sems)),size=16,weight='bold');
+
+	#save the figure
+	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');	
+	
+	1/0
 
 ############################################
 ## Saccadic Endpoint Heat Map ##

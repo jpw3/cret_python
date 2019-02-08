@@ -29,16 +29,16 @@ import os.path
 
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 # 
-# datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-# savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-# shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-# figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 
-datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+# datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+# savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+# shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+# figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -727,6 +727,9 @@ def createFirstSaccadeEndpointMap(block_matrix, ttype):
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
 				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('%s_FIRST_SACCADE_heatmap_subj_%s'%(name, subj_nr));
+				#set a legend. first, get the maximal value in the array to define a legend
+				m = round(max(map(max,subj_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_FIRSTSACCADE_heatmap_subj_%s.png'%(name, subj_nr));
 				
 # 3. Aggregate across subjects by finding the average fixation accumulation		
@@ -737,6 +740,9 @@ def createFirstSaccadeEndpointMap(block_matrix, ttype):
 	
 	#create and save the figure
 	figure(); imshow(agg_array, cmap='hot'); title('%s_FIRST_SACCADE_heatmap_subj_%s'%(name,'ALLSUBJECTS'));
+	#set a legend. first, get the maximal value in the array to define a legend
+	m = round(max(map(max,agg_array)),1);
+	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_FIRST_SACCADES_heatmap_subj_%s.png'%(name,'ALLSUBJECTS'));
 	
 	
@@ -834,6 +840,9 @@ def createFirstSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
 				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('ALLTRIALTYPES_FIRST_SACCADE_heatmap_subj_%s'%(subj_nr));
+				#set a legend. first, get the maximal value in the array to define a legend
+				m = round(max(map(max,subj_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_FIRSTSACCADE_heatmap_subj_%s.png'%(subj_nr));				
 			
 				
@@ -844,7 +853,10 @@ def createFirstSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	agg_array = agg_array/len(block_matrix); #to get the average
 	
 	#create and save the figure
-	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_FIRST_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS'));
+	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_FIRST_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS')); colorbar();
+	#set a legend. first, get the maximal value in the array to define a legend
+	m = round(max(map(max,agg_array)),1);
+	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_FIRSTSACCADE_heatmap_subj_%s.png'%('ALLSUBJECTS'));
 	
 
@@ -940,7 +952,11 @@ def createOtherSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
 				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('ALLTRIALTYPES_OTHER_SACCADES_heatmap_subj_%s'%(subj_nr));
+				#set a legend. first, get the maximal value in the array to define a legend
+				m = round(max(map(max,subj_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_OTHER_SACCADES_heatmap_subj_%s.png'%(subj_nr));
+				
 				
 # 3. Aggregate across subjects by finding the average fixation accumulation		
 			
@@ -949,7 +965,10 @@ def createOtherSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	agg_array = agg_array/len(block_matrix); #to get the average
 	
 	#create and save the figure
-	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_OTHER_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS'));
+	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_OTHER_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS')); colorbar(pad = 0.1);
+	#set a legend. first, get the maximal value in the array to define a legend
+	m = round(max(map(max,agg_array))); #,1);
+	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);	
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_OTHER_SACCADES_heatmap_subj_%s.png'%('ALLSUBJECTS'));						
 	
 	1/0;
@@ -1044,6 +1063,9 @@ def createAllSaccadeEndpointMap(block_matrix, ttype):
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
 				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('%s_ALL_SACCADES_heatmap_subj_%s'%(name, subj_nr));
+				#set a legend. first, get the maximal value in the array to define a legend
+				m = round(max(map(max,subj_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_ALL_SACCADES_heatmap_subj_%s.png'%(name, subj_nr));
 				
 # 3. Aggregate across subjects by finding the average fixation accumulation		
@@ -1054,6 +1076,9 @@ def createAllSaccadeEndpointMap(block_matrix, ttype):
 	
 	#create and save the figure
 	figure(); imshow(agg_array, cmap='hot'); title('%s_ALL_SACCADE_heatmap_subj_%s'%(name,'ALLSUBJECTS'));
+	#set a legend. first, get the maximal value in the array to define a legend
+	m = round(max(map(max,agg_array)),1);
+	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_ALL_SACCADES_heatmap_subj_%s.png'%(name,'ALLSUBJECTS'));
 	
 	
@@ -1141,6 +1166,9 @@ def createAllSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
 				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('ALLTRIALTYPES_ALL_SACCADES_heatmap_subj_%s'%(subj_nr));
+				#set a legend. first, get the maximal value in the array to define a legend
+				m = round(max(map(max,subj_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_ALL_SACCADES_heatmap_subj_%s.png'%(subj_nr));
 				
 # 3. Aggregate across subjects by finding the average fixation accumulation		
@@ -1151,6 +1179,9 @@ def createAllSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	
 	#create and save the figure
 	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_ALL_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS'));
+	#set a legend. first, get the maximal value in the array to define a legend
+	m = round(max(map(max,agg_array)),1);
+	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_ALL_SACCADES_heatmap_subj_%s.png'%('ALLSUBJECTS'));
 	
 	1/0

@@ -102,7 +102,7 @@ def computeEarlyTrialData(blocks, eyed='agg'):
 	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
 	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
 
-	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[0]/2,display_size[0]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
 	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
 	#add the circles
 	ax.add_artist(circle1);

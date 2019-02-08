@@ -848,6 +848,112 @@ def createFirstSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_FIRSTSACCADE_heatmap_subj_%s.png'%('ALLSUBJECTS'));
 	
 
+	
+def createOtherSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
+# Same as above, but for all saccadic endpoints OTHER than the first saccade and collapsing across trial types
+
+	start_time = time.time(); #start recording how long this takes
+
+#0. Create data holders for the analyses
+
+	#first, get the individual eye traces for each item for each trial where the selected_item was chosen
+	# store each item's eye traces (adding a +1 for the trace being in that location at any time point in the trial) by creating little windows
+	# e.g., a 4-degree by 4-degree square around each picture
+	#compare against reference X,Y coordinates and place the values into each matrrix accordingly
+	#aggregate this for each participant into a combined map
+		
+	#these are holder arrays for each participant, for each item.
+	# Each list holds a 40 by 40 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
+	# this gives me 0.5 degree resolution for the 20 dva by 20 dva square I am creating
+	subj_arrays = [zeros((40,40)) for su in block_matrix];
+	trial_counters = [[0] for su in block_matrix]; #to count how many trial are counted for this participant
+	saccade_counters = [[0] for su in block_matrix]; #to count how many saccades are counted for this participant
+	
+	#these are arrays for the aggregated data
+	agg_array = zeros((40,40));
+	
+	#get reference arrays for the display. these are used to create a meshgrid for determinging where to place a 1
+	#NOTE: I am using a square for this matrix to make sure the placement of saccade endpoints is not stretched in one postion
+	# due to differences in size between the vertical and horizontal size of the display: display_size = array([22.80, 17.10]); 
+	
+	xx_vec = linspace(-10,10,40);
+	yy_vec = linspace(10,-10,40); #NOTE the flipped signs for y axis: positive to negative. Otherwise, this wouldn't correspond to the positive y values on the top of screen
+	
+#2. Iterate through for each subject and get the ending positions of each first saccade, storing appropriately, then create individual maps	
+
+	for subj_nr, blocks in enumerate(block_matrix):
+		
+		#pre-define this meshgrid for use in determining where to place 1's for fixation 
+		x_x, y_y = meshgrid(xx_vec, yy_vec);
+		for b in blocks:
+			for i in arange(0,len(b.trials)):
+				
+				if ((b.trials[i].dropped_sample == 0)&(b.trials[i].didntLookAtAnyItems == 0)&
+					(b.trials[i].skip == 0)&(sqrt(b.trials[i].eyeX[0]**2 + b.trials[i].eyeY[0]**2) < 2.5)):
+					
+					if (b.trials[i].nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
+
+						trial_counters[subj_nr][0] +=1;
+						saccade_count = 0; #counter to detrmine nr of saccades for this trial specifically
+						#Below here goes through each trial and pulls out the ending point of the first saccde
+						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+						# we get to the end of the trial
+
+						for ii,xx,yy,issac in zip(range(len(b.trials[i].sample_times)),
+															 b.trials[i].eyeX, b.trials[i].eyeY, b.trials[i].isSaccade):
+							#if no saccade has been made yet, keep running through the isSaccade array
+							# issac < 1 will be zero at all non-saccading time points, including the start
+							if issac == 0:
+								#if the previous sample was saccading and now it isn't, the saccade is complete and we can grab the ending position
+								if (b.trials[i].isSaccade[ii-1]==True)&(ii>0):
+									sac_end = array([xx,yy]);
+									saccade_count += 1; #this determines how many saccades have been found in this trial	
+									
+									#we have the saccadic endpoints, now let's determine where to store them in the array
+									#the detailed breakdown of what I'm doing here is desribes in the functions above
+									
+									#this condition allows me to only do saccade analyses for those occurring subsequent to 1st saccade 
+									if saccade_count > 1:
+
+										minimum = 10000; coors = array([nan,nan]); #this pre-allocates a very large minimum and an array to hold the indices for the spatial position array
+										#loop through and keep checking against each x,y pair
+										for ex,why in zip(flatten(x_x),flatten(y_y)):
+											comparison = sqrt((sac_end[0]-ex)**2 + (sac_end[1]-why)**2);
+											if comparison < minimum:
+												minimum = comparison;
+												coors[0] = ex; coors[1] = why;
+	
+										#here, add a 1 to the ending point of each first saccade
+										x_loc = where(coors[0]==xx_vec)[0][0]; #x coordinate
+										y_loc = where(coors[1]==yy_vec)[0][0]; #y coordinate
+										subj_arrays[subj_nr][y_loc, x_loc] += 1; #add the 1 to the location in the corresponding map.
+										# NOTE the yloc, xloc coordinate system for indexing with this array. This must be done to get x-Loc to correspond to horizontal axis
+										#below, I will aggregate all individual subject's heat maps together in the agg array
+										
+										saccade_counters[subj_nr][0] +=1;
+	
+
+			end_time = time.time();
+			print '\n Aggregated total time = %4.2f minutes, completed subject %s block nr %s '%((end_time-start_time)/60.0,subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
+
+			#save each subject's first saccade endpoint heat maps
+			if b.block_nr==len(blocks):
+				#save the 'raw' heat maps
+				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('ALLTRIALTYPES_OTHER_SACCADES_heatmap_subj_%s'%(subj_nr));
+				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_OTHER_SACCADES_heatmap_subj_%s.png'%(subj_nr));
+				
+# 3. Aggregate across subjects by finding the average fixation accumulation		
+			
+	for su in zip(subj_arrays):
+		agg_array += su[0]; #add each subjects' heat maps together	
+	agg_array = agg_array/len(block_matrix); #to get the average
+	
+	#create and save the figure
+	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_OTHER_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS'));
+	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_OTHER_SACCADES_heatmap_subj_%s.png'%('ALLSUBJECTS'));						
+	
+	1/0;
+
 
 def createAllSaccadeEndpointMap(block_matrix, ttype):
 # Same as above, but for all saccadic endpoints
@@ -1045,4 +1151,6 @@ def createAllSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	
 	#create and save the figure
 	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_ALL_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS'));
-	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_ALL_SACCADES_heatmap_subj_%s.png'%('ALLSUBJECTS'));					
+	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_ALL_SACCADES_heatmap_subj_%s.png'%('ALLSUBJECTS'));
+	
+	1/0

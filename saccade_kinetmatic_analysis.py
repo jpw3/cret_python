@@ -312,6 +312,7 @@ def computeFirstSaccadeKinetmatics(block_matrix):
 # Start with computing saccadic onset latencies for first saccades only
 	# Pre-allocate data structure holders
 	onset_latencies = [[] for su in block_matrix];
+	anticipatory_latencies = [[] for su in block_matrix];
 	amplitudes = [[] for su in block_matrix];
 
 	#loop through each trial and score whether trial was excluded because of a dropped sample
@@ -358,6 +359,8 @@ def computeFirstSaccadeKinetmatics(block_matrix):
 						
 						#calculate the latency and amplitude, then save to the subject's array
 						onset_latencies[subj_nr].append(sac_start_time);
+						if sac_start_time<100:
+							anticipatory_latencies[subj_nr].append(sac_start_time);
 						amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
 											
 	#now calculate population stats for latency and amplitude, and plot
@@ -387,8 +390,6 @@ def computeFirstSaccadeKinetmatics(block_matrix):
 	#save the figure
 	savefig(figurepath+ 'SaccadeKinematics/' + 'FIRST_SACCADE_ONSET_DISTRIBUTION_ALLSUBJECTS.png');	
 
-
-
 	#now plot distribution of amplitudes
 	
 	fig = figure(figsize = (12.8,7.64)); ax=gca(); #grid(True);
@@ -402,11 +403,52 @@ def computeFirstSaccadeKinetmatics(block_matrix):
 	title('Population average saccadic amplitudes for first saccades', fontsize = 22);
 	
 	#add text detailing the mean saccadic latency
-	fig.text(0.75, 0.48, 'MEAN AMPLITUDE:\n %s +- %s degrees '%(round(mean(mew_amps)),round(amps_sems)),size=16,weight='bold');
+	fig.text(0.7, 0.48, 'MEAN AMPLITUDE:\n %s +- %s degrees '%(round(mean(mew_amps)),round(amps_sems)),size=16,weight='bold');
 
 	#save the figure
-	savefig(figurepath+ 'SaccadeKinematics/' + 'FIRST_SACCADE_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');	
+	savefig(figurepath+ 'SaccadeKinematics/' + 'FIRST_SACCADE_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');
+	
+	
+	#Belwo here, check out fast latency saccades
+	
+	#now, plot the distribution of very fast sacadic latencies, with a greater resoultion for anticipatory saccades:
+	
+	fast_lats = [l for l in all_lats if l<250];
+	
+	fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
+	#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
+	ax1.set_ylabel('Frequency',size=18); ax1.set_xlabel('Onset latency',size=18,labelpad=15);
+	ax1.hist(fast_lats, bins = [0,25,50,75,100,125,150,175,200,225,250], color = 'green', edgecolor = 'black');
 
+	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	title('Population average saccadic latencies for \n FAST LATENCY (<250 ms) first saccades', fontsize = 22);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.15, 0.48, 'POPULATION MEAN LATENCY:\n %s '%(round(mean(fast_lats))),size=16,weight='bold');
+
+	#save the figure
+	savefig(figurepath+ 'SaccadeKinematics/' + 'FASTLATENCY_FIRST_SACCADE_ONSET_DISTRIBUTION_ALLSUBJECTS.png');		
+
+	# Now find the number of fast (< 100 ms) saccades for each participant, find an average, and SEMs
+	anticipatory_mews = [mean(o) for o in anticipatory_latencies];
+	anticipatory_lens = [len(o) for o in anticipatory_latencies];
+	
+	mew_ant_lat = nanmean(anticipatory_mews);
+	sems_ant_lat = compute_BS_SEM(anticipatory_mews);
+	mew_ant_nr = nanmean(anticipatory_lens);
+	sems_ant_nr = compute_BS_SEM(anticipatory_lens);
+
+	print('\n\n #### ANTICIPATORY SACCADE DATA: #### \n\n\n');
+	print('\n\n MEAN LATENCY OF ANTICIPATORY 1ST SACCADES:\n %s +- %s\n\n'%(mew_ant_lat,sems_ant_lat));
+	print('\n\n MEAN NR ANTICIPATORY 1ST SACCADES:\n %s +- %s\n\n'%(mew_ant_nr, sems_ant_nr));
+
+		
+	
+	1/0
+
+	
 	
 def computeAllSaccadeKinetmatics(block_matrix):
 
@@ -859,6 +901,129 @@ def createFirstSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_FIRSTSACCADE_heatmap_subj_%s.png'%('ALLSUBJECTS'));
 	
+
+def createFastLatencyFirstSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
+# This function computes heat maps for landing positions of saccade with faster than 100 ms latencies
+
+	start_time = time.time(); #start recording how long this takes
+
+#0. Create data holders for the analyses
+
+	#first, get the individual eye traces for each item for each trial where the selected_item was chosen
+	# store each item's eye traces (adding a +1 for the trace being in that location at any time point in the trial) by creating little windows
+	# e.g., a 4-degree by 4-degree square around each picture
+	#compare against reference X,Y coordinates and place the values into each matrrix accordingly
+	#aggregate this for each participant into a combined map
+		
+	#these are holder arrays for each participant, for each item.
+	# Each list holds a 40 by 40 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
+	# this gives me 0.5 degree resolution for the 20 dva by 20 dva square I am creating
+	subj_arrays = [zeros((40,40)) for su in block_matrix];
+	trial_counters = [[0] for su in block_matrix]; #to count how many trial are counted for this participant
+	
+	#these are arrays for the aggregated data
+	agg_array = zeros((40,40));
+	
+	#get reference arrays for the display. these are used to create a meshgrid for determinging where to place a 1
+	#NOTE: I am using a square for this matrix to make sure the placement of saccade endpoints is not stretched in one postion
+	# due to differences in size between the vertical and horizontal size of the display: display_size = array([22.80, 17.10]); 
+	
+	xx_vec = linspace(-10,10,40);
+	yy_vec = linspace(10,-10,40); #NOTE the flipped signs for y axis: positive to negative. Otherwise, this wouldn't correspond to the positive y values on the top of screen
+	
+#2. Iterate through for each subject and get the ending positions of each first saccade, storing appropriately, then create individual maps	
+
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for i in arange(0,len(b.trials)):
+				
+				if ((b.trials[i].dropped_sample == 0)&(b.trials[i].didntLookAtAnyItems == 0)&
+					(b.trials[i].skip == 0)&(sqrt(b.trials[i].eyeX[0]**2 + b.trials[i].eyeY[0]**2) < 2.5)):
+					
+					if (b.trials[i].nr_saccades > 0): #this conditional is used to ensure that no trials without saccades sneak through
+
+						trial_counters[subj_nr][0] +=1; 
+						#Below here goes through each trial and pulls out the ending point of the first saccde
+						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+						# we get to the end of the trial
+						sac_start_time = 0;	
+						
+						saccade_counter = 0;
+						while saccade_counter==0:
+							for ii,xx,yy,issac in zip(range(len(b.trials[i].sample_times)),
+																 b.trials[i].eyeX, b.trials[i].eyeY, b.trials[i].isSaccade):
+								#if no saccade has been made yet, keep running through the isSaccade array
+								# issac < 1 will be zero at all non-saccading time points, including the start
+								if issac == 0:
+									#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the ending position
+									if (b.trials[i].isSaccade[ii-1]==True)&(ii>0):
+										first_sac_end = array([xx,yy]);
+										saccade_counter+=1;
+									
+									#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
+									if (ii == range(len(b.trials[i].sample_times))[-1]):
+										saccade_counter = 100;
+										
+								elif issac == 1:
+									#get the starting point for this saccade as well as the time
+									#the first transition between 0 and 1 will be the first saccade start
+									if (b.trials[i].isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+										sac_start_time = b.trials[i].sample_times[ii];
+		
+						#at this point, I have the ending x,y position for the first saccade from trial N.
+						# Now, need to incorporate it into the corresponding position holder matrices.
+		
+						#after this, add a 1 to the appropriate location in this subjects' aggregated alcohol 'map'
+						# note that this computation is stored here in the outer For loop (rather than indented more)
+						# because I am only grabbing the first saccade endpoint. Further computations with all saccades
+						# will need to do this inside the for loop (while loop as well)
+						
+						#for this analysis, I only want to build a heat map for first saccades with very fast onsets (less than 100 ms)
+						if sac_start_time<=100:				
+							#now check where in the spatial array is the closest distane to the X,Y position of this data point
+							#this will be the minimum of the distance between each xx point and yy point
+							x_x, y_y = meshgrid(xx_vec, yy_vec);
+							minimum = 10000; coors = array([nan,nan]); #this pre-allocates a very large minimum and an array to hold the indices for the spatial position array
+							#loop through and keep checking against each x,y pair
+							for ex,why in zip(flatten(x_x),flatten(y_y)):
+								comparison = sqrt((first_sac_end[0]-ex)**2 + (first_sac_end[1]-why)**2);
+								if comparison < minimum:
+									minimum = comparison;
+									coors[0] = ex; coors[1] = why;
+							
+							#here, add a 1 to the ending point of each first saccade
+							x_loc = where(coors[0]==xx_vec)[0][0]; #x coordinate
+							y_loc = where(coors[1]==yy_vec)[0][0]; #y coordinate
+							subj_arrays[subj_nr][y_loc, x_loc] += 1; #add the 1 to the location in the corresponding map.
+							# NOTE the yloc, xloc coordinate system for indexing with this array. This must be done to get x-Loc to correspond to horizontal axis
+							#below, I will aggregate all individual subject's heat maps together in the agg array
+
+			end_time = time.time();
+			print '\n Aggregated total time = %4.2f minutes, completed subject %s block nr %s '%((end_time-start_time)/60.0,subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
+
+			#save each subject's first saccade endpoint heat maps
+			if b.block_nr==len(blocks):
+				#save the 'raw' heat maps
+				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('FASTLATENCY_ALLTRIALTYPES_FIRST_SACCADE_heatmap_subj_%s'%(subj_nr));
+				#set a legend. first, get the maximal value in the array to define a legend
+				m = round(max(map(max,subj_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
+				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'FASTLATENCY_ALLTRIALTYPES_FIRSTSACCADE_heatmap_subj_%s.png'%(subj_nr));				
+			
+				
+# 3. Aggregate across subjects by finding the average fixation accumulation		
+			
+	for su in zip(subj_arrays):
+		agg_array += su[0]; #add each subjects' heat maps together	
+	agg_array = agg_array/len(block_matrix); #to get the average
+	
+	#create and save the figure
+	figure(); imshow(agg_array, cmap='hot'); title('FASTLATENCY_ALLTRIALTYPES_FIRST_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS'));
+	#set a legend. first, get the maximal value in the array to define a legend
+	m = round(max(map(max,agg_array)),1);
+	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
+	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'FASTLATENCY_ALLTRIALTYPES_FIRSTSACCADE_heatmap_subj_%s.png'%('ALLSUBJECTS'));
+
 	
 def createOtherSaccadeEndpointMaps(block_matrix, ttype):
 # Same as above, but for all saccadic endpoints OTHER than the first saccade and broken down by trial types

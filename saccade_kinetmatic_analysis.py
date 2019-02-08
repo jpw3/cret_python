@@ -853,7 +853,7 @@ def createFirstSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	agg_array = agg_array/len(block_matrix); #to get the average
 	
 	#create and save the figure
-	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_FIRST_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS')); colorbar();
+	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_FIRST_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS'));
 	#set a legend. first, get the maximal value in the array to define a legend
 	m = round(max(map(max,agg_array)),1);
 	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
@@ -965,7 +965,7 @@ def createOtherSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	agg_array = agg_array/len(block_matrix); #to get the average
 	
 	#create and save the figure
-	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_OTHER_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS')); colorbar(pad = 0.1);
+	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_OTHER_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS')); 
 	#set a legend. first, get the maximal value in the array to define a legend
 	m = round(max(map(max,agg_array))); #,1);
 	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);	
@@ -1184,4 +1184,3 @@ def createAllSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_ALL_SACCADES_heatmap_subj_%s.png'%('ALLSUBJECTS'));
 	
-	1/0

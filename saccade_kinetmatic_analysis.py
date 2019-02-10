@@ -694,104 +694,104 @@ def computeSaccadePolarCoordinateData(block_matrix):
 # here is the function for theta: degrees(atan((y2 - y1)/(x2 - x1))). x1 and y1 should be the origin, but
 # many saccades do not start from there
 
-#first, do this for only ANTICIPATORY first saccades
-
-	thetas = [[] for su in block_matrix];
-	amplitudes = [[] for su in block_matrix];
-	nr_saccades = [[0] for su in block_matrix];
-
-	#loop through each trial and score whether trial was excluded because of a dropped sample
-	for subj_nr, blocks in enumerate(block_matrix):
-		for b in blocks:
-			for t in b.trials:
-				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&
-					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
-					
-					if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
-						
-						#for each saccades, we have a starting and end point. This gives us a vector, which can be used to
-						#determine the angle of the saccade, relative to the saccade starting point. To do this, need to
-						# subtract the end point from starting point to find the difference, then use atan(y_length/x_length)
-						sac_start_pos = array([]);						
-						sac_end_pos = array([]);
-						sac_start_time = 0;
-						sac_end_time = 0;
-						
-						#Below here goes through each trial and pulls out the first saccde
-						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
-						# we get to the end of the trial
-						
-						saccade_counter = 0;
-						while saccade_counter==0:
-							for ii,xx,yy,issac in zip(range(len(t.sample_times)),
-																 t.eyeX, t.eyeY, t.isSaccade):
-								#if no saccade has been made yet, keep running through the isSaccade array
-								# issac < 1 will be zero at all non-saccading time points, including the start
-								if issac == 0:
-									#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
-									if (t.isSaccade[ii-1]==True)&(ii>0):
-										sac_end_time = t.sample_times[ii];
-										sac_end_pos = array([xx,yy]);
-										saccade_counter+=1;
-									
-									#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
-									if (ii == range(len(t.sample_times))[-1]):
-										saccade_counter = 100;
-										
-								elif issac == 1:
-									#get the starting point for this saccade as well as the time
-									#the first transition between 0 and 1 will be the first saccade start
-									if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
-										sac_start_time = t.sample_times[ii];
-										sac_start_pos = array([xx,yy]);						
-						
-						#calculate the latency and amplitude, then save to the subject's array
-						if sac_start_time<100:
-							nr_saccades[subj_nr][0]+=1;
-							y_length = sac_end_pos[1] - sac_start_pos[1]; #find the length of the y dimension of the saccade
-							x_length = sac_end_pos[0] - sac_start_pos[0]; #find the length of the x dimension of the saccade
-							#^ note that using end - start is important for the theta calculation below
-							amplitudes[subj_nr].append(sqrt((x_length)**2+(y_length)**2));
-							
-							#calculate theta
-							theta = degrees(atan(y_length/x_length));
-							#correct theta for 'being' in a Quadrant other than 1, i.e. having the corresponding x and y values
-							# simplfied explanation here: (https://www.mathsisfun.com/polar-cartesian-coordinates.html)
-							# if both x and y values are positivie (Q 1), no correction needed
-							# if x is negative and y is positive (Q2) or x is negative and y is negative (Q3), add 180
-							# if x is positive but y is negative (Q4), add 360
-							if (sign(x_length)==1)&(sign(y_length)==1): #Q1
-								theta = theta;
-							elif (sign(x_length)==-1)&(sign(y_length)==1): #Q2
-								theta = theta + 180;
-							elif (sign(x_length)==-1)&(sign(y_length)==-1): #Q3
-								theta = theta + 180;
-							elif (sign(x_length)==1)&(sign(y_length)==-1):	#Q4
-								theta = theta + 360;
-							thetas[subj_nr].append(theta);
-							
-											
-	#now calculate population stats for latency and amplitude, and plot
-	all_thetas = [l for lat in thetas for l in lat];
-	all_amps = [a for am in amplitudes for a in am];
-	mew_amps = array([mean(lat) for lat in amplitudes]);
-	amps_sems = compute_BS_SEM(mew_amps);
-	
-	#calculate the circular mean for angles
-	#mew_thetas = array([mean(t) for t in thetas]);
-	#thetas_sems = compute_BS_SEM(mew_thetas);
-	
-	#plot the angles
-	fig = figure(figsize = (11,6.5)); ax=subplot(111, polar=True); #gca(); #grid(True);
-	ax.set_ylim(0, 1.1); ax.set_yticks([]); 
-	ax.set_xlabel('Saccade angle',size=16,labelpad=7); #ax.set_ylabel('Frequency',size=18);
-	ax.plot(all_thetas, ones(len(all_thetas)), 'ro', markersize = 10);
-	#ax.spines['polar'].set_linewidth(2.0);  #couldn't get this to work
-	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
-	#ax.set_title('Population anticipatory saccade (<100 ms) angular direction', fontsize = 20);
-	title('Population anticipatory saccade (<100 ms) angular direction', fontsize = 18);	
-						
-	1/0;
+# #first, do this for only ANTICIPATORY first saccades
+# 
+# 	thetas = [[] for su in block_matrix];
+# 	amplitudes = [[] for su in block_matrix];
+# 	nr_saccades = [[0] for su in block_matrix];
+# 
+# 	#loop through each trial and score whether trial was excluded because of a dropped sample
+# 	for subj_nr, blocks in enumerate(block_matrix):
+# 		for b in blocks:
+# 			for t in b.trials:
+# 				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&
+# 					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
+# 					
+# 					if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
+# 						
+# 						#for each saccades, we have a starting and end point. This gives us a vector, which can be used to
+# 						#determine the angle of the saccade, relative to the saccade starting point. To do this, need to
+# 						# subtract the end point from starting point to find the difference, then use atan(y_length/x_length)
+# 						sac_start_pos = array([]);						
+# 						sac_end_pos = array([]);
+# 						sac_start_time = 0;
+# 						sac_end_time = 0;
+# 						
+# 						#Below here goes through each trial and pulls out the first saccde
+# 						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+# 						# we get to the end of the trial
+# 						
+# 						saccade_counter = 0;
+# 						while saccade_counter==0:
+# 							for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+# 																 t.eyeX, t.eyeY, t.isSaccade):
+# 								#if no saccade has been made yet, keep running through the isSaccade array
+# 								# issac < 1 will be zero at all non-saccading time points, including the start
+# 								if issac == 0:
+# 									#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+# 									if (t.isSaccade[ii-1]==True)&(ii>0):
+# 										sac_end_time = t.sample_times[ii];
+# 										sac_end_pos = array([xx,yy]);
+# 										saccade_counter+=1;
+# 									
+# 									#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
+# 									if (ii == range(len(t.sample_times))[-1]):
+# 										saccade_counter = 100;
+# 										
+# 								elif issac == 1:
+# 									#get the starting point for this saccade as well as the time
+# 									#the first transition between 0 and 1 will be the first saccade start
+# 									if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+# 										sac_start_time = t.sample_times[ii];
+# 										sac_start_pos = array([xx,yy]);						
+# 						
+# 						#calculate the latency and amplitude, then save to the subject's array
+# 						if sac_start_time<100:
+# 							nr_saccades[subj_nr][0]+=1;
+# 							y_length = sac_end_pos[1] - sac_start_pos[1]; #find the length of the y dimension of the saccade
+# 							x_length = sac_end_pos[0] - sac_start_pos[0]; #find the length of the x dimension of the saccade
+# 							#^ note that using end - start is important for the theta calculation below
+# 							amplitudes[subj_nr].append(sqrt((x_length)**2+(y_length)**2));
+# 							
+# 							#calculate theta
+# 							theta = degrees(atan(y_length/x_length));
+# 							#correct theta for 'being' in a Quadrant other than 1, i.e. having the corresponding x and y values
+# 							# simplfied explanation here: (https://www.mathsisfun.com/polar-cartesian-coordinates.html)
+# 							# if both x and y values are positivie (Q 1), no correction needed
+# 							# if x is negative and y is positive (Q2) or x is negative and y is negative (Q3), add 180
+# 							# if x is positive but y is negative (Q4), add 360
+# 							if (sign(x_length)==1)&(sign(y_length)==1): #Q1
+# 								theta = theta;
+# 							elif (sign(x_length)==-1)&(sign(y_length)==1): #Q2
+# 								theta = theta + 180;
+# 							elif (sign(x_length)==-1)&(sign(y_length)==-1): #Q3
+# 								theta = theta + 180;
+# 							elif (sign(x_length)==1)&(sign(y_length)==-1):	#Q4
+# 								theta = theta + 360;
+# 							thetas[subj_nr].append(theta);
+# 							
+# 											
+# 	#now calculate population stats for latency and amplitude, and plot
+# 	all_thetas = [l for lat in thetas for l in lat];
+# 	all_amps = [a for am in amplitudes for a in am];
+# 	mew_amps = array([mean(lat) for lat in amplitudes]);
+# 	amps_sems = compute_BS_SEM(mew_amps);
+# 	
+# 	#calculate the circular mean for angles
+# 	#mew_thetas = array([mean(t) for t in thetas]);
+# 	#thetas_sems = compute_BS_SEM(mew_thetas);
+# 	
+# 	#plot the angles
+# 	fig = figure(figsize = (11,6.5)); ax=subplot(111, polar=True); #gca(); #grid(True);
+# 	ax.set_ylim(0, 1.1); ax.set_yticks([]); 
+# 	ax.set_xlabel('Saccade angle',size=16,labelpad=7); #ax.set_ylabel('Frequency',size=18);
+# 	ax.plot(all_thetas, ones(len(all_thetas)), 'ro', markersize = 10);
+# 	#ax.spines['polar'].set_linewidth(2.0);  #couldn't get this to work
+# 	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+# 	#ax.set_title('Population anticipatory saccade (<100 ms) angular direction', fontsize = 20);
+# 	title('Population anticipatory saccade (<100 ms) angular direction', fontsize = 18);	
+# 						
+# 	1/0;
 
 	#next, find the difference in angles between a first saccade and a subsequently executed, concurrently planned (<125 ms) saccade
 	thetas = [[] for su in block_matrix];
@@ -834,19 +834,25 @@ def computeSaccadePolarCoordinateData(block_matrix):
 									if saccade_counter==0: #this will be the case if this is the first saccade
 										pri_sac_end_time = t.sample_times[ii];
 										pri_sac_end_pos = array([xx,yy]);
-										saccade_counter+=1;										
-									
+										saccade_counter+=1;
+
 									else:   #this will occur if we already have a primary saccade
 										
-										if saccade_counter==1:
+										#if saccade_counter==1:
 											#this is the first time we have a second saccade
 											# get the saccadic latency of the second saccade
-											sec_sac_end_time = t.sample_times[ii];
-											sec_sac_end_pos = array([xx,yy]);
-											sec_sac_latency = sec_sac_start_time - pri_sac_end_time;
 											
-										elif saccade_counter > 1:
-											foo='bar';
+										#now I don't think I need to do anything differently at this point for first and other saccades	
+										sec_sac_end_time = t.sample_times[ii];
+										sec_sac_end_pos = array([xx,yy]);
+										sec_sac_latency = sec_sac_start_time - pri_sac_end_time;
+										saccade_counter += 1;
+											
+										# elif saccade_counter > 1:
+										# 	sec_sac_end_time = t.sample_times[ii];
+										# 	sec_sac_end_pos = array([xx,yy]);
+										# 	sec_sac_latency = sec_sac_start_time - pri_sac_end_time;											
+										# 	saccade_counter += 1;
 											
 										#check if the latency is less than 125 ms
 										if sec_sac_latency<125:
@@ -878,11 +884,6 @@ def computeSaccadePolarCoordinateData(block_matrix):
 											
 											#calculate theta
 											sec_theta = degrees(atan(sec_y_length/sec_x_length));
-											#correct theta for 'being' in a Quadrant other than 1, i.e. having the corresponding x and y values
-											# simplfied explanation here: (https://www.mathsisfun.com/polar-cartesian-coordinates.html)
-											# if both x and y values are positivie (Q 1), no correction needed
-											# if x is negative and y is positive (Q2) or x is negative and y is negative (Q3), add 180
-											# if x is positive but y is negative (Q4), add 360
 											if (sign(sec_x_length)==1)&(sign(sec_y_length)==1): #Q1
 												sec_theta = sec_theta;
 											elif (sign(sec_x_length)==-1)&(sign(sec_y_length)==1): #Q2
@@ -891,13 +892,19 @@ def computeSaccadePolarCoordinateData(block_matrix):
 												sec_theta = sec_theta + 180;
 											elif (sign(sec_x_length)==1)&(sign(sec_y_length)==-1):	#Q4
 												sec_theta = sec_theta + 360;
-												
-												
+																								
 											#now find the diff betwen pri and sec	
-												
-												
-												amplitudes[subj_nr].append(sqrt((x_length)**2+(y_length)**2));
-									
+											theta_diff = sec_theta - pri_theta;
+											#^0 is the same angle, positive means more counterclockwise for second saccade,
+											#negtive means more counterclockwise for primary saccade, +-180 = exact opposite
+											#let's correct the negative ones to make everything positive:
+											if theta_diff < 0:
+											 	theta_diff = theta_diff + 360;
+											#now, less than 180 = second saccade was more counterclockwise than first saccade
+											# and greater than 180 means first saccade was more counterclockwise than second saccade
+											thetas[subj_nr].append(theta_diff);
+											amplitudes[subj_nr].append(sqrt((sec_x_length)**2+(sec_y_length)**2));
+										
 									
 							elif issac == 1:
 								#get the starting point for this saccade as well as the time
@@ -906,6 +913,7 @@ def computeSaccadePolarCoordinateData(block_matrix):
 									pri_sac_start_time = t.sample_times[ii];
 									pri_sac_start_pos = array([xx,yy]);
 									pri_sac_latency = pri_sac_start_time; #get the latency of the first saccade
+									
 								elif (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter>0):
 									if saccade_counter == 1:
 										#first time we have a second saccade, fill up the secondary saccade data
@@ -920,7 +928,31 @@ def computeSaccadePolarCoordinateData(block_matrix):
 										pri_sac_latency = pri_sac_end_time  - pri_sac_start_time;
 										sec_sac_start_time = t.sample_times[ii];
 										sec_sac_start_pos = array([xx,yy]);
-						
+										
+	#now calculate population stats for latency and amplitude, and plot
+	all_thetas = [l for lat in thetas for l in lat];
+	all_amps = [a for am in amplitudes for a in am];
+	mew_amps = array([mean(lat) for lat in amplitudes]);
+	amps_sems = compute_BS_SEM(mew_amps);
+	
+	#calculate the circular mean for angles
+	#mew_thetas = array([mean(t) for t in thetas]);
+	#thetas_sems = compute_BS_SEM(mew_thetas);
+	
+	#plot the angles
+	fig = figure(figsize = (11,6.5)); ax=subplot(111, polar=True); #gca(); #grid(True);
+	ax.set_ylim(0, 1.2); ax.set_yticks([]); 
+	ax.set_xlabel('Saccade angle',size=16,labelpad=7); #ax.set_ylabel('Frequency',size=18);
+	ax.plot(all_thetas, [r+(randn(1)*0.07) for r in ones(len(all_thetas))], 'ro', markersize = 10, fillstyle = 'none', alpha = 0.4); #the randn() adds jitter in y dimension
+	#ax.spines['polar'].set_linewidth(2.0);  #couldn't get this to work
+	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	#ax.set_title('Population anticipatory saccade (<100 ms) angular direction', fontsize = 20);
+	title('Population concurrently planned saccade (<125 ms) relative angular direction\n (2nd saccade angle - 1st saccade angle)', fontsize = 18);
+
+	#save the figure
+	savefig(figurepath+ 'SaccadeKinematics/' + 'CONCURRENT_SACCADE_RELATIVETHETA_DISTRIBUTION_ALLSUBJECTS.png');
+	
+	1/0
 
 ############################################
 ## Saccadic Endpoint Heat Map ##

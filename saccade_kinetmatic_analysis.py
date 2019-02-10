@@ -747,6 +747,7 @@ def computeSaccadePolarCoordinateData(block_matrix):
 						
 						#calculate the latency and amplitude, then save to the subject's array
 						if sac_start_time<100:
+							nr_saccades[subj_nr][0]+=1;
 							y_length = sac_end_pos[1] - sac_start_pos[1]; #find the length of the y dimension of the saccade
 							x_length = sac_end_pos[0] - sac_start_pos[0]; #find the length of the x dimension of the saccade
 							#^ note that using end - start is important for the theta calculation below
@@ -768,6 +769,7 @@ def computeSaccadePolarCoordinateData(block_matrix):
 							elif (sign(x_length)==1)&(sign(y_length)==-1):	#Q4
 								theta = theta + 360;
 							thetas[subj_nr].append(theta);
+							
 											
 	#now calculate population stats for latency and amplitude, and plot
 	all_thetas = [l for lat in thetas for l in lat];

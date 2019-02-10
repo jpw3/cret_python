@@ -14,7 +14,7 @@ from scipy import stats
 from glob import glob #for use in searching for/ finding data files
 import random #general purpose
 import pandas as pd
-import math
+from math import *
 import matplotlib.lines as mlines
 import matplotlib.pyplot as pyplot
 import scipy.signal as ssignal
@@ -29,16 +29,16 @@ import os.path
 
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 # 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+# datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+# savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+# shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+# figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 
-# datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-# savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-# shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-# figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -80,6 +80,7 @@ matplotlib.rcParams['xtick.major.width']=2.0; matplotlib.rcParams['ytick.major.w
 matplotlib.rcParams['xtick.major.size']=10.0; matplotlib.rcParams['ytick.major.size']=10.0;
 matplotlib.rcParams['hatch.linewidth'] = 9.0; #set the hatch width to larger than the default case
 matplotlib.rcParams['hatch.color'] = 'black';
+#matplotlib.rcParams['axes.titlepad'] = 2;
 matplotlib.pyplot.rc('font',weight='bold');
 
 ############################################
@@ -658,6 +659,113 @@ def computeAllExceptFirstSaccadeKinetmatics(block_matrix):
 	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');	
 	
 	1/0
+
+
+
+def computeSaccadePolarCoordinateData(block_matrix):
+#This function is designed to find and plot the polar coordinate data (amplitude (r) and angle (theta))
+#This will be done for primary saccades (between objects) as well as corrective saccades (fast latencies)
+# here is the function for theta: degrees(atan((y2 - y1)/(x2 - x1))). x1 and y1 should be the origin, but
+# many saccades do not start from there
+
+#first, do this for only ANTICIPATORY first saccades
+
+	thetas = [[] for su in block_matrix];
+	amplitudes = [[] for su in block_matrix];
+	nr_saccades = [[0] for su in block_matrix];
+
+	#loop through each trial and score whether trial was excluded because of a dropped sample
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for t in b.trials:
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&
+					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
+					
+					if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
+						
+						#for each saccades, we have a starting and end point. This gives us a vector, which can be used to
+						#determine the angle of the saccade, relative to the saccade starting point. To do this, need to
+						# subtract the end point from starting point to find the difference, then use atan(y_length/x_length)
+						sac_start_pos = array([]);						
+						sac_end_pos = array([]);
+						sac_start_time = 0;
+						sac_end_time = 0;
+						
+						#Below here goes through each trial and pulls out the first saccde
+						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+						# we get to the end of the trial
+						
+						saccade_counter = 0;
+						while saccade_counter==0:
+							for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+																 t.eyeX, t.eyeY, t.isSaccade):
+								#if no saccade has been made yet, keep running through the isSaccade array
+								# issac < 1 will be zero at all non-saccading time points, including the start
+								if issac == 0:
+									#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+									if (t.isSaccade[ii-1]==True)&(ii>0):
+										sac_end_time = t.sample_times[ii];
+										sac_end_pos = array([xx,yy]);
+										saccade_counter+=1;
+									
+									#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
+									if (ii == range(len(t.sample_times))[-1]):
+										saccade_counter = 100;
+										
+								elif issac == 1:
+									#get the starting point for this saccade as well as the time
+									#the first transition between 0 and 1 will be the first saccade start
+									if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+										sac_start_time = t.sample_times[ii];
+										sac_start_pos = array([xx,yy]);						
+						
+						#calculate the latency and amplitude, then save to the subject's array
+						if sac_start_time<100:
+							y_length = sac_end_pos[1] - sac_start_pos[1]; #find the length of the y dimension of the saccade
+							x_length = sac_end_pos[0] - sac_start_pos[0]; #find the length of the x dimension of the saccade
+							#^ note that using end - start is important for the theta calculation below
+							amplitudes[subj_nr].append(sqrt((x_length)**2+(y_length)**2));
+							
+							#calculate theta
+							theta = degrees(atan(y_length/x_length));
+							#correct theta for 'being' in a Quadrant other than 1, i.e. having the corresponding x and y values
+							# simplfied explanation here: (https://www.mathsisfun.com/polar-cartesian-coordinates.html)
+							# if both x and y values are positivie (Q 1), no correction needed
+							# if x is negative and y is positive (Q2) or x is negative and y is negative (Q3), add 180
+							# if x is positive but y is negative (Q4), add 360
+							if (sign(x_length)==1)&(sign(y_length)==1): #Q1
+								theta = theta;
+							elif (sign(x_length)==-1)&(sign(y_length)==1): #Q2
+								theta = theta + 180;
+							elif (sign(x_length)==-1)&(sign(y_length)==-1): #Q3
+								theta = theta + 180;
+							elif (sign(x_length)==1)&(sign(y_length)==-1):	#Q4
+								theta = theta + 360;
+							thetas[subj_nr].append(theta);
+											
+	#now calculate population stats for latency and amplitude, and plot
+	all_thetas = [l for lat in thetas for l in lat];
+	all_amps = [a for am in amplitudes for a in am];
+	mew_amps = array([mean(lat) for lat in amplitudes]);
+	amps_sems = compute_BS_SEM(mew_amps);
+	
+	#calculate the circular mean for angles
+	#mew_thetas = array([mean(t) for t in thetas]);
+	#thetas_sems = compute_BS_SEM(mew_thetas);
+	
+	#plot the angles
+	fig = figure(figsize = (11,6.5)); ax=subplot(111, polar=True); #gca(); #grid(True);
+	ax.set_ylim(0, 1.1); ax.set_yticks([]); 
+	ax.set_xlabel('Saccade angle',size=16,labelpad=7); #ax.set_ylabel('Frequency',size=18);
+	ax.plot(all_thetas, ones(len(all_thetas)), 'ro', markersize = 10);
+	#ax.spines['polar'].set_linewidth(2.0);  #couldn't get this to work
+	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	#ax.set_title('Population anticipatory saccade (<100 ms) angular direction', fontsize = 20);
+	title('Population anticipatory saccade (<100 ms) angular direction', fontsize = 18);	
+						
+	1/0;
+	#need to debug this, make sure the calculation of the polar coordinates works
+
 
 ############################################
 ## Saccadic Endpoint Heat Map ##

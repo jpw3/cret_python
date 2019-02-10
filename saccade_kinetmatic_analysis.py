@@ -567,6 +567,9 @@ def computeAllExceptFirstSaccadeKinetmatics(block_matrix):
 	onset_latencies = [[] for su in block_matrix];
 	amplitudes = [[] for su in block_matrix];
 	nr_saccades = [[0] for su in block_matrix];
+	
+	#define a variable to store the amplitude for very fast saccades
+	concurrent_amplitudes = [[] for su in block_matrix]; #concurrently planned witll be defined as less than 125 ms (a la McPeek et al. 2000)
 
 	#loop through each trial and score whether trial was excluded because of a dropped sample
 	for subj_nr, blocks in enumerate(block_matrix):
@@ -602,6 +605,11 @@ def computeAllExceptFirstSaccadeKinetmatics(block_matrix):
 									if saccade_counter > 1:
 										onset_latencies[subj_nr].append(sac_start_time-sac_lat_start_calculation);
 										amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
+										
+										#here is the conditional to determine if this is a concurrently planned saccade
+										if sac_start_time-sac_lat_start_calculation < 125:
+											concurrent_amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
+											
 									sac_lat_start_calculation = sac_end_time; #set this variable 
 										
 							elif issac == 1:
@@ -615,11 +623,14 @@ def computeAllExceptFirstSaccadeKinetmatics(block_matrix):
 	#now calculate population stats for latency and amplitude, and plot
 	all_lats = [l for lat in onset_latencies for l in lat];
 	all_amps = [a for am in amplitudes for a in am];
+	all_concurrent_amps = [a for am in concurrent_amplitudes for a in am];
 	mew_latencies = array([mean(lat) for lat in onset_latencies]);
 	latencies_sems = compute_BS_SEM(mew_latencies);
 	mew_amps = array([mean(lat) for lat in amplitudes]);
 	amps_sems = compute_BS_SEM(mew_amps);
-
+	mew_concurrent_amps = array([mean(lat) for lat in concurrent_amplitudes]);
+	concurrent_amps_sems = compute_BS_SEM(mew_concurrent_amps);
+	
 	#plot the distribution of saccadid latencies across all participants
 	
 	fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
@@ -638,8 +649,6 @@ def computeAllExceptFirstSaccadeKinetmatics(block_matrix):
 	#save the figure
 	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_ONSET_DISTRIBUTION_ALLSUBJECTS.png');	
 
-
-
 	#now plot distribution of amplitudes
 	
 	fig = figure(figsize = (12.8,7.64)); ax=gca(); #grid(True);
@@ -653,10 +662,27 @@ def computeAllExceptFirstSaccadeKinetmatics(block_matrix):
 	title('Population average saccadic amplitudes for OTHER saccades', fontsize = 22);
 	
 	#add text detailing the mean saccadic latency
-	fig.text(0.75, 0.48, 'MEAN AMPLITUDE:\n %s +- %s degrees '%(round(mean(mew_amps)),round(amps_sems)),size=16,weight='bold');
+	fig.text(0.75, 0.48, 'MEAN AMPLITUDE:\n %s +- %s degrees '%(round(mean(mew_amps),2),round(amps_sems,2)),size=16,weight='bold');
 
 	#save the figure
-	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');	
+	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');
+	
+	#finally, plot the distribution of amplitudes for very fast concurrently planned saccades (<125 ms)
+	fig = figure(figsize = (12.8,7.64)); ax=gca(); #grid(True);
+	#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
+	ax.set_ylabel('Frequency',size=18); ax.set_xlabel('Saccade amplitude',size=18,labelpad=15);
+	ax.hist(all_concurrent_amps, color = 'orange');
+
+	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	title('Population average saccadic amplitudes for OTHER saccades \n only concurrently planned (<125 ms latency)', fontsize = 22);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.75, 0.48, 'MEAN AMPLITUDE:\n %2.1f +- %2.1f degrees '%(round(mean(mew_concurrent_amps),2),round(concurrent_amps_sems,2)),size=16,weight='bold');
+
+	#save the figure
+	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_CONCURRENT_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');
 	
 	1/0
 

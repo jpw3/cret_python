@@ -958,6 +958,98 @@ def computeSaccadePolarCoordinateData(block_matrix):
 ## Saccadic Endpoint Heat Map ##
 ############################################
 
+def createStartingPositionMapOutsideofFixationAllTrialTypesTogether(block_matrix):
+	#designed to plot where subjects were starting to look at when they weren't starting at the center of the screen
+	start_time = time.time(); #start recording how long this takes
+
+#1. Create data holders for the analyses
+
+	#first, get the individual eye traces for each item for each trial where the selected_item was chosen
+	# store each item's eye traces (adding a +1 for the trace being in that location at any time point in the trial) by creating little windows
+	# e.g., a 4-degree by 4-degree square around each picture
+	#compare against reference X,Y coordinates and place the values into each matrrix accordingly
+	#aggregate this for each participant into a combined map
+		
+	#these are holder arrays for each participant, for each item.
+	# Each list holds a 40 by 40 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
+	# this gives me 0.5 degree resolution for the 20 dva by 20 dva square I am creating
+	subj_arrays = [zeros((40,40)) for su in block_matrix];
+	trial_counters = [[0] for su in block_matrix]; #to count how many trial are counted for this participant
+	
+	#these are arrays for the aggregated data
+	agg_array = zeros((40,40));
+	
+	#get reference arrays for the display. these are used to create a meshgrid for determinging where to place a 1
+	#NOTE: I am using a square for this matrix to make sure the placement of saccade endpoints is not stretched in one postion
+	# due to differences in size between the vertical and horizontal size of the display: display_size = array([22.80, 17.10]); 
+	
+	xx_vec = linspace(-10,10,40);
+	yy_vec = linspace(10,-10,40); #NOTE the flipped signs for y axis: positive to negative. Otherwise, this wouldn't correspond to the positive y values on the top of screen
+	
+#2. Iterate through for each subject and get the ending positions of each first saccade, storing appropriately, then create individual maps	
+
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for i in arange(0,len(b.trials)):
+				
+				if ((b.trials[i].dropped_sample == 0)&(b.trials[i].didntLookAtAnyItems == 0)&
+					(b.trials[i].skip == 0)&(sqrt(b.trials[i].eyeX[0]**2 + b.trials[i].eyeY[0]**2) > 2.5)):
+						
+						#here, we know they weren't looking at the center of the screen.
+						#now determine where they were looking
+						starting_loc = array([b.trials[i].eyeX[0],b.trials[i].eyeY[0]]);
+						
+						#after this, add a 1 to the appropriate location in this subjects' aggregated alcohol 'map'
+						# note that this computation is stored here in the outer For loop (rather than indented more)
+						# because I am only grabbing the first saccade endpoint. Further computations with all saccades
+						# will need to do this inside the for loop (while loop as well)
+						
+						#now check where in the spatial array is the closest distane to the X,Y position of this data point
+						#this will be the minimum of the distance between each xx point and yy point
+						x_x, y_y = meshgrid(xx_vec, yy_vec);
+						minimum = 10000; coors = array([nan,nan]); #this pre-allocates a very large minimum and an array to hold the indices for the spatial position array
+						#loop through and keep checking against each x,y pair
+						for ex,why in zip(flatten(x_x),flatten(y_y)):
+							comparison = sqrt((starting_loc[0]-ex)**2 + (starting_loc[1]-why)**2);
+							if comparison < minimum:
+								minimum = comparison;
+								coors[0] = ex; coors[1] = why;
+						
+						#here, add a 1 to the ending point of each first saccade
+						x_loc = where(coors[0]==xx_vec)[0][0]; #x coordinate
+						y_loc = where(coors[1]==yy_vec)[0][0]; #y coordinate
+						subj_arrays[subj_nr][y_loc, x_loc] += 1; #add the 1 to the location in the corresponding map.
+						# NOTE the yloc, xloc coordinate system for indexing with this array. This must be done to get x-Loc to correspond to horizontal axis
+						#below, I will aggregate all individual subject's heat maps together in the agg array
+
+			end_time = time.time();
+			print '\n Aggregated total time = %4.2f minutes, completed subject %s block nr %s '%((end_time-start_time)/60.0,subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
+
+			#save each subject's first saccade endpoint heat maps
+			if b.block_nr==len(blocks):
+				#save the 'raw' heat maps
+				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('ALLTRIALS_STARTINGPOSNOTFIXATION_heatmap_subj_%s'%(subj_nr));
+				#set a legend. first, get the maximal value in the array to define a legend
+				m = round(max(map(max,subj_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
+				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALS_STARTINGPOSNOTFIXATION_heatmap_subj_%s.png'%(subj_nr));						
+						
+# 3. Aggregate across subjects by finding the average fixation accumulation		
+			
+	for su in zip(subj_arrays):
+		agg_array += su[0]; #add each subjects' heat maps together	
+	agg_array = agg_array/len(block_matrix); #to get the average
+	
+	#create and save the figure
+	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALS_STARTINGPOSNOTFIXATION_heatmap_subj_%s'%('ALLSUBJECTS'));
+	#set a legend. first, get the maximal value in the array to define a legend
+	m = round(max(map(max,agg_array)),1);
+	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
+	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALS_STARTINGPOSNOTFIXATION_heatmap_subj_%s.png'%('ALLSUBJECTS'));
+	
+	1/0
+	
+
 def createFirstSaccadeEndpointMap(block_matrix, ttype):
 # This function creates fixation frequency maps according to
 # the procedure detailed in Henderson & Hayes (2017) Nature Human Behavior:

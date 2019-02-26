@@ -770,10 +770,12 @@ def createStartingPositionMapOutsideofFixationAllTrialTypesTogether(block_matrix
 	# Each list holds a 40 by 40 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
 	# this gives me 0.5 degree resolution for the 20 dva by 20 dva square I am creating
 	subj_arrays = [zeros((40,40)) for su in block_matrix];
+	subj_proportion_arrays = [zeros((40,40)) for su in block_matrix];
 	trial_counters = [[0] for su in block_matrix]; #to count how many trial are counted for this participant
 	
 	#these are arrays for the aggregated data
 	agg_array = zeros((40,40));
+	agg_prop_array = zeros((40,40));
 	
 	#get reference arrays for the display. these are used to create a meshgrid for determinging where to place a 1
 	#NOTE: I am using a square for this matrix to make sure the placement of saccade endpoints is not stretched in one postion
@@ -818,29 +820,45 @@ def createStartingPositionMapOutsideofFixationAllTrialTypesTogether(block_matrix
 						# NOTE the yloc, xloc coordinate system for indexing with this array. This must be done to get x-Loc to correspond to horizontal axis
 						#below, I will aggregate all individual subject's heat maps together in the agg array
 
+			m = round(max(map(max,subj_arrays[subj_nr])),1); #get maximum nr of saccades here
+			#check if there are no instances of first saccades that are too fast
+			if m == 0:
+				#in this case, reassign the arrray as zeros
+				subj_proportion_arrays[subj_nr] = zeros((40,40));
+				
+			else:
+				subj_proportion_arrays[subj_nr] = subj_arrays[subj_nr]/float(m);
 			end_time = time.time();
 			print '\n Aggregated total time = %4.2f minutes, completed subject %s block nr %s '%((end_time-start_time)/60.0,subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
 
 			#save each subject's first saccade endpoint heat maps
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
-				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('ALLTRIALS_STARTINGPOSNOTFIXATION_heatmap_subj_%s'%(subj_nr));
+				f = figure(); imshow(subj_proportion_arrays[subj_nr], cmap='hot'); title('ALLTRIALS_STARTINGPOSNOTFIXATION_heatmap_subj_%s'%(subj_nr));
 				#set a legend. first, get the maximal value in the array to define a legend
-				m = round(max(map(max,subj_arrays[subj_nr])),1);
-				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
+				mx = round(max(map(max,subj_proportion_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3)); cb.outline.set_linewidth(2.0);
+				#add text to say how many saccade (total and max)		
+				f.text(0.25, 0.85, 'Total nr of saccades:\n %s '%(sum(subj_arrays[subj_nr])),size=8, color = 'white');
+				f.text(0.25, 0.8, 'Max nr of saccades:\n %s '%(m),size=8, color = 'white');	
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALS_STARTINGPOSNOTFIXATION_heatmap_subj_%s.png'%(subj_nr));						
 						
 # 3. Aggregate across subjects by finding the average fixation accumulation		
 			
 	for su in zip(subj_arrays):
-		agg_array += su[0]; #add each subjects' heat maps together	
-	agg_array = agg_array/len(block_matrix); #to get the average
+		agg_array += su[0]; #add each subjects' heat maps together
+		
+	for su in zip(subj_proportion_arrays):
+		agg_prop_array += su[0]; #add each subjects' heat maps together		
+	agg_prop_array = agg_prop_array/len(block_matrix); #to get the average
 	
 	#create and save the figure
-	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALS_STARTINGPOSNOTFIXATION_heatmap_subj_%s'%('ALLSUBJECTS'));
-	#set a legend. first, get the maximal value in the array to define a legend
+	f = figure(); imshow(agg_prop_array, cmap='hot'); title('ALLTRIALS_STARTINGPOSNOTFIXATION_heatmap_subj_%s'%('ALLSUBJECTS'));
+	mx = max(map(max,agg_prop_array));
+	cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
 	m = round(max(map(max,agg_array)),1);
-	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
+	f.text(0.25, 0.85, 'Total nr of saccades:\n %s '%(sum(agg_array)),size=8, color = 'white');
+	f.text(0.25, 0.8, 'Max nr of saccades:\n %s '%(m),size=8, color = 'white');	
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALS_STARTINGPOSNOTFIXATION_heatmap_subj_%s.png'%('ALLSUBJECTS'));
 	
 	1/0
@@ -875,10 +893,12 @@ def createFirstSaccadeEndpointMap(block_matrix, ttype):
 	# Each list holds a 40 by 40 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
 	# this gives me 0.5 degree resolution for the 20 dva by 20 dva square I am creating
 	subj_arrays = [zeros((40,40)) for su in block_matrix];
+	subj_proportion_arrays = [zeros((40,40)) for su in block_matrix];
 	trial_counters = [[0] for su in block_matrix]; #to count how many trial are counted for this participant
 	
 	#these are arrays for the aggregated data
 	agg_array = zeros((40,40));
+	agg_prop_array = zeros((40,40)); 
 	
 	#get reference arrays for the display. these are used to create a meshgrid for determinging where to place a 1
 	#NOTE: I am using a square for this matrix to make sure the placement of saccade endpoints is not stretched in one postion
@@ -944,31 +964,48 @@ def createFirstSaccadeEndpointMap(block_matrix, ttype):
 						subj_arrays[subj_nr][y_loc, x_loc] += 1; #add the 1 to the location in the corresponding map.
 						# NOTE the yloc, xloc coordinate system for indexing with this array. This must be done to get x-Loc to correspond to horizontal axis
 						#below, I will aggregate all individual subject's heat maps together in the agg array
-
+						
+			m = round(max(map(max,subj_arrays[subj_nr])),1); #get maximum nr of saccades here
+			#check if there are no instances of first saccades that are too fast
+			if m == 0:
+				#in this case, reassign the arrray as zeros
+				subj_proportion_arrays[subj_nr] = zeros((40,40));
+				
+			else:
+				subj_proportion_arrays[subj_nr] = subj_arrays[subj_nr]/float(m);
 			end_time = time.time();
 			print '\n Aggregated total time = %4.2f minutes, completed subject %s block nr %s '%((end_time-start_time)/60.0,subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
 
 			#save each subject's first saccade endpoint heat maps
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
-				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('%s_FIRST_SACCADE_heatmap_subj_%s'%(name, subj_nr));
+				f = figure(); imshow(subj_proportion_arrays[subj_nr], cmap='hot'); title('%s_FIRST_SACCADE_heatmap_subj_%s'%(name, subj_nr));
 				#set a legend. first, get the maximal value in the array to define a legend
-				m = round(max(map(max,subj_arrays[subj_nr])),1);
-				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
+				mx = round(max(map(max,subj_proportion_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3)); cb.outline.set_linewidth(2.0);
+				#add text to say how many saccade (total and max)		
+				f.text(0.25, 0.85, 'Total nr of saccades:\n %s '%(sum(subj_arrays[subj_nr])),size=8, color = 'white');
+				f.text(0.25, 0.8, 'Max nr of saccades:\n %s '%(m),size=8, color = 'white');				
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_FIRSTSACCADE_heatmap_subj_%s.png'%(name, subj_nr));
 				
 # 3. Aggregate across subjects by finding the average fixation accumulation		
 			
 	for su in zip(subj_arrays):
-		agg_array += su[0]; #add each subjects' heat maps together	
-	agg_array = agg_array/len(block_matrix); #to get the average
+		agg_array += su[0]; #add each subjects' heat maps together
+		
+	for su in zip(subj_proportion_arrays):
+		agg_prop_array += su[0]; #add each subjects' heat maps together		
+	agg_prop_array = agg_prop_array/len(block_matrix); #to get the average
 	
 	#create and save the figure
-	figure(); imshow(agg_array, cmap='hot'); title('%s_FIRST_SACCADE_heatmap_subj_%s'%(name,'ALLSUBJECTS'));
-	#set a legend. first, get the maximal value in the array to define a legend
+	f = figure(); imshow(agg_prop_array, cmap='hot'); title('%s_FIRST_SACCADE_heatmap_subj_%s'%(name,'ALLSUBJECTS'));
+	mx = max(map(max,agg_prop_array));
+	cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
 	m = round(max(map(max,agg_array)),1);
-	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
+	f.text(0.25, 0.85, 'Total nr of saccades:\n %s '%(sum(agg_array)),size=8, color = 'white');
+	f.text(0.25, 0.8, 'Max nr of saccades:\n %s '%(m),size=8, color = 'white');		
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_FIRST_SACCADES_heatmap_subj_%s.png'%(name,'ALLSUBJECTS'));
+	
 	
 	
 def createFirstSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
@@ -988,11 +1025,12 @@ def createFirstSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	# Each list holds a 40 by 40 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
 	# this gives me 0.5 degree resolution for the 20 dva by 20 dva square I am creating
 	subj_arrays = [zeros((40,40)) for su in block_matrix];
+	subj_proportion_arrays = [zeros((40,40)) for su in block_matrix]; #to collect the proportion of trials from raw number
 	trial_counters = [[0] for su in block_matrix]; #to count how many trial are counted for this participant
 	
 	#these are arrays for the aggregated data
 	agg_array = zeros((40,40));
-	agg_prop_array = zeros((40,40));
+	agg_prop_array = zeros((40,40)); 
 	
 	#get reference arrays for the display. these are used to create a meshgrid for determinging where to place a 1
 	#NOTE: I am using a square for this matrix to make sure the placement of saccade endpoints is not stretched in one postion
@@ -1058,35 +1096,51 @@ def createFirstSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 						subj_arrays[subj_nr][y_loc, x_loc] += 1; #add the 1 to the location in the corresponding map.
 						# NOTE the yloc, xloc coordinate system for indexing with this array. This must be done to get x-Loc to correspond to horizontal axis
 						#below, I will aggregate all individual subject's heat maps together in the agg array
-
+						
+			m = round(max(map(max,subj_arrays[subj_nr])),1); #get maximum nr of saccades here
+			#check if there are no instances of first saccades that are too fast
+			if m == 0:
+				#in this case, reassign the arrray as zeros
+				subj_proportion_arrays[subj_nr] = zeros((40,40));
+				
+			else:
+				subj_proportion_arrays[subj_nr] = subj_arrays[subj_nr]/float(m);
+				
 			end_time = time.time();
 			print '\n Aggregated total time = %4.2f minutes, completed subject %s block nr %s '%((end_time-start_time)/60.0,subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
 
 			#save each subject's first saccade endpoint heat maps
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
-				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('ALLTRIALTYPES_FIRST_SACCADE_heatmap_subj_%s'%(subj_nr));
+				f = figure(); imshow(subj_proportion_arrays[subj_nr], cmap='hot'); title('ALLTRIALTYPES_FIRST_SACCADE_heatmap_subj_%s'%(subj_nr));
 				#set a legend. first, get the maximal value in the array to define a legend
-				m = round(max(map(max,subj_arrays[subj_nr])),1);
-				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
-				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_FIRSTSACCADE_heatmap_subj_%s.png'%(subj_nr));				
+				mx = round(max(map(max,subj_proportion_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3)); cb.outline.set_linewidth(2.0);
+				
+				#add text to say how many saccade (total and max)		
+				f.text(0.25, 0.85, 'Total nr of saccades:\n %s '%(sum(subj_arrays[subj_nr])),size=8, color = 'white');
+				f.text(0.25, 0.8, 'Max nr of saccades:\n %s '%(m),size=8, color = 'white');
+				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_FIRSTSACCADE_heatmap_subj_%s.png'%(subj_nr));
 			
 				
 # 3. Aggregate across subjects by finding the average fixation accumulation		
 			
 	for su in zip(subj_arrays):
-		agg_array += su[0]; #add each subjects' heat maps together	
-	agg_array = agg_array/len(block_matrix); #to get the average
+		agg_array += su[0]; #add each subjects' heat maps together
+		
+	for su in zip(subj_proportion_arrays):
+		agg_prop_array += su[0]; #add each subjects' heat maps together		
+	agg_prop_array = agg_prop_array/len(block_matrix); #to get the average
 	
 	#create and save the figure
-	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_FIRST_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS'));
+	f = figure(); imshow(agg_prop_array, cmap='hot'); title('ALLTRIALTYPES_FIRST_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS'));
 	#set a legend. first, get the maximal value in the array to define a legend
+	mx = max(map(max,agg_prop_array));
+	cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
 	m = round(max(map(max,agg_array)),1);
-	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
+	f.text(0.25, 0.85, 'Total nr of saccades:\n %s '%(sum(agg_array)),size=8, color = 'white');
+	f.text(0.25, 0.8, 'Max nr of saccades:\n %s '%(m),size=8, color = 'white');		
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_FIRSTSACCADE_heatmap_subj_%s.png'%('ALLSUBJECTS'));
-	
-	
-	
 	
 	
 def createFastLatencyFirstSaccadeEndpointMap(block_matrix,  ttype):
@@ -1100,7 +1154,6 @@ def createFastLatencyFirstSaccadeEndpointMap(block_matrix,  ttype):
 	# Start by computing saccadic onset latencies for first saccades only
 	# Pre-allocate data structure holders
 	onset_latencies = [[] for su in block_matrix];
-	anticipatory_latencies = [[] for su in block_matrix];
 	amplitudes = [[] for su in block_matrix];
 
 	#loop through each trial and score whether trial was excluded because of a dropped sample
@@ -1147,8 +1200,6 @@ def createFastLatencyFirstSaccadeEndpointMap(block_matrix,  ttype):
 						
 						#calculate the latency and amplitude, then save to the subject's array
 						onset_latencies[subj_nr].append(sac_start_time);
-						if sac_start_time<100:
-							anticipatory_latencies[subj_nr].append(sac_start_time);
 						amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
 											
 	#here, get the mean onset latencies for each participant, also get the between-participants SEM
@@ -1183,7 +1234,7 @@ def createFastLatencyFirstSaccadeEndpointMap(block_matrix,  ttype):
 	
 	#these are arrays for the aggregated data
 	agg_array = zeros((40,40));
-	agg_prop_array = zeros((40,40));
+	agg_prop_array = zeros((40,40)); 
 	
 	#get reference arrays for the display. these are used to create a meshgrid for determinging where to place a 1
 	#NOTE: I am using a square for this matrix to make sure the placement of saccade endpoints is not stretched in one postion
@@ -1279,7 +1330,7 @@ def createFastLatencyFirstSaccadeEndpointMap(block_matrix,  ttype):
 				#set a legend. first, get the maximal value in the array to define a legend
 				mx = round(max(map(max,subj_proportion_arrays[subj_nr])),1);
 				cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3)); cb.outline.set_linewidth(2.0);
-				
+
 				#add text to say how many saccade (total and max)		
 				f.text(0.25, 0.85, 'Total nr of saccades:\n %s '%(sum(subj_arrays[subj_nr])),size=8, color = 'white');
 				f.text(0.25, 0.8, 'Max nr of saccades:\n %s '%(m),size=8, color = 'white');
@@ -1551,11 +1602,13 @@ def createOtherSaccadeEndpointMaps(block_matrix, ttype):
 	# Each list holds a 40 by 40 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
 	# this gives me 0.5 degree resolution for the 20 dva by 20 dva square I am creating
 	subj_arrays = [zeros((40,40)) for su in block_matrix];
+	subj_proportion_arrays = [zeros((40,40)) for su in block_matrix]; #to collect the proportion of trials from raw number
 	trial_counters = [[0] for su in block_matrix]; #to count how many trial are counted for this participant
 	saccade_counters = [[0] for su in block_matrix]; #to count how many saccades are counted for this participant
 	
 	#these are arrays for the aggregated data
 	agg_array = zeros((40,40));
+	agg_prop_array = zeros((40,40));
 	
 	#get reference arrays for the display. these are used to create a meshgrid for determinging where to place a 1
 	#NOTE: I am using a square for this matrix to make sure the placement of saccade endpoints is not stretched in one postion
@@ -1616,7 +1669,15 @@ def createOtherSaccadeEndpointMaps(block_matrix, ttype):
 										#below, I will aggregate all individual subject's heat maps together in the agg array
 										
 										saccade_counters[subj_nr][0] +=1;
-	
+										
+			m = round(max(map(max,subj_arrays[subj_nr])),1); #get maximum nr of saccades here
+			#check if there are no instances of first saccades that are too fast
+			if m == 0:
+				#in this case, reassign the arrray as zeros
+				subj_proportion_arrays[subj_nr] = zeros((40,40));
+				
+			else:
+				subj_proportion_arrays[subj_nr] = subj_arrays[subj_nr]/float(m);	
 
 			end_time = time.time();
 			print '\n Aggregated total time = %4.2f minutes, completed subject %s block nr %s '%((end_time-start_time)/60.0,subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
@@ -1624,26 +1685,33 @@ def createOtherSaccadeEndpointMaps(block_matrix, ttype):
 			#save each subject's first saccade endpoint heat maps
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
-				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('%s_OTHER_SACCADES_heatmap_subj_%s'%(name, subj_nr));
-				#set a legend. first, get the maximal value in the array to define a legend
-				m = round(max(map(max,subj_arrays[subj_nr])),1);
-				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
+				f = figure(); imshow(subj_proportion_arrays[subj_nr], cmap='hot'); title('%s_OTHER_SACCADES_heatmap_subj_%s'%(name, subj_nr));
+				mx = round(max(map(max,subj_proportion_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3)); cb.outline.set_linewidth(2.0);		
+				#add text to say how many saccade (total and max)		
+				f.text(0.25, 0.85, 'Total nr of saccades: %s \n'%(sum(subj_arrays[subj_nr])),size=8, color = 'white');
+				f.text(0.25, 0.8, 'Max nr of saccades: %s \n'%(m),size=8, color = 'white');
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_OTHER_SACCADES_heatmap_subj_%s.png'%(name, subj_nr));
 				
 				
 # 3. Aggregate across subjects by finding the average fixation accumulation		
 			
 	for su in zip(subj_arrays):
-		agg_array += su[0]; #add each subjects' heat maps together	
-	agg_array = agg_array/len(block_matrix); #to get the average
+		agg_array += su[0]; #add each subjects' heat maps together
+		
+	for su in zip(subj_proportion_arrays):
+		agg_prop_array += su[0]; #add each subjects' heat maps together		
+	agg_prop_array = agg_prop_array/len(block_matrix); #to get the average
 	
 	#create and save the figure
-	figure(); imshow(agg_array, cmap='hot'); title('%s_OTHER_SACCADE_heatmap_subj_%s'%(name, 'ALLSUBJECTS')); 
+	f = figure(); imshow(agg_prop_array, cmap='hot'); title('%s_OTHER_SACCADE_heatmap_subj_%s'%(name, 'ALLSUBJECTS')); 
 	#set a legend. first, get the maximal value in the array to define a legend
-	m = round(max(map(max,agg_array))); #,1);
-	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);	
+	mx = max(map(max,agg_prop_array));
+	cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
+	m = round(max(map(max,agg_array)),1);
+	f.text(0.25, 0.85, 'Total nr of saccades: %s \n'%(sum(agg_array)),size=8, color = 'white');
+	f.text(0.25, 0.8, 'Max nr of saccades: %s \n'%(m),size=8, color = 'white');
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_OTHER_SACCADES_heatmap_subj_%s.png'%(name, 'ALLSUBJECTS'));						
-	
 	
 	
 def createOtherSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
@@ -1663,11 +1731,13 @@ def createOtherSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	# Each list holds a 40 by 40 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
 	# this gives me 0.5 degree resolution for the 20 dva by 20 dva square I am creating
 	subj_arrays = [zeros((40,40)) for su in block_matrix];
+	subj_proportion_arrays = [zeros((40,40)) for su in block_matrix]; 
 	trial_counters = [[0] for su in block_matrix]; #to count how many trial are counted for this participant
 	saccade_counters = [[0] for su in block_matrix]; #to count how many saccades are counted for this participant
 	
 	#these are arrays for the aggregated data
 	agg_array = zeros((40,40));
+	agg_prop_array = zeros((40,40));
 	
 	#get reference arrays for the display. these are used to create a meshgrid for determinging where to place a 1
 	#NOTE: I am using a square for this matrix to make sure the placement of saccade endpoints is not stretched in one postion
@@ -1728,7 +1798,15 @@ def createOtherSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 										#below, I will aggregate all individual subject's heat maps together in the agg array
 										
 										saccade_counters[subj_nr][0] +=1;
-	
+
+			m = round(max(map(max,subj_arrays[subj_nr])),1); #get maximum nr of saccades here
+			#check if there are no instances of first saccades that are too fast
+			if m == 0:
+				#in this case, reassign the arrray as zeros
+				subj_proportion_arrays[subj_nr] = zeros((40,40));
+				
+			else:
+				subj_proportion_arrays[subj_nr] = subj_arrays[subj_nr]/float(m);		
 
 			end_time = time.time();
 			print '\n Aggregated total time = %4.2f minutes, completed subject %s block nr %s '%((end_time-start_time)/60.0,subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
@@ -1736,24 +1814,31 @@ def createOtherSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 			#save each subject's first saccade endpoint heat maps
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
-				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('ALLTRIALTYPES_OTHER_SACCADES_heatmap_subj_%s'%(subj_nr));
-				#set a legend. first, get the maximal value in the array to define a legend
-				m = round(max(map(max,subj_arrays[subj_nr])),1);
-				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
+				f = figure(); imshow(subj_proportion_arrays[subj_nr], cmap='hot'); title('ALLTRIALTYPES_OTHER_SACCADES_heatmap_subj_%s'%(subj_nr));
+				mx = round(max(map(max,subj_proportion_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3)); cb.outline.set_linewidth(2.0);		
+				#add text to say how many saccade (total and max)		
+				f.text(0.25, 0.85, 'Total nr of saccades: %s \n'%(sum(subj_arrays[subj_nr])),size=8, color = 'white');
+				f.text(0.25, 0.8, 'Max nr of saccades: %s \n'%(m),size=8, color = 'white');
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_OTHER_SACCADES_heatmap_subj_%s.png'%(subj_nr));
 				
 				
 # 3. Aggregate across subjects by finding the average fixation accumulation		
 			
 	for su in zip(subj_arrays):
-		agg_array += su[0]; #add each subjects' heat maps together	
-	agg_array = agg_array/len(block_matrix); #to get the average
+		agg_array += su[0]; #add each subjects' heat maps together
+		
+	for su in zip(subj_proportion_arrays):
+		agg_prop_array += su[0]; #add each subjects' heat maps together		
+	agg_prop_array = agg_prop_array/len(block_matrix); #to get the average
 	
 	#create and save the figure
-	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_OTHER_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS')); 
-	#set a legend. first, get the maximal value in the array to define a legend
-	m = round(max(map(max,agg_array))); #,1);
-	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);	
+	f = figure(); imshow(agg_prop_array, cmap='hot'); title('ALLTRIALTYPES_OTHER_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS')); 
+	mx = max(map(max,agg_prop_array));
+	cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
+	m = round(max(map(max,agg_array)),1);
+	f.text(0.25, 0.85, 'Total nr of saccades: %s \n'%(sum(agg_array)),size=8, color = 'white');
+	f.text(0.25, 0.8, 'Max nr of saccades: %s \n'%(m),size=8, color = 'white');
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_OTHER_SACCADES_heatmap_subj_%s.png'%('ALLSUBJECTS'));						
 	
 	1/0;
@@ -1781,11 +1866,13 @@ def createAllSaccadeEndpointMap(block_matrix, ttype):
 	# Each list holds a 40 by 40 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
 	# this gives me 0.5 degree resolution for the 20 dva by 20 dva square I am creating
 	subj_arrays = [zeros((40,40)) for su in block_matrix];
+	subj_proportion_arrays = [zeros((40,40)) for su in block_matrix]; 
 	trial_counters = [[0] for su in block_matrix]; #to count how many trial are counted for this participant
 	saccade_counters = [[0] for su in block_matrix]; #to count how many saccades are counted for this participant
 	
 	#these are arrays for the aggregated data
 	agg_array = zeros((40,40));
+	agg_prop_array = zeros((40,40));
 	
 	#get reference arrays for the display. these are used to create a meshgrid for determinging where to place a 1
 	#NOTE: I am using a square for this matrix to make sure the placement of saccade endpoints is not stretched in one postion
@@ -1841,29 +1928,45 @@ def createAllSaccadeEndpointMap(block_matrix, ttype):
 									# NOTE the yloc, xloc coordinate system for indexing with this array. This must be done to get x-Loc to correspond to horizontal axis
 									#below, I will aggregate all individual subject's heat maps together in the agg array
 
+			m = round(max(map(max,subj_arrays[subj_nr])),1); #get maximum nr of saccades here
+			#check if there are no instances of first saccades that are too fast
+			if m == 0:
+				#in this case, reassign the arrray as zeros
+				subj_proportion_arrays[subj_nr] = zeros((40,40));
+				
+			else:
+				subj_proportion_arrays[subj_nr] = subj_arrays[subj_nr]/float(m);
+
 			end_time = time.time();
 			print '\n Aggregated total time = %4.2f minutes, completed subject %s block nr %s '%((end_time-start_time)/60.0,subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
 
 			#save each subject's first saccade endpoint heat maps
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
-				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('%s_ALL_SACCADES_heatmap_subj_%s'%(name, subj_nr));
-				#set a legend. first, get the maximal value in the array to define a legend
-				m = round(max(map(max,subj_arrays[subj_nr])),1);
-				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
+				f = figure(); imshow(subj_proportion_arrays[subj_nr], cmap='hot'); title('%s_ALL_SACCADES_heatmap_subj_%s'%(name, subj_nr));
+				mx = round(max(map(max,subj_proportion_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3)); cb.outline.set_linewidth(2.0);		
+				#add text to say how many saccade (total and max)		
+				f.text(0.25, 0.85, 'Total nr of saccades: %s \n'%(sum(subj_arrays[subj_nr])),size=8, color = 'white');
+				f.text(0.25, 0.8, 'Max nr of saccades: %s \n'%(m),size=8, color = 'white');
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_ALL_SACCADES_heatmap_subj_%s.png'%(name, subj_nr));
 				
 # 3. Aggregate across subjects by finding the average fixation accumulation		
 			
 	for su in zip(subj_arrays):
-		agg_array += su[0]; #add each subjects' heat maps together	
-	agg_array = agg_array/len(block_matrix); #to get the average
+		agg_array += su[0]; #add each subjects' heat maps together
+		
+	for su in zip(subj_proportion_arrays):
+		agg_prop_array += su[0]; #add each subjects' heat maps together		
+	agg_prop_array = agg_prop_array/len(block_matrix); #to get the average
 	
 	#create and save the figure
-	figure(); imshow(agg_array, cmap='hot'); title('%s_ALL_SACCADE_heatmap_subj_%s'%(name,'ALLSUBJECTS'));
-	#set a legend. first, get the maximal value in the array to define a legend
+	f = figure(); imshow(agg_prop_array, cmap='hot'); title('%s_ALL_SACCADE_heatmap_subj_%s'%(name,'ALLSUBJECTS'));
+	mx = max(map(max,agg_prop_array));
+	cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
 	m = round(max(map(max,agg_array)),1);
-	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
+	f.text(0.25, 0.85, 'Total nr of saccades: %s \n'%(sum(agg_array)),size=8, color = 'white');
+	f.text(0.25, 0.8, 'Max nr of saccades: %s \n'%(m),size=8, color = 'white');
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'%s_ALL_SACCADES_heatmap_subj_%s.png'%(name,'ALLSUBJECTS'));
 	
 	
@@ -1884,11 +1987,13 @@ def createAllSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 	# Each list holds a 40 by 40 matrix that will hold the aggregated 1's associated with an eye trace at that location according to it's distance wrt the reference array
 	# this gives me 0.5 degree resolution for the 20 dva by 20 dva square I am creating
 	subj_arrays = [zeros((40,40)) for su in block_matrix];
+	subj_proportion_arrays = [zeros((40,40)) for su in block_matrix]; 
 	trial_counters = [[0] for su in block_matrix]; #to count how many trial are counted for this participant
 	saccade_counters = [[0] for su in block_matrix]; #to count how many saccades are counted for this participant
 	
 	#these are arrays for the aggregated data
 	agg_array = zeros((40,40));
+	agg_prop_array = zeros((40,40));
 	
 	#get reference arrays for the display. these are used to create a meshgrid for determinging where to place a 1
 	#NOTE: I am using a square for this matrix to make sure the placement of saccade endpoints is not stretched in one postion
@@ -1944,29 +2049,45 @@ def createAllSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 									# NOTE the yloc, xloc coordinate system for indexing with this array. This must be done to get x-Loc to correspond to horizontal axis
 									#below, I will aggregate all individual subject's heat maps together in the agg array
 
+			m = round(max(map(max,subj_arrays[subj_nr])),1); #get maximum nr of saccades here
+			#check if there are no instances of first saccades that are too fast
+			if m == 0:
+				#in this case, reassign the arrray as zeros
+				subj_proportion_arrays[subj_nr] = zeros((40,40));
+				
+			else:
+				subj_proportion_arrays[subj_nr] = subj_arrays[subj_nr]/float(m);
+
 			end_time = time.time();
 			print '\n Aggregated total time = %4.2f minutes, completed subject %s block nr %s '%((end_time-start_time)/60.0,subj_nr, b.block_nr)  # trial nr %sb.trials[i].trial_nr)
 
 			#save each subject's first saccade endpoint heat maps
 			if b.block_nr==len(blocks):
 				#save the 'raw' heat maps
-				figure(); imshow(subj_arrays[subj_nr], cmap='hot'); title('ALLTRIALTYPES_ALL_SACCADES_heatmap_subj_%s'%(subj_nr));
-				#set a legend. first, get the maximal value in the array to define a legend
-				m = round(max(map(max,subj_arrays[subj_nr])),1);
-				cb = colorbar(pad = 0.1, ticks = linspace(0,m,3)); cb.outline.set_linewidth(2.0);
+				f = figure(); imshow(subj_proportion_arrays[subj_nr], cmap='hot'); title('ALLTRIALTYPES_ALL_SACCADES_heatmap_subj_%s'%(subj_nr));
+				mx = round(max(map(max,subj_proportion_arrays[subj_nr])),1);
+				cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3)); cb.outline.set_linewidth(2.0);		
+				#add text to say how many saccade (total and max)		
+				f.text(0.25, 0.85, 'Total nr of saccades: %s \n'%(sum(subj_arrays[subj_nr])),size=8, color = 'white');
+				f.text(0.25, 0.8, 'Max nr of saccades: %s \n'%(m),size=8, color = 'white');
 				savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_ALL_SACCADES_heatmap_subj_%s.png'%(subj_nr));
 				
 # 3. Aggregate across subjects by finding the average fixation accumulation		
 			
 	for su in zip(subj_arrays):
-		agg_array += su[0]; #add each subjects' heat maps together	
-	agg_array = agg_array/len(block_matrix); #to get the average
+		agg_array += su[0]; #add each subjects' heat maps together
+		
+	for su in zip(subj_proportion_arrays):
+		agg_prop_array += su[0]; #add each subjects' heat maps together		
+	agg_prop_array = agg_prop_array/len(block_matrix); #to get the average
 	
 	#create and save the figure
-	figure(); imshow(agg_array, cmap='hot'); title('ALLTRIALTYPES_ALL_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS'));
-	#set a legend. first, get the maximal value in the array to define a legend
+	f = figure(); imshow(agg_prop_array, cmap='hot'); title('ALLTRIALTYPES_ALL_SACCADE_heatmap_subj_%s'%('ALLSUBJECTS'));
+	mx = max(map(max,agg_prop_array));
+	cb = colorbar(pad = 0.1, ticks = linspace(0,mx,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
 	m = round(max(map(max,agg_array)),1);
-	cb = colorbar(pad = 0.1, ticks = linspace(0,m,3), format = '%2.1f'); cb.outline.set_linewidth(2.0);
+	f.text(0.25, 0.85, 'Total nr of saccades: %s \n'%(sum(agg_array)),size=8, color = 'white');
+	f.text(0.25, 0.8, 'Max nr of saccades: %s \n'%(m),size=8, color = 'white');
 	savefig(figurepath+'heatmaps/SACCADE_HEATMAPS/'+'ALLTRIALTYPES_ALL_SACCADES_heatmap_subj_%s.png'%('ALLSUBJECTS'));
 	
 	

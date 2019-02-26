@@ -22,17 +22,17 @@ import os.path
 ############################################
 
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
+# 
+# datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+# savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+# shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+# figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
-
-# datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-# savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-# shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-# figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -3486,6 +3486,46 @@ class trial(object):
 		self.drift_shift = trialData.drift_shift;
 
 		self.skip = 0;
+		self.didntLookAtAnyItems = nan; #predfine this, will change it in self.getETData for valid trials
+
+		#get eye trace information for all trials here
+		#loop through to get only unique samples, e.g. sampling at 1000 Hz
+		if isinstance(trialData.sampleTimes, int):
+			#this is only triggered if there was only one sample in sample times, which means it can't be accessed via trialDate.sampleTimes[0]
+			all_sample_times = trialData.sampleTimes;
+			#get the data together	
+			self.sample_times = array([all_sample_times]); #[::sampStep];
+			self.eyeX = array([trialData.eyeX]); #[::sampStep];
+			self.eyeY = array([trialData.eyeY]); #[::sampStep];
+			self.p_size = array([trialData.pSize]); #[::sampStep];
+		else:
+			all_sample_times = trialData.sampleTimes-trialData.sampleTimes[0]; #get sample times
+			prev_time = -1;
+			eyeX = []; eyeY = []; pSize = []; samp_times = [];
+			self.dropped_sample = 0; #pre-allocate this and change it if I find one
+			
+			for time,x_pos,y_pos,pup_s in zip(all_sample_times,trialData.eyeX,trialData.eyeY,trialData.pSize):
+				if time==prev_time:
+					continue;
+				else:
+					samp_times.append(time);
+					#check if the sample was very large (e.g., blink or look away) and set the corresponding values to NaNs
+					if (abs(x_pos)>(0.5*display_size[0]))|(abs(y_pos)>(0.5*display_size[1])):
+						x_pos = nan; y_pos = nan; pup_s = nan;
+						self.dropped_sample = 1;
+					eyeX.append(x_pos);
+					eyeY.append(y_pos);
+					pSize.append(pup_s);
+					prev_time = time;
+	
+			#get the data together	
+			self.sample_times = array(samp_times); #[::sampStep];
+			self.eyeX = array(eyeX); #[::sampStep];
+			self.eyeY = array(eyeY); #[::sampStep];
+			self.p_size = array(pSize); #[::sampStep];
+		
+		#here, could standardize the eye trace information (e.g., from sample 1 to sample 100)
+		#			
 		
 		#get the velocity threshold, skip trial, and completed values from the block_data
 		df['trial_number'].iloc[self.trial_nr-1] = self.trial_nr;
@@ -3506,36 +3546,6 @@ class trial(object):
 			df['endingVelCrit'].iloc[self.trial_nr-1] = -1;
 			
 		else:
-			#loop through to get only unique samples, e.g. sampling at 1000 Hz		
-			all_sample_times = trialData.sampleTimes-trialData.sampleTimes[0]; #get sample times
-			prev_time = -1;
-			eyeX = []; eyeY = []; pSize = []; samp_times = [];
-			self.dropped_sample = 0; #pre-allocate this and change it if I find one
-			
-			for time,x_pos,y_pos,pup_s in zip(all_sample_times,trialData.eyeX,trialData.eyeY,trialData.pSize):
-				if time==prev_time:
-					continue;
-				else:
-					samp_times.append(time);
-					#check if the sample was very large (e.g., blink or look away) and set the corresponding values to NaNs
-					if (abs(x_pos)>(0.5*display_size[0]))|(abs(y_pos)>(0.5*display_size[1])):
-						x_pos = nan; y_pos = nan; pup_s = nan;
-						self.dropped_sample = 1;
-					eyeX.append(x_pos);
-					eyeY.append(y_pos);
-					pSize.append(pup_s);
-					prev_time = time;
-				
-
-			#get the data together	
-			self.sample_times = array(samp_times); #[::sampStep];
-			self.eyeX = array(eyeX); #[::sampStep];
-			self.eyeY = array(eyeY); #[::sampStep];
-			self.p_size = array(pSize); #[::sampStep];
-			
-			#standardize the eye trace information
-			
-			
 			#find when the subject was saccading in each trial
 			#use a differentiation method to define the velocity (eye position change/time change) for each time point in the trial
 			#for each trial for each subject, go through and manually adjust the criterion for velocity as needed
@@ -3550,8 +3560,6 @@ class trial(object):
 			temp = totalChange/timeChange; #calculate the velocity for each time point
 			self.velocities = insert(temp,0,0); #insert a 0 at the beginning of the array for the first time point
 			
-			self.didntLookAtAnyItems = nan; #predfine this, will change it in self.getETData
-
 			#create a failsafe for very fast trials, where there is not enough samples to use the butterworth filter
 			if len(self.velocities)>=9:
 

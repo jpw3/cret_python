@@ -1,0 +1,548 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf470
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 #define a Trial object that will hold the individual trial data \
+class trial(object):\
+	#object being passed into this Trial instance should be a dictionary corresponding to the trial data for this given trial\
+	def __init__(self, trialData, df):\
+		self.sub_id = str(trialData.saved_id);\
+		self.block_nr = trialData.block_nr;\
+		self.trial_nr = trialData.trial_nr;\
+		self.trial_type = trialData.trial_type; #determines the pictures that were presented\
+		self.response_time = trialData.trial_times.response_time*1000; #put reaction time into seconds\
+		self.alcohol_pref = str(trialData.alcohol_pref);\
+		self.cigarette_pref = str(trialData.cigarette_pref);\
+		self.presented_pics = [str(t)[:-23] for t in trialData.corresponding_names];\
+		self.picture_order = trialData.picture_ordering;\
+		self.presented_up = str(trialData.presented_up)[:-23]; #slice the string to cut off the '_grayscaled_resizde.png' portion of the string\
+		self.presented_left = str(trialData.presented_left)[:-23];\
+		self.presented_right = str(trialData.presented_right)[:-23];\
+		#conditionals to define where each item was stored\
+		if self.presented_up in alcohol_filenames:\
+			self.alcohol_loc = 'up';\
+		elif self.presented_up in cigarette_filenames:\
+			self.cigarette_loc = 'up';\
+		elif self.presented_up in neutral_filenames:\
+			self.neutral_loc = 'up';\
+			\
+		if self.presented_left in alcohol_filenames:\
+			self.alcohol_loc = 'left';\
+		elif self.presented_left in cigarette_filenames:\
+			self.cigarette_loc = 'left';\
+		elif self.presented_left in neutral_filenames:\
+			self.neutral_loc = 'left';\
+			\
+		if self.presented_right in alcohol_filenames:\
+			self.alcohol_loc = 'right';\
+		elif self.presented_right in cigarette_filenames:\
+			self.cigarette_loc = 'right';\
+		elif self.presented_right in neutral_filenames:\
+			self.neutral_loc = 'right';			\
+		\
+		#response and results\
+		self.reponse = str(trialData.response); #letter corresponding to presented\
+		self.selected_loc = trialData.selected_loc; \
+		self.preferred_item = str(trialData.preferred_item)[:-23];\
+		self.preferred_category = nan; #will change later in the loop below\
+		#finally, eye position and pupil size information\
+		self.drift_shift = trialData.drift_shift;\
+\
+		self.skip = 0;\
+		self.didntLookAtAnyItems = nan; #predfine this, will change it in self.getETData for valid trials\
+\
+		#get eye trace information for all trials here\
+		#loop through to get only unique samples, e.g. sampling at 1000 Hz\
+		if isinstance(trialData.sampleTimes, int):\
+			#this is only triggered if there was only one sample in sample times, which means it can't be accessed via trialDate.sampleTimes[0]\
+			all_sample_times = trialData.sampleTimes;\
+			#get the data together	\
+			self.sample_times = array([all_sample_times]); #[::sampStep];\
+			self.eyeX = array([trialData.eyeX]); #[::sampStep];\
+			self.eyeY = array([trialData.eyeY]); #[::sampStep];\
+			self.p_size = array([trialData.pSize]); #[::sampStep];\
+		else:\
+			all_sample_times = trialData.sampleTimes-trialData.sampleTimes[0]; #get sample times\
+			prev_time = -1;\
+			eyeX = []; eyeY = []; pSize = []; samp_times = [];\
+			self.dropped_sample = 0; #pre-allocate this and change it if I find one\
+			\
+			for time,x_pos,y_pos,pup_s in zip(all_sample_times,trialData.eyeX,trialData.eyeY,trialData.pSize):\
+				if time==prev_time:\
+					continue;\
+				else:\
+					samp_times.append(time);\
+					#check if the sample was very large (e.g., blink or look away) and set the corresponding values to NaNs\
+					if (abs(x_pos)>(0.5*display_size[0]))|(abs(y_pos)>(0.5*display_size[1])):\
+						x_pos = nan; y_pos = nan; pup_s = nan;\
+						self.dropped_sample = 1;\
+					eyeX.append(x_pos);\
+					eyeY.append(y_pos);\
+					pSize.append(pup_s);\
+					prev_time = time;\
+	\
+			#get the data together	\
+			self.sample_times = array(samp_times); #[::sampStep];\
+			self.eyeX = array(eyeX); #[::sampStep];\
+			self.eyeY = array(eyeY); #[::sampStep];\
+			self.p_size = array(pSize); #[::sampStep];\
+		\
+		#here, could standardize the eye trace information (e.g., from sample 1 to sample 100)\
+		#			\
+		\
+		#get the velocity threshold, skip trial, and completed values from the block_data\
+		df['trial_number'].iloc[self.trial_nr-1] = self.trial_nr;\
+		sk = df['skip_trial'].iloc[self.trial_nr-1];\
+		completed = df['completed'].iloc[self.trial_nr-1];\
+		velCrit = df['endingVelCrit'].iloc[self.trial_nr-1];\
+		\
+		#in the extreme case of there only being one sample, just skip the trial because it's a pain in the ass and I won't be able to use it anyway...\
+		if type(trialData.sampleTimes)==int:\
+			self.trial_type = -1;\
+			self.dropped_sample = 1;\
+			self.skip = 1;\
+			self.preferred_category = -1;\
+			self.isSaccade = [-1];\
+			#save these values to the DataFrame\
+			df['skip_trial'].iloc[self.trial_nr-1] = 1;\
+			df['completed'].iloc[self.trial_nr-1] = 1;\
+			df['endingVelCrit'].iloc[self.trial_nr-1] = -1;\
+			\
+		else:\
+			#find when the subject was saccading in each trial\
+			#use a differentiation method to define the velocity (eye position change/time change) for each time point in the trial\
+			#for each trial for each subject, go through and manually adjust the criterion for velocity as needed\
+			# because of how I'm doing this, I want to save each trial after I've been through it so I don't have to do this each time...\
+			#to do so, I will save completed trials' saccade velocity criterion to a .csv that I will import\
+			#if I've already done the trial, I will use the velocity criertion that was already saved\
+			\
+			timeChange = 0.001; #diff(self.sample_times); #difference in time, in seconds \
+			xChange = -diff(self.eyeX);\
+			yChange = -diff(self.eyeY);\
+			totalChange = sqrt(xChange**2+yChange**2);\
+			temp = totalChange/timeChange; #calculate the velocity for each time point\
+			self.velocities = insert(temp,0,0); #insert a 0 at the beginning of the array for the first time point\
+			\
+			#create a failsafe for very fast trials, where there is not enough samples to use the butterworth filter\
+			if len(self.velocities)>=9:\
+\
+				#Next filter the velocities.\
+				#get params for a butterworth filter and bandpass it at 20 Hz\
+				trialTime = self.sample_times[-1]-self.sample_times[0]; #get total time for the trial\
+				samplingRate = 1000.0; #round(len(self.sample_times)/float(trialTime)); #get the downsampled sampling rate\
+				halfSRate = samplingRate/2;\
+				\
+				freqCut =  100; #20; #Christie used a frequency cut off of 20 for the filter, but 'it should be 100' \
+		\
+				butterwindow = freqCut/halfSRate; nthOrder = 2; #defining parameters for the butterworth filter\
+				[b,a] = ssignal.butter(nthOrder,butterwindow); #fit the butterworth filter			\
+				y = ssignal.filtfilt(b,a,self.velocities,padtype='odd'); #get the filtered velocity data		\
+				self.filtered_velocities = y; #append the filtered velocities to this trial instance\
+				\
+				#if there is a NaN in the filtered velocities data, it means we lost samples of data from this trial (they looked down, etc.)\
+				#we want to skip this trial, so I'll set self. skip to 1\
+				\
+				if isnan(self.filtered_velocities).any():\
+					self.skip = 1;\
+					self.isSaccade = [-1];\
+					#save these values to the DataFrame\
+					df['skip_trial'].iloc[self.trial_nr-1] = 1;\
+					df['completed'].iloc[self.trial_nr-1] = 1;\
+					df['endingVelCrit'].iloc[self.trial_nr-1] = -1;\
+				else:\
+					#check if this subject has been completed. if so, find the corresponding trial velocity threshold and skip trial\
+					if isnan(velCrit):\
+						#now determine where the eye was in motion by using an (arbitrary) criterion for saccade velocity\
+\
+						startingVelCrit = 100; #80; #55; #christie used a velocity threshold of 100 degrees/second\
+\
+					else:\
+						startingVelCrit = velCrit;\
+						self.skip = sk;\
+						\
+					# #plot this for looks\
+					# new_crit = 60;\
+					# \
+					# isSaccade = self.filtered_velocities > new_crit;\
+					# #now plot the velocity data in an inset plot	\
+					# figure();ia = gca(); #ia = inset_axes(ax, width="30%", height="30%", loc=1); #set the inset axes as percentages of the original axis size\
+					# saccade_counter = 0; nr_saccades = 0;\
+					# for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),\
+					# 									 self.filtered_velocities, self.velocities, isSaccade):\
+					# 	#plot the eye trace\
+					# 	plot(i, orig_vel, color = 'gray', marker = '*', ms = 2.0, alpha = 0.5);\
+					# 	plot(i, filt_vel, color = 'red', marker = '*', ms = 2.0);  #\
+					# \
+					# #plot the velocity trheshold and set labels\
+					# plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(new_crit,new_crit+0.01,len(self.sample_times)), color = 'black', ls = 'dashed', lw = 1.0);\
+					# ia.set_ylabel('Velocity', fontsize = 14); ia.set_xlabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);\
+					# 	\
+					# 1/0;	\
+					\
+					########## Here, plotting of eye traces occurs ############\
+					\
+					[endingVelCrit, nr_saccades] = self.plotSaccadeGetVelocity(startingVelCrit, completed);\
+					\
+					#save these values to the DataFrame\
+					df['skip_trial'].iloc[self.trial_nr-1] = self.skip;\
+					df['completed'].iloc[self.trial_nr-1] = 1;\
+					df['endingVelCrit'].iloc[self.trial_nr-1] = endingVelCrit;			\
+					\
+					#save the velocity threshold and the isSaccade truth vector to the array\
+					self.saccadeCriterion = endingVelCrit; #degrees/sec\
+					if self.saccadeCriterion == -1:\
+						self.isSaccade = [-1];\
+					self.nr_saccades = nr_saccades;\
+				\
+				############ End plotting of eye traces #################\
+				\
+				self.get_ET_data();\
+				self.get_picture_organzation();\
+				\
+				#print '\\nDidnt look at any items: %s \\n'%self.didntLookAtAnyItems;\
+				\
+			else:\
+				self.filtered_velocities = -1;\
+				self.skip = 1;\
+				self.isSaccade = [-1];\
+				self.saccadeCriterion = -1;\
+				self.nr_saccades = -1;\
+				#save these values to the DataFrame\
+				df['skip_trial'].iloc[self.trial_nr-1] = 1;\
+				df['completed'].iloc[self.trial_nr-1] = 1;\
+				df['endingVelCrit'].iloc[self.trial_nr-1] = -1;\
+	\
+	def get_picture_organzation(self):\
+		#standardized_eyetraces\
+		#determine and normalize all eye traces to assign alcohol to left, cigarette to top, and neutral to right\
+		#apply transformation to eye traces and then save it to the trial instance\
+		# Location coordinates:\
+		# Top (stim loc 1): 0, 6\
+		# Bottom right (stim loc 2): 5.1962, -3\
+		# Bottom left (stim loc 3): -5.1962, -3\
+		# radians difference: 2.0944 (120 degrees), 4.1889 (240 degrees)\
+		# what I want: alcohol = 'left', cigarette = 'top', neutral = 'right'\
+		# What I might have:\
+		# 1. alcohol = 'left', cigarette = 'top', neutral = 'right'\
+		# 2. alcohol = 'top', cigarette = 'left', neutral = 'right'\
+		# 3. alcohol = 'right', cigarette = 'top', neutral = 'left'\
+		# 4. alcohol = 'right', cigarette = 'left', neutral = 'top'\
+		# 5. alcohol = 'top', cigarette = 'right', neutral = 'left'\
+		# 6. alcohol = 'left', cigarette = 'right', neutral = 'top'\
+		\
+		#break it down by which location trial type it was and transform the eye traces accordingly\
+		# will need to rotate by 120 (alcohol in top) or 240 degrees (alcohol in right), by using the following:\
+		# xprime = x cos(theta) + y sin(theta) ; yprime = -x sin(theta) + y cos(theta), using radians\
+\
+		\
+		if (self.alcohol_loc=='left')&(self.cigarette_loc=='up')&(self.neutral_loc=='right'):\
+			#trial type 1\
+			self.pre_transformed_picture_organiztion = 1;\
+			#self.post_transformed_picture_organiztion = 1;\
+			#self.transformedX = self.eyeX; self.transformedY = self.eyeY;\
+		elif (self.alcohol_loc=='up')&(self.cigarette_loc=='left')&(self.neutral_loc=='right'):		\
+			self.pre_transformed_picture_organiztion = 2;\
+		elif (self.alcohol_loc=='right')&(self.cigarette_loc=='up')&(self.neutral_loc=='left'):		\
+			self.pre_transformed_picture_organiztion = 3;\
+		elif (self.alcohol_loc=='right')&(self.cigarette_loc=='left')&(self.neutral_loc=='up'):		\
+			self.pre_transformed_picture_organiztion = 4;\
+		elif (self.alcohol_loc=='up')&(self.cigarette_loc=='right')&(self.neutral_loc=='left'):		\
+			self.pre_transformed_picture_organiztion = 5;\
+		elif (self.alcohol_loc=='left')&(self.cigarette_loc=='right')&(self.neutral_loc=='up'):		\
+			self.pre_transformed_picture_organiztion = 6;\
+		\
+\
+\
+	#define a function that takes a trial object and determines the proportion of time was looking at each item\
+	#this should find arrays of length(trial time) for each item/location, marking a 0 if not looking at that loc\
+	#and a 1 if it is. also should aggregate this together in a succint manner (e.g., proportion of trial spent looking at each item)\
+	#will call this in the Trial definition function			\
+\
+	def get_ET_data(self):\
+		lookedUp = zeros(len(self.sample_times)); #truth arrays\
+		lookedLeft = zeros(len(self.sample_times));\
+		lookedRight = zeros(len(self.sample_times));\
+		\
+		#0. loop through the time points and determine whether they were looking at each item at each time point\
+		\
+		for i,data in enumerate(zip(self.sample_times,self.eyeX,self.eyeY)):\
+\
+			time = data[0]; xx = data[1]; yy = data[2]; #pull out the data from the data tuple\
+			\
+			#conditional to check if eye position was within the threshold for each image loc			\
+			if sqrt((xx-up_pic_coors[0])**2 + (yy-up_pic_coors[1])**2)<distance_threshold:\
+				lookedUp[i] = 1;\
+			elif sqrt((xx-left_pic_coors[0])**2 + (yy-left_pic_coors[1])**2)<distance_threshold:	\
+				lookedLeft[i] = 1;\
+			elif sqrt((xx-right_pic_coors[0])**2 + (yy-right_pic_coors[1])**2)<distance_threshold:	\
+				lookedRight[i] = 1;\
+				\
+		#1.0 assign the truth arrays to the appropriate image type.		\
+							\
+		if self.alcohol_loc ==  'up':\
+			self.lookedAtAlcohol = lookedUp;\
+		elif self.alcohol_loc == 'left':\
+			self.lookedAtAlcohol = lookedLeft;\
+		elif self.alcohol_loc == 'right':\
+			self.lookedAtAlcohol = lookedRight;\
+\
+		if self.cigarette_loc ==  'up':\
+			self.lookedAtCigarette = lookedUp;\
+		elif self.cigarette_loc == 'left':\
+			self.lookedAtCigarette = lookedLeft;\
+		elif self.cigarette_loc == 'right':\
+			self.lookedAtCigarette = lookedRight;			\
+			\
+		if self.neutral_loc ==  'up':\
+			self.lookedAtNeutral = lookedUp;\
+		elif self.neutral_loc == 'left':\
+			self.lookedAtNeutral = lookedLeft;\
+		elif self.neutral_loc == 'right':\
+			self.lookedAtNeutral = lookedRight;\
+			\
+		#1.1 find the timepoints where the subject wasn't looking at any item and replace it with nan\
+		\
+		notLookingAtAnyItem = where((self.lookedAtAlcohol==0)&(self.lookedAtCigarette==0)&(self.lookedAtNeutral==0))[0]; #this is an array of indices where the overlap between arrays exists\
+		self.lookedAtAlcohol[notLookingAtAnyItem] = nan;\
+		self.lookedAtCigarette[notLookingAtAnyItem] = nan;\
+		self.lookedAtNeutral[notLookingAtAnyItem] = nan;\
+			\
+		#2. compute the amount and percentage of time spent looking at each item in each trial\
+		\
+		self.timeLookingAtAlcohol = nansum(self.lookedAtAlcohol);\
+		self.percentageTimeLookingAtAlcohol = nansum(self.lookedAtAlcohol)/float(len(self.lookedAtAlcohol)-len(notLookingAtAnyItem));\
+		if isnan(self.percentageTimeLookingAtAlcohol): self.percentageTimeLookingAtAlcohol = 0.0; #conditional in case the subject never looked at any of the items\
+		self.timeLookingAtCigarette = nansum(self.lookedAtCigarette);\
+		self.percentageTimeLookingAtCigarette = nansum(self.lookedAtCigarette)/float(len(self.lookedAtCigarette)-len(notLookingAtAnyItem));\
+		if isnan(self.percentageTimeLookingAtCigarette): self.percentageTimeLookingAtCigarette = 0.0;\
+		self.timeLookingAtNeutral = nansum(self.lookedAtNeutral);\
+		self.percentageTimeLookingAtNeutral = nansum(self.lookedAtNeutral)/float(len(self.lookedAtNeutral)-len(notLookingAtAnyItem));\
+		if isnan(self.percentageTimeLookingAtNeutral): self.percentageTimeLookingAtNeutral = 0.0;\
+		\
+		#2.1 Flag if the subject didn't looked at any of the items in the trial\
+		\
+		if (self.percentageTimeLookingAtAlcohol+self.percentageTimeLookingAtCigarette+self.percentageTimeLookingAtNeutral == 0):\
+			self.didntLookAtAnyItems = 1;\
+		else:\
+			self.didntLookAtAnyItems = 0;\
+		\
+		#3. assign the array and stats that corresponded to the chosen item to a unique array	\
+			\
+		if self.preferred_item in alcohol_filenames:\
+			self.preferred_category = 'alcohol';\
+			self.lookedAtPreferred = self.lookedAtAlcohol;\
+			self.timeLookingAtPreferred = self.timeLookingAtAlcohol;\
+			self.percentageTimeLookingAtPreferred = self.percentageTimeLookingAtAlcohol;\
+		elif self.preferred_item in cigarette_filenames:\
+			self.preferred_category = 'cigarette';\
+			self.lookedAtPreferred = self.lookedAtCigarette;\
+			self.timeLookingAtPreferred = self.timeLookingAtCigarette;\
+			self.percentageTimeLookingAtPreferred = self.percentageTimeLookingAtCigarette;\
+		elif self.preferred_item in neutral_filenames:\
+			self.preferred_category = 'neutral';\
+			self.lookedAtPreferred = self.lookedAtNeutral;			\
+			self.timeLookingAtPreferred = self.timeLookingAtNeutral;\
+			self.percentageTimeLookingAtPreferred = self.percentageTimeLookingAtNeutral;\
+			\
+		#4. Determine which item was looked at last (alcohol, neutral, or cigarette)\
+		#4.0 get the latest time point that each item was looked at (alcohol, cigarette, and neutral)\
+		#use a conditional to catch trials where the item wasn't looked at at all. If so, then the\
+		#Lookedat*item* array will be all zeros and the resultant truth array for greater than 0 will be empty\
+		if nansum(self.lookedAtAlcohol) == 0:\
+			latestAlc = -1;\
+		else:\
+			latestAlc = max(where(self.lookedAtAlcohol > 0)[0]);	\
+		if nansum(self.lookedAtCigarette) == 0:\
+			latestCig = -1;\
+		else:\
+			latestCig = max(where(self.lookedAtCigarette > 0)[0]);\
+		if nansum(self.lookedAtNeutral) == 0:	\
+			latestNeu = -1;\
+		else:\
+			latestNeu = max(where(self.lookedAtNeutral > 0)[0]);\
+		\
+		#get the ranking of the values. The last rank (3) will be the largest value, and correspond the latest item looked at\
+		ranks = stats.rankdata(array([latestAlc, latestCig, latestNeu]), method = 'min'); #method = min assures that a value of 1 is asigned to all ranks if the items tie (for example, when no items were looked at)\
+		\
+		#conditional to determine which item had the largest rank and thus latest time in the trial it was looked at\
+		if ranks[0] == 3:\
+			self.lastCategoryLookedAt = 'alcohol';\
+			self.lastItemLookedAt = self.presented_pics[where([name in alcohol_filenames for name in self.presented_pics])[0][0]];\
+			self.timeLastItemLookedAt = self.sample_times[latestAlc];\
+		elif ranks[1] == 3:\
+			self.lastCategoryLookedAt = 'cigarette';\
+			self.lastItemLookedAt = self.presented_pics[where([name in cigarette_filenames for name in self.presented_pics])[0][0]];\
+			self.timeLastItemLookedAt = self.sample_times[latestCig];\
+		elif ranks[2] == 3:\
+			self.lastCategoryLookedAt = 'neutral';\
+			self.lastItemLookedAt = self.presented_pics[where([name in neutral_filenames for name in self.presented_pics])[0][0]];\
+			self.timeLastItemLookedAt = self.sample_times[latestNeu];\
+		else:\
+			self.lastCategoryLookedAt = 'none';\
+			self.lastItemLookedAt = 'none';\
+			self.timeLastItemLookedAt = -1;\
+			\
+			\
+		# 5. Using the same (adjusted) analysis as above for the last item looked at, determine the FIRST item looked at within each trial\
+		if nansum(self.lookedAtAlcohol) == 0:\
+			earliestAlc = -1;\
+		else:\
+			earliestAlc = min(where(self.lookedAtAlcohol > 0)[0]);	\
+		if nansum(self.lookedAtCigarette) == 0:\
+			earliestCig = -1;\
+		else:\
+			earliestCig = min(where(self.lookedAtCigarette > 0)[0]);\
+		if nansum(self.lookedAtNeutral) == 0:	\
+			earliestNeu = -1;\
+		else:\
+			earliestNeu = min(where(self.lookedAtNeutral > 0)[0]);\
+			\
+		#get the ranking of the values. The first rank (1) will be the largest value, and correspond the latest item looked at\
+		ranks = stats.rankdata(array([earliestAlc, earliestCig, earliestNeu]), method = 'min');\
+				\
+		#conditional to determine which item had the lowest rank and thus latest time in the trial it was looked at\
+		if ranks[0] == 1:\
+			self.firstCategoryLookedAt = 'alcohol';\
+			self.firstItemLookedAt = self.presented_pics[where([name in alcohol_filenames for name in self.presented_pics])[0][0]];\
+			self.timeFirstItemLookedAt = self.sample_times[earliestAlc];\
+		elif ranks[1] == 1:\
+			self.firstCategoryLookedAt = 'cigarette';\
+			self.firstItemLookedAt = self.presented_pics[where([name in cigarette_filenames for name in self.presented_pics])[0][0]];\
+			self.timeFirstItemLookedAt = self.sample_times[earliestCig];\
+		elif ranks[2] == 1:\
+			self.firstCategoryLookedAt = 'neutral';\
+			self.firstItemLookedAt = self.presented_pics[where([name in neutral_filenames for name in self.presented_pics])[0][0]];\
+			self.timeFirstItemLookedAt = self.sample_times[earliestNeu];\
+		else:\
+			self.firstCategoryLookedAt = 'none';\
+			self.firstItemLookedAt = 'none';\
+			self.timeFirstItemLookedAt = -1;			\
+			\
+\
+\
+	def plotSaccadeGetVelocity(self, startingVelCrit, completed=0):\
+		\
+		#completed is a boolean which determines if this trial had been completed previously. if so, then startingVelCrit will be the (already accepted) threshold\
+		\
+		## December 4 2018 - currently not plotting of setting velocity threshold for ech trial, instead sticking with 100 degrees / second threshold for all trials\
+		#plotting code is commented out\
+		# \
+		# print; print "'a' = accept this trial, 'c' = crash, 's' = skip this trial"; print;\
+		# print ; print "To adjust threshold, just type new threshold: " ; print ;\
+		\
+		#must make this iterative to that I can adjust the velocity threshold until it is appropriate for this trial	\
+		new_crit = startingVelCrit;\
+		resp = 0; skip_trial = 0;\
+		\
+		while resp!=('a'):\
+			\
+			isSaccade = self.filtered_velocities > new_crit; #identify where a saccade was based on the velocity criterion     filtered\
+			if new_crit == -1:\
+				self.isSaccade = [-1]; #assign the isSaccade vector to be a -1 if there were no saccades made\
+			self.isSaccade = isSaccade; #append the isSaccade vector to the trial object\
+			\
+			#determine if I did this trial/block before. If so, need need to re-plot (takes too much time)\
+			if completed == 0:\
+				# # #plot the different saccades for the given trial for use in debugging	\
+				fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)\
+				ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);\
+				legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','gold','yellowgreen',\
+											 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred','bisque','olivedrab','seagreen','darkcyan','cadetblue',\
+											 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew',\
+											 'indigo','lightpink','peru','slateblue', 'red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','gold','yellowgreen',\
+											 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred','bisque','olivedrab','seagreen','darkcyan','cadetblue',\
+											 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew',\
+											 'indigo','lightpink','peru','slateblue','red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','gold','yellowgreen',\
+											 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred','bisque','olivedrab','seagreen','darkcyan','cadetblue',\
+											 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew',\
+											 'indigo','lightpink','peru','slateblue'];\
+				#first plot the eye traces with respect to the velocity data\
+				#if the eye is in movements, use the color array above. otheriwse use black to denote fixation\
+				saccade_counter = 0; nr_saccades = 0;\
+				for i,xx,yy,issac in zip(range(len(self.sample_times)),\
+													 self.eyeX, self.eyeY, isSaccade):\
+					#plot the eye trace in black if not saccading\
+					if issac == 0:\
+						ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);\
+						#conditional to switch to the next saccade color\
+						#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)\
+						if (isSaccade[i-1]==True)&(i>0):  					\
+							saccade_counter+=1;\
+							if saccade_counter > len(colors):\
+								saccade_counter=0;					\
+					else:\
+						ax.plot(xx, yy, color = colors[saccade_counter], marker = 'o', ms = 4);\
+						if (isSaccade[i-1]==False)&(i>0):  \
+							nr_saccades+=1;\
+							legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));\
+						\
+				ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);\
+				ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);\
+				ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');\
+				ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); \
+				title('Eye Trace and Position Velocity \\nSubject %s, Block %s, Trial %s'%(self.sub_id, self.block_nr, self.trial_nr), fontsize = 22);\
+				\
+				#now plot the velocity data in an inset plot	\
+				ia = inset_axes(ax, width="30%", height="30%", loc=1); #set the inset axes as percentages of the original axis size\
+				saccade_counter = 0; nr_saccades = 0;\
+				for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),\
+													 self.filtered_velocities, self.velocities, isSaccade):\
+					#plot the eye trace in black if not saccading\
+					plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),\
+					if issac == 0:\
+						plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);  #\
+						#conditional to switch to the next saccade color\
+						#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)\
+						if (isSaccade[i-1]==True)&(i>0):			\
+							saccade_counter+=1;\
+							if saccade_counter > len(colors):\
+								saccade_counter=0;\
+					else:\
+						plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5); #filt_vel\
+						if (isSaccade[i-1]==False)&(i>0):  \
+							nr_saccades+=1;\
+				#plot the velocity trheshold and set labels\
+				plot(linspace(0,len(self.sample_times),len(self.sample_times)), linspace(new_crit,new_crit+0.01,len(self.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);\
+				ia.set_ylabel('Velocity', fontsize = 14); ia.set_xlabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);\
+				\
+				fig.text(0.7, 0.4, 'CURRENT VELOCITY \\n THRESHOLD: %s deg/s'%(new_crit),size=16,weight='bold');\
+				\
+				resp = raw_input();	#wait for the button press to move to next trial				\
+				\
+			elif completed == 1:\
+\
+				# no need to plot here, just slows everything down. RUn through and determine the nr of saccades\
+				saccade_counter = 0; nr_saccades = 0;\
+				for i,xx,yy,issac in zip(range(len(self.sample_times)),\
+													 self.eyeX, self.eyeY, isSaccade):\
+					#plot the eye trace in black if not saccading\
+					if issac == 0:\
+						foo = 'bar';			\
+					else:\
+						if (isSaccade[i-1]==False)&(i>0):  \
+							nr_saccades+=1;\
+		\
+				resp = 'a'; #move on if this trial was already completed\
+		\
+		# below here dictates what to do depending on the saccade threshold variable\
+		\
+			if resp.isdigit(): #adjust the threshold here\
+				new_crit = float(resp);\
+			elif resp == 'c':\
+				1/0;\
+			elif resp == 'a':\
+				endingVelCrit = new_crit;\
+			elif resp == 's':\
+				endingVelCrit = -1; #this is a flag for skipping this trial\
+				nr_saccades = -1;\
+				self.skip = 1;\
+				resp = 'a';\
+			else:\
+				new_crit = new_crit;\
+			\
+			close('all');\
+			\
+			#####endingVelCrit = startingVelCrit;\
+		return [endingVelCrit, nr_saccades];}

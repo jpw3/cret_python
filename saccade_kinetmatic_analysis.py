@@ -29,16 +29,16 @@ import os.path
 
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 # 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+# datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+# savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+# shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+# figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 # 
-# datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-# savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-# shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-# figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -312,6 +312,153 @@ def calculateExcludedTrialInformation(block_matrix):
 # 1. Distribution of onsets latencies
 # 2. Average onset latencies
 
+
+######## MUST DEBUG THIS, HAVEN'T DONE SO YET. 
+
+def computeSecondarySaccadeData(blocks):
+	#this function is designed to determine the proportion fo saccades that are corrective and/or exploratory
+	#to do so, find the proportion of subsequent saccades (e.g., 1-back) that remain within the same 3 dva circle
+	#corresponding to the item that the 1-back saccade was on
+	
+	totals = [[0] for su in block_matrix]; #holder for total nr of subsequent saccades
+	# ^ (but not first saccades, and not include comparisons between saccades that were not on an object)
+	stayed_on_items = [[] for su in block_matrix]; #important one, holder for saccades on the same item as previous
+	#these next two are just here for legacy. May use them in the future to do this analysis for a subset of saccades (e.g., last one)
+	onset_latencies = [[] for su in block_matrix];
+	amplitudes = [[] for su in block_matrix];
+	
+	#coordinate locations for the top, left, an right picture locations
+	left_pic_coors = array([-5.20,-3.0]); #in dva
+	right_pic_coors = array([5.20,-3]);
+	up_pic_coors = array([0,6]);
+	
+	distance_threshold = 3; #dva
+	
+	#loop through each trial and aggregate the nr of saccades where the previous saccade (1-back) was on the same object
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for t in b.trials:
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&
+					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):      #&(t.trial_type==ttype)
+					
+					if (t.nr_saccades > 1):  #this conditional is used to ensure that no trials without saccades or only 1 saccade sneak through
+						
+						sac_start_time = 0;
+						sac_start_pos = array([]);						
+						sac_end_time = 0;
+						sac_end_pos = array([]);
+						
+						previously_viewed_item_index = -1;
+						currently_viewed_item_index = -1; #this is -1 to start, will change accordingly
+						
+						#get the alcohol, cigarette, and neutral coordinates.
+						if t.alcohol_loc == 'up':
+							alc_coors = up_pic_coors;
+						elif t.alcohol_loc == 'left':
+							alc_coors = left_pic_coors;
+						elif t.alcohol_loc == 'right':
+							alc_coors = right_pic_coors;
+							
+						if t.cigarette_loc == 'up':
+							cig_coors = up_pic_coors;
+						elif t.cigarette_loc == 'left':
+							cig_coors = left_pic_coors;
+						elif t.cigarette_loc == 'right':
+							cig_coors = right_pic_coors;
+							
+						if t.neutral_loc == 'up':
+							neu_coors = up_pic_coors;
+						elif t.neutral_loc == 'left':
+							neu_coors = left_pic_coors;
+						elif t.neutral_loc == 'right':
+							neu_coors = right_pic_coors;								
+						
+						item_coors = array([alc_coors, cig_coors, neu_coors]); # ALWAYS keep in the same ordering
+						# ^ use this to compare the end point of the current saccade. I will extract the index,
+						#which will always correspond to the same item in each trial, and compare the index for
+						#saccade n against index for saccade n-1
+						
+						1/0
+						
+						#Below here goes through each trial and pulls out the saccde endpoint
+						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+						# we get to the end of the trial
+						
+						saccade_counter = 0;
+						for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+															 t.eyeX, t.eyeY, t.isSaccade):
+							#if no saccade has been made yet, keep running through the isSaccade array
+							# issac < 1 will be zero at all non-saccading time points, including the start
+							if issac == 0:
+								#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+								if (t.isSaccade[ii-1]==True)&(ii>0):
+									nr_saccades[subj_nr][0] += 1;
+									saccade_counter+=1;
+									sac_end_time = t.sample_times[ii];
+									sac_end_pos = array([xx,yy]);
+									amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));						
+									if saccade_counter>1:     #already have the onset latency for the first saccade
+										onset_latencies[subj_nr].append(sac_start_time-sac_lat_start_calculation);							
+									sac_lat_start_calculation = sac_end_time; #set this variable as the first onset latency
+									
+									#here, get the item location that this was closest to
+									#something like min(alc_coors - saccadic endpoint, cig_coors - saccadic endpoint)
+									
+									1/0
+									
+									previously_viewed_item_index = currently_viewed_item_index; #hand off the current item index to the previously viewed item index
+									
+									#find the item I am looking at here. 3 is the degree of visual angle threshold if not looking at anything, wait
+									if sqrt((sac_end_pos[0]-item_coors[0][0])**2 + (sac_end_pos[1]-item_coors[0][1])**2 < distance_threshold):
+										currently_viewed_item_index = 0; #alcohol
+									elif sqrt((sac_end_pos[0]-item_coors[1][0])**2 + (sac_end_pos[1]-item_coors[1][1])**2 < distance_threshold):
+										currently_viewed_item_index = 1;  #cigarette
+									elif sqrt((sac_end_pos[0]-item_coors[2][0])**2 + (sac_end_pos[1]-item_coors[2][1])**2 < distance_threshold):
+										currently_viewed_item_index = 2; #neutral
+									else:
+										currently_viewed_item_index = -1;
+										
+									1/0	
+										
+									#check against the previous saccade location index. If it's the same, index according.
+									#otherwise, just add to the total counter
+									#don't check or index if not a valid comparison
+									
+									if previously_viewed_item_index == -1:
+										#here, the previous saccade was to a non-object location. don't compare or index
+										#also first saccade, don't check or index to add to total count
+										foo = 'bar';
+									elif currently_viewed_item_index == -1:
+										#here, the current saccade was to a non-object location. don't compare or index
+										foo = 'bar';
+									elif (previously_viewed_item_index>0) & (currently_viewed_item_index > 0):
+										#finally, here both previous and current saccade were directed to an object
+										#let's compare to see if they are the same object
+										#make sure to add to the total nr of saccades of this type, as well			
+										same_bool = previously_viewed_item_index==currently_viewed_item_index; # 0 or 1
+										
+										stayed_on_items[subj_nr].append(same_bool); #append the comparison boolean
+										totals[subj_nr] += 1; #this adds a count to the counter for a subsequent saccade where both saccades were directed to an item
+										
+										1/0
+									
+							elif issac == 1:
+								#get the starting point for this saccade as well as the time
+								#the first transition between 0 and 1 will be the first saccade start
+								if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+									sac_start_time = t.sample_times[ii];
+									sac_start_pos = array([xx,yy]);
+									onset_latencies[subj_nr].append(sac_start_time);
+									
+									
+								elif (t.isSaccade[ii-1]==False)&(ii>0):
+									sac_start_time = t.sample_times[ii];
+									sac_start_pos = array([xx,yy]);
+
+		#here, find each participant's proportion of trials where a subsequent saccade swas directed to the same object
+
+
+
 def computeFirstSaccadeKinematics(block_matrix):
 
 # Start with computing saccadic onset latencies for first saccades only
@@ -513,6 +660,198 @@ def computeFirstSaccadeKinematics(block_matrix):
 
 	1/0
 
+def computeFirstSaccadeKinematicsChangesWithTime(block_matrix):
+	#this function looks at onset latencies for first saccades for first and last blocks
+	#trying to detrmine if they are different (do they get faster with experience with the task?)
+
+# Start with computing saccadic onset latencies for first saccades only
+	# Pre-allocate data structure holders
+	first_onset_latencies = [[] for su in block_matrix];
+	first_amplitudes = [[] for su in block_matrix];
+
+	#loop through each trial and score whether trial was excluded because of a dropped sample
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for t in b.trials:
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&
+					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)&(t.block_nr==1)):      #&(t.trial_type==ttype)
+					
+					if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
+						
+						sac_start_time = 0;
+						sac_start_pos = array([]);						
+						sac_end_time = 0;
+						sac_end_pos = array([]);
+						
+						#Below here goes through each trial and pulls out the first saccde
+						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+						# we get to the end of the trial
+						
+						saccade_counter = 0;
+						while saccade_counter==0:
+							for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+																 t.eyeX, t.eyeY, t.isSaccade):
+								#if no saccade has been made yet, keep running through the isSaccade array
+								# issac < 1 will be zero at all non-saccading time points, including the start
+								if issac == 0:
+									#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+									if (t.isSaccade[ii-1]==True)&(ii>0):
+										sac_end_time = t.sample_times[ii];
+										sac_end_pos = array([xx,yy]);
+										saccade_counter+=1;
+									
+									#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
+									if (ii == range(len(t.sample_times))[-1]):
+										saccade_counter = 100;
+										
+								elif issac == 1:
+									#get the starting point for this saccade as well as the time
+									#the first transition between 0 and 1 will be the first saccade start
+									if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+										sac_start_time = t.sample_times[ii];
+										sac_start_pos = array([xx,yy]);
+						
+						#calculate the latency and amplitude, then save to the subject's array
+						first_onset_latencies[subj_nr].append(sac_start_time);
+						first_amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
+											
+	#here, get the mean onset latencies for each participant, also get the between-participants SEM
+	mew_first_latencies = array([mean(lat) for lat in first_onset_latencies]);
+	first_latencies_sems = compute_BS_SEM(mew_first_latencies);
+
+	## Now get the last block data
+	last_onset_latencies = [[] for su in block_matrix];
+	last_amplitudes = [[] for su in block_matrix];
+
+	#loop through each trial and score whether trial was excluded because of a dropped sample
+	for subj_nr, blocks in enumerate(block_matrix):
+		for b in blocks:
+			for t in b.trials:
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&
+					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)&(t.block_nr==len(blocks))):      #&(t.trial_type==ttype)
+					
+					if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
+						
+						sac_start_time = 0;
+						sac_start_pos = array([]);						
+						sac_end_time = 0;
+						sac_end_pos = array([]);
+						
+						#Below here goes through each trial and pulls out the first saccde
+						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+						# we get to the end of the trial
+						
+						saccade_counter = 0;
+						while saccade_counter==0:
+							for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+																 t.eyeX, t.eyeY, t.isSaccade):
+								#if no saccade has been made yet, keep running through the isSaccade array
+								# issac < 1 will be zero at all non-saccading time points, including the start
+								if issac == 0:
+									#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+									if (t.isSaccade[ii-1]==True)&(ii>0):
+										sac_end_time = t.sample_times[ii];
+										sac_end_pos = array([xx,yy]);
+										saccade_counter+=1;
+									
+									#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
+									if (ii == range(len(t.sample_times))[-1]):
+										saccade_counter = 100;
+										
+								elif issac == 1:
+									#get the starting point for this saccade as well as the time
+									#the first transition between 0 and 1 will be the first saccade start
+									if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+										sac_start_time = t.sample_times[ii];
+										sac_start_pos = array([xx,yy]);
+						
+						#calculate the latency and amplitude, then save to the subject's array
+						last_onset_latencies[subj_nr].append(sac_start_time);
+						last_amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
+											
+	#here, get the mean onset latencies for each participant, also get the between-participants SEM
+	mew_last_latencies = array([mean(lat) for lat in last_onset_latencies]);
+	last_latencies_sems = compute_BS_SEM(mew_last_latencies);
+
+	#below here create two plots, one with 15 and the other 14, participant first saccade latency distributions
+	#I am plotting the first block and last block together on each figure
+	#this is meant to provide a graphical representation for each participant. 
+
+	#first, redefine the plotting parameters for the smaller plots I'm using here.
+	matplotlib.rcParams['ytick.labelsize']=10; matplotlib.rcParams['xtick.labelsize']=10;
+	matplotlib.rcParams['xtick.major.size']=5.0; matplotlib.rcParams['ytick.major.size']=5.0;
+
+	#first figure is for the first 15 participants
+	[fig1, ax_arrs1] = subplots(3,5);
+	#subplots_adjust(hspace = 2.0)
+	for ax,subject_first_dists,subject_first_mew,subject_last_dists,subject_last_mew,i in zip(flatten(ax_arrs1),first_onset_latencies[0:15],mew_first_latencies[0:15],last_onset_latencies[0:15],mew_last_latencies[0:15],
+																				   range(15)):
+		
+		# set axis limits the same for easy comparison
+		ax.set_ylim([0,30]); ax.set_xlim([0,750]);  #1000
+		#format the axis
+		if (i==10):  #(i==0)|(i==5)|
+			ax.set_ylabel('Frequency',size=10);
+		if (i==10):
+			ax.set_xlabel('Onset latency',size=10);  #,size=18,labelpad=15);
+		#now plot the distributions, then add the mean and cutoffs	
+		ax.hist(subject_first_dists, bins = [0,50,100,150,200,250,300,350,400,450,500,550,600,650,750], histtype = 'step', color = 'black');
+		ax.axvline(subject_first_mew, 0, 50, color = 'black'); #mean     , linewidth = 
+		ax.hist(subject_last_dists, bins = [0,50,100,150,200,250,300,350,400,450,500,550,600,650,750], histtype = 'step', color = 'red');
+		ax.axvline(subject_last_mew, 0, 50, color = 'red');
+		
+		ax.text(480, 20, 'Diff. in means:\n %s'%(round(subject_last_mew-subject_first_mew)), size = 8);
+		
+		#format everything else
+		ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+		ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+		ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+		ax.set_title('subject %s'%i, size=10);
+	
+	fig1.tight_layout(); #change up the layout to make spacing between subplots more readable
+	savefig(figurepath+ 'SaccadeKinematics/' + 'FIRST_SACCADE_TIMECHANGE_ONSET_INDIVIDUAL_SUBJECTS0-14_DISTRIBUTIONS.png');
+	
+	#next is for the next 14 participants
+	[fig2, ax_arrs2] = subplots(3,5);
+	#delete the last axis
+	delax = [f for f in flatten(ax_arrs2)][-1];
+	test = fig2.delaxes(delax);
+	# delax = [f for f in flatten(ax_arrs2)][-3:]; #for now with 27 participants
+	# test = [fig2.delaxes(d) for d in delax];
+	#subplots_adjust(hspace = 2.0)
+	for ax1,subject_first_dists,subject_first_mew,subject_last_dists,subject_last_mew,i in zip([f for f in flatten(ax_arrs2)][0:15],first_onset_latencies[15:],mew_first_latencies[15:],last_onset_latencies[15:],mew_last_latencies[15:],
+																				   range(15,29)): #range(15,29)
+		
+		# set axis limits the same for easy comparison
+		ax1.set_xlim([0,750]); ax1.set_ylim([0,30]); 
+		#format the axis
+		if (i==10):  #(i==0)|(i==5)|
+			ax1.set_ylabel('Frequency',size=10);
+		if (i==10):
+			ax1.set_xlabel('Onset latency',size=10);  #,size=18,labelpad=15);
+		ax1.hist(subject_first_dists, bins = [0,50,100,150,200,250,300,350,400,450,500,550,600,650,750], histtype = 'step', color = 'black');
+		ax1.axvline(subject_first_mew, 0, 50, color = 'black'); #mean     , linewidth = 
+		ax1.hist(subject_last_dists, bins = [0,50,100,150,200,250,300,350,400,450,500,550,600,650,750], histtype = 'step', color = 'red');
+		ax1.axvline(subject_last_mew, 0, 50, color = 'red');
+		
+		ax1.text(480, 20, 'Diff. in means: \n %s'%(round(subject_last_mew-subject_first_mew)), size = 8);
+		
+		#format everything else
+		ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+		ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+		ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+		ax1.set_title('subject %s'%i, size=10);
+	
+	fig2.tight_layout(); #change up the layout to make spacing between subplots more readable
+	savefig(figurepath+ 'SaccadeKinematics/' + 'FIRST_SACCADE_TIMECHANGE_ONSET_INDIVIDUAL_SUBJECTS15-29_DISTRIBUTIONS.png');
+
+	
+	#set the plotting params back to the standard
+	matplotlib.rcParams['ytick.labelsize']=20; matplotlib.rcParams['xtick.labelsize']=20;
+	matplotlib.rcParams['xtick.major.width']=2.0; matplotlib.rcParams['ytick.major.width']=2.0;
+	matplotlib.rcParams['xtick.major.size']=10.0; matplotlib.rcParams['ytick.major.size']=10.0;
+	
+	1/0
 	
 	
 # def computeAllSaccadeKinetmatics(block_matrix):
@@ -683,76 +1022,136 @@ def computeAllExceptFirstSaccadeKinetmatics(block_matrix):
 									sac_start_time = t.sample_times[ii];
 									sac_start_pos = array([xx,yy]);
 									
-											
-	#now calculate population stats for latency and amplitude, and plot
-	all_lats = [l for lat in onset_latencies for l in lat];
-	all_amps = [a for am in amplitudes for a in am];
-	all_concurrent_amps = [a for am in concurrent_amplitudes for a in am];
+									
+	#here, get the mean onset latencies for each participant, also get the between-participants SEM
 	mew_latencies = array([mean(lat) for lat in onset_latencies]);
 	latencies_sems = compute_BS_SEM(mew_latencies);
-	mew_amps = array([mean(lat) for lat in amplitudes]);
-	amps_sems = compute_BS_SEM(mew_amps);
-	mew_concurrent_amps = array([mean(lat) for lat in concurrent_amplitudes]);
-	concurrent_amps_sems = compute_BS_SEM(mew_concurrent_amps);
 	
-	#plot the distribution of saccadid latencies across all participants
+	#now get the standard deviations of latencies for each participant
+	var_latencies = array([var(lat) for lat in onset_latencies]);
+	std_latencies = array([sqrt(v) for v in var_latencies]);
+	
+	#now find the cutoff latency criteria (2 standard deviations above and below the mean latency)
+	early_latency_crit = mew_latencies - 2*std_latencies;
+	early_latencies_sem = compute_BS_SEM(early_latency_crit);
+	late_latency_crit = mew_latencies + 2*std_latencies;
+	
+	# #get the mean amplitudes of first saccades
+	# mew_amps = array([mean(lat) for lat in amplitudes]);
+	# amps_sems = compute_BS_SEM(mew_amps);
+	
+	#here, find the nr of trials I am excluding due to early onset criterion for each participant
+	nr_excluded = [sum(l<early_crit) for early_crit,l in zip(early_latency_crit, onset_latencies)];
+
+	#get mean and standard error
+	mew_nr_excluded = mean(nr_excluded);
+	excluded_sems = compute_BS_SEM(nr_excluded);
+	
+	#also get percentage of first saccades
+	nr_total = array([float(len(w)) for w in onset_latencies]);
+	perc_excluded = nr_excluded/nr_total;
+	mew_perc = mean(perc_excluded)*100.00;
+	perc_excluded_sems = compute_BS_SEM(perc_excluded)*100.00;
+	
+	print('\n\n NR WOULD-BE EXCLUDED OTHER SACCADES DUE TO FAST ONSETS \n\n')
+	print('\n Average nr of trials excluded for %s subjects: %4.1f \n'%(len(block_matrix),mew_nr_excluded));
+	print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(excluded_sems));
+	print('\n Average percentage of first saccade excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
+	print('\n Between-subjects standard error of the mean: %4.3f \n\n\n\n'%(perc_excluded_sems));										
+		
+	#below here create two plots, one with 15 and the other 14, participant first saccade latency distributions
+	#this is meant to provide a graphical representation for each participant. I will plot the latency criteria too
+
+	#first, redefine the plotting parameters for the smaller plots I'm using here.
+	matplotlib.rcParams['ytick.labelsize']=10; matplotlib.rcParams['xtick.labelsize']=10;
+	matplotlib.rcParams['xtick.major.size']=5.0; matplotlib.rcParams['ytick.major.size']=5.0;
+
+	#first figure is for the first 15 participants
+	[fig1, ax_arrs1] = subplots(3,5);
+	#subplots_adjust(hspace = 2.0)
+	for ax,subject_dists,subject_mew,subject_early_crit,subject_late_crit,i in zip(flatten(ax_arrs1),onset_latencies,mew_latencies,early_latency_crit,late_latency_crit,
+																				   range(15)):
+		
+		# set axis limits the same for easy comparison
+		ax.set_ylim([0,200]); ax.set_xlim([0,1000]);  #1000
+		#format the axis
+		if (i==10):  #(i==0)|(i==5)|
+			ax.set_ylabel('Frequency',size=10);
+		if (i==10):
+			ax.set_xlabel('Onset latency',size=10);  #,size=18,labelpad=15);
+		#now plot the distributions, then add the mean and cutoffs	
+		ax.hist(subject_dists, bins = [0,50,100,150,200,250,300,350,400,450,500,550,600,650,750,800,850,900,950,1000], color = 'lightcoral');  #
+		ax.axvline(subject_mew, 0, 50, color = 'black'); #mean     , linewidth = 
+		
+		ax.text(850, 150, '# saccades: %s'%(len(subject_dists)), size = 8)
+		
+		#format everything else
+		ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+		ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+		ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+		ax.set_title('subject %s'%i, size=10);
+	
+	fig1.tight_layout(); #change up the layout to make spacing between subplots more readable
+	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_ONSET_INDIVIDUAL_SUBJECTS0-14_DISTRIBUTIONS.png');
+	
+	#next is for the next 14 participants
+	[fig2, ax_arrs2] = subplots(3,5);
+	#delete the last axis
+	delax = [f for f in flatten(ax_arrs2)][-1];
+	test = fig2.delaxes(delax);
+	# delax = [f for f in flatten(ax_arrs2)][-3:]; #for now with 27 participants
+	# test = [fig2.delaxes(d) for d in delax];
+	#subplots_adjust(hspace = 2.0)
+	for ax1,subject_dists,subject_mew,subject_early_crit,subject_late_crit,i in zip([f for f in flatten(ax_arrs2)][0:15],onset_latencies[15:],mew_latencies[15:],early_latency_crit[15:],late_latency_crit[15:],
+																				   range(15,29)): #range(15,29)
+		
+		# set axis limits the same for easy comparison
+		ax1.set_xlim([0,1000]); ax1.set_ylim([0,200]); 
+		#format the axis
+		if (i==10):  #(i==0)|(i==5)|
+			ax1.set_ylabel('Frequency',size=10);
+		if (i==10):
+			ax1.set_xlabel('Onset latency',size=10);  #,size=18,labelpad=15);
+		#now plot the distributions, then add the mean and cutoffs	
+		ax1.hist(subject_dists, bins = [0,50,100,150,200,250,300,350,400,450,500,550,600,650,750,800,850,900,950,1000], color = 'lightcoral'); #
+		ax1.axvline(subject_mew, 0, 50, color = 'black'); #mean     , linewidth = 
+
+		ax1.text(850, 150, '# saccades:\n %s'%(len(subject_dists)), size = 8)
+		
+		#format everything else
+		ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+		ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+		ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+		ax1.set_title('subject %s'%i, size=10);
+	
+	fig2.tight_layout(); #change up the layout to make spacing between subplots more readable
+	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_ONSET_INDIVIDUAL_SUBJECTS15-29_DISTRIBUTIONS.png');
+
+	
+	#set the plotting params back to the standard
+	matplotlib.rcParams['ytick.labelsize']=20; matplotlib.rcParams['xtick.labelsize']=20;
+	matplotlib.rcParams['xtick.major.width']=2.0; matplotlib.rcParams['ytick.major.width']=2.0;
+	matplotlib.rcParams['xtick.major.size']=10.0; matplotlib.rcParams['ytick.major.size']=10.0;
+
+	#plot the distribution of average saccadic onset latencies
 	
 	fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
 	#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
-	ax1.set_ylabel('Frequency',size=18); ax1.set_xlabel('Onset latency',size=18,labelpad=15);
-	ax1.hist(all_lats, color = 'red', bins = [0,50,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,950,1000]);
+	ax1.set_ylabel('Frequency',size=18); ax1.set_xlabel('Mean onset latency',size=18,labelpad=8);
+	ax1.hist(mew_latencies, color = 'red', bins = 20);
 
 	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
 	ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
 	ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
-	title('Population average saccadic latencies for OTHER saccades', fontsize = 22);
+	title('Distribution of subject average saccadic latencies for OTHER saccades', fontsize = 22);
 	
 	#add text detailing the mean saccadic latency
 	fig.text(0.7, 0.48, 'MEAN LATENCY:\n %s +- %s ms '%(round(mean(mew_latencies)),round(latencies_sems)),size=16,weight='bold');
+	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_AVERAGE_ONSET_DISTRIBUTION_ALLSUBJECTS.png');	
 
-	#save the figure
-	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_ONSET_DISTRIBUTION_ALLSUBJECTS.png');	
-
-	#now plot distribution of amplitudes
-	
-	fig = figure(figsize = (12.8,7.64)); ax=gca(); #grid(True);
-	#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
-	ax.set_ylabel('Frequency',size=18); ax.set_xlabel('Saccade amplitude',size=18,labelpad=15);
-	ax.hist(all_amps, color = 'darkgray');
-
-	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
-	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
-	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
-	title('Population average saccadic amplitudes for OTHER saccades', fontsize = 22);
-	
-	#add text detailing the mean saccadic latency
-	fig.text(0.75, 0.48, 'MEAN AMPLITUDE:\n %s +- %s degrees '%(round(mean(mew_amps),2),round(amps_sems,2)),size=16,weight='bold');
-
-	#save the figure
-	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');
-	
-	#finally, plot the distribution of amplitudes for very fast concurrently planned saccades (<125 ms)
-	fig = figure(figsize = (12.8,7.64)); ax=gca(); #grid(True);
-	#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
-	ax.set_ylabel('Frequency',size=18); ax.set_xlabel('Saccade amplitude',size=18,labelpad=15);
-	ax.hist(all_concurrent_amps, color = 'orange');
-
-	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
-	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
-	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
-	title('Population average saccadic amplitudes for OTHER saccades \n only concurrently planned (<125 ms latency)', fontsize = 22);
-	
-	#add text detailing the mean saccadic latency
-	fig.text(0.75, 0.48, 'MEAN AMPLITUDE:\n %2.1f +- %2.1f degrees '%(round(mean(mew_concurrent_amps),2),round(concurrent_amps_sems,2)),size=16,weight='bold');
-
-	#save the figure
-	savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_CONCURRENT_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');
 	
 	1/0
-
-
-
-
+		
 
 ############################################
 ## Saccadic Endpoint Heat Map ##
@@ -2649,4 +3048,77 @@ def createAllSaccadeEndpointMapAllTrialTypesTogether(block_matrix):
 # 	savefig(figurepath+ 'SaccadeKinematics/' + 'CONCURRENT_SACCADE_RELATIVETHETA_DISTRIBUTION_ALLSUBJECTS.png');
 # 	
 # 	1/0
+
+
+## Other saccade distributional calculations
+
+	# ##	
+	# 										
+	# #now calculate population stats for latency and amplitude, and plot
+	# all_lats = [l for lat in onset_latencies for l in lat];
+	# all_amps = [a for am in amplitudes for a in am];
+	# all_concurrent_amps = [a for am in concurrent_amplitudes for a in am];
+	# mew_latencies = array([mean(lat) for lat in onset_latencies]);
+	# latencies_sems = compute_BS_SEM(mew_latencies);
+	# mew_amps = array([mean(lat) for lat in amplitudes]);
+	# amps_sems = compute_BS_SEM(mew_amps);
+	# mew_concurrent_amps = array([mean(lat) for lat in concurrent_amplitudes]);
+	# concurrent_amps_sems = compute_BS_SEM(mew_concurrent_amps);
+	# 
+	# #plot the distribution of saccadic latencies across all participants
+	# 
+	# fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
+	# #ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
+	# ax1.set_ylabel('Frequency',size=18); ax1.set_xlabel('Onset latency',size=18,labelpad=15);
+	# ax1.hist(all_lats, color = 'red', bins = [0,50,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,950,1000]);
+	# 
+	# ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	# ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	# ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	# title('Population average saccadic latencies for OTHER saccades', fontsize = 22);
+	# 
+	# #add text detailing the mean saccadic latency
+	# fig.text(0.7, 0.48, 'MEAN LATENCY:\n %s +- %s ms '%(round(mean(mew_latencies)),round(latencies_sems)),size=16,weight='bold');
+	# 
+	# #save the figure
+	# savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_ONSET_DISTRIBUTION_ALLSUBJECTS.png');	
+	# 
+	# #now plot distribution of amplitudes
+	# 
+	# fig = figure(figsize = (12.8,7.64)); ax=gca(); #grid(True);
+	# #ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
+	# ax.set_ylabel('Frequency',size=18); ax.set_xlabel('Saccade amplitude',size=18,labelpad=15);
+	# ax.hist(all_amps, color = 'darkgray');
+	# 
+	# ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+	# ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+	# ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	# title('Population average saccadic amplitudes for OTHER saccades', fontsize = 22);
+	# 
+	# #add text detailing the mean saccadic latency
+	# fig.text(0.75, 0.48, 'MEAN AMPLITUDE:\n %s +- %s degrees '%(round(mean(mew_amps),2),round(amps_sems,2)),size=16,weight='bold');
+	# 
+	# #save the figure
+	# savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');
+	# 
+	# #finally, plot the distribution of amplitudes for very fast concurrently planned saccades (<125 ms)
+	# fig = figure(figsize = (12.8,7.64)); ax=gca(); #grid(True);
+	# #ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); #ax1.set_xlim([0.5,1.7]); ax1.set_xticks([0.85, 1.15, 1.45]);
+	# ax.set_ylabel('Frequency',size=18); ax.set_xlabel('Saccade amplitude',size=18,labelpad=15);
+	# ax.hist(all_concurrent_amps, color = 'orange');
+	# 
+	# ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+	# ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+	# ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	# title('Population average saccadic amplitudes for OTHER saccades \n only concurrently planned (<125 ms latency)', fontsize = 22);
+	# 
+	# #add text detailing the mean saccadic latency
+	# fig.text(0.75, 0.48, 'MEAN AMPLITUDE:\n %2.1f +- %2.1f degrees '%(round(mean(mew_concurrent_amps),2),round(concurrent_amps_sems,2)),size=16,weight='bold');
+	# 
+	# #save the figure
+	# savefig(figurepath+ 'SaccadeKinematics/' + 'OTHER_SACCADE_CONCURRENT_AMPLITUDE_DISTRIBUTION_ALLSUBJECTS.png');
+	# 
+	# 1/0
+
+
 	

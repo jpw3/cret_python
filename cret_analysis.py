@@ -813,7 +813,8 @@ def computeTotalTimeLookingatEachItem(blocks, eyed = 'agg'):
 				chose_neu_neu_subj = [];				
 
 				for t in subj:
-					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category==selected_item)):
+					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category==selected_item)
+						(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
 						
 						#conditional
 						if selected_item=='alcohol':
@@ -963,7 +964,8 @@ def computeSustainedResponses(blocks, eyed = 'agg'):
 				chose_neu_neu_subj = [];
 
 				for t in subj:
-					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category==selected_item)):
+					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category==selected_item)&
+						(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
 						
 						#conditional
 						if selected_item=='alcohol':
@@ -1078,7 +1080,9 @@ def computeNrDwells(blocks, eyed='agg'):
 		data = pd.DataFrame(columns = ['sub_id','trial_type','alc_avg_nr_fixations','cig_avg_nr_fixations','neu_avg_nr_fixations',
 									   'chose_alc_alc_avg_nr_fixations','chose_alc_cig_avg_nr_fixations','chose_alc_neu_avg_nr_fixations',
 									   'chose_cig_alc_avg_nr_fixations','chose_cig_cig_avg_nr_fixations','chose_cig_neu_avg_nr_fixations',
-									   'chose_neu_alc_avg_nr_fixations','chose_neu_cig_avg_nr_fixations','chose_neu_neu_avg_nr_fixations']);		
+									   'chose_neu_alc_avg_nr_fixations','chose_neu_cig_avg_nr_fixations','chose_neu_neu_avg_nr_fixations',
+									   'total_avg_nr_fixations','chose_alc_total_avg_nr_fixations','chose_cig_total_avg_nr_fixations',
+									   'chose_neu_total_avg_nr_fixations']);		
 
 	#get the avg sustained response at each of the alcohol, cigarettes, and neutral items
 	#get the aggregate breakdown as well as when they chose each item
@@ -1087,22 +1091,28 @@ def computeNrDwells(blocks, eyed='agg'):
 		alc_nr_fix = [];
 		cig_nr_fix = [];
 		neu_nr_fix = [];
+		total_nr_fix = []; #a holder to determine the total nr of dwells across items
 		chose_alc_alc_nr_fix = [];
 		chose_alc_cig_nr_fix = [];
-		chose_alc_neu_nr_fix = [];	
+		chose_alc_neu_nr_fix = [];
+		chose_alc_total_nr_fix = [];
 		chose_cig_alc_nr_fix = [];
 		chose_cig_cig_nr_fix = [];
-		chose_cig_neu_nr_fix = [];	
+		chose_cig_neu_nr_fix = [];
+		chose_cig_total_nr_fix = [];
 		chose_neu_alc_nr_fix = [];
 		chose_neu_cig_nr_fix = [];
 		chose_neu_neu_nr_fix = [];
+		chose_neu_total_nr_fix = [];
 
 		#first run the analysis for all trials of this trial type, not breaking it down by whether they chose alcohol, cigeratte, or neutral
 		#loop through trials for each subject
 		for subj,sub_id in zip(trial_matrix, ids):
 			alc_subj = [];
 			cig_subj = [];
-			neu_subj = [];			
+			neu_subj = [];
+			tot_subj = [];
+			
 			for t in subj:
 				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&
 					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
@@ -1117,6 +1127,8 @@ def computeNrDwells(blocks, eyed='agg'):
 					looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
 					looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
 					looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);
+					
+					total_holder = 0;
 					
 					str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
 					run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
@@ -1133,6 +1145,8 @@ def computeNrDwells(blocks, eyed='agg'):
 					if (nr_fixs==0): alc_subj.append(0);
 					else: alc_subj.append(nr_fixs); #append nr of fixations
 					
+					total_holder+=nr_fixs; #add the nr of dwells from looking at alc to this holder variable
+					
 					str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
 					run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
 					nr_fixs = sum([1 for r in run_lengths_cig]);
@@ -1141,6 +1155,7 @@ def computeNrDwells(blocks, eyed='agg'):
 						nr_fixs +=1;
 					if (nr_fixs==0): cig_subj.append(0);
 					else: cig_subj.append(nr_fixs);
+					total_holder+=nr_fixs; #add the nr of dwells from looking at cig to this holder variable
 
 
 					str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
@@ -1151,26 +1166,31 @@ def computeNrDwells(blocks, eyed='agg'):
 						nr_fixs +=1;
 					if (nr_fixs==0): neu_subj.append(0);
 					else: neu_subj.append(nr_fixs);
+					total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
 					
-					#used to plot eye trace and confirm the dwell calculation is correct
-					if t.trial_nr > 16:
+					tot_subj.append(total_holder); #append the total nr of dwells for this trial
 					
-						plotSingleTrialEyeGaze(t,'Nr of dwells: %s'%(sum(array([alc_subj[-1],cig_subj[-1],neu_subj[-1]]))));	#now plot the trial's data to see if the dwell calculation is correct
-						show();
-						1/0
-						
-						close('all');
+					# #used to plot eye trace and confirm the dwell calculation is correct
+					# if t.trial_nr > 16:
+						# # 
+						# plotSingleTrialEyeGaze(t,'Nr of dwells: %s'%(sum(array([alc_subj[-1],cig_subj[-1],neu_subj[-1]]))));	#now plot the trial's data to see if the dwell calculation is correct
+						# show();
+						# 1/0
+					# 	
+					# 	close('all');
 									
 			#below here need to make sure I am getting the information I want (mean nr of dwells on each item, for each subject)
 			
 			alc_nr_fix.append(mean(alc_subj));
 			cig_nr_fix.append(mean(cig_subj));
 			neu_nr_fix.append(mean(neu_subj));
+			total_nr_fix.append(mean(tot_subj));
 			
 		#below here append averages to the database 
 		db['%s_%s_alc_mean_nr_fix'%(eyed,name)] = nanmean(alc_nr_fix); db['%s_%s_alc_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(alc_nr_fix);
 		db['%s_%s_cig_mean_nr_fix'%(eyed,name)] = nanmean(cig_nr_fix); db['%s_%s_cig_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(cig_nr_fix);
 		db['%s_%s_neu_mean_nr_fix'%(eyed,name)] = nanmean(neu_nr_fix); db['%s_%s_neu_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(neu_nr_fix);
+		db['%s_%s_tot_mean_nr_fix'%(eyed,name)] = nanmean(total_nr_fix); db['%s_%s_tot_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(total_nr_fix);
 		db.sync();		
 
 
@@ -1181,13 +1201,16 @@ def computeNrDwells(blocks, eyed='agg'):
 				
 				chose_alc_alc_subj = [];
 				chose_alc_cig_subj = [];
-				chose_alc_neu_subj = [];			
+				chose_alc_neu_subj = [];
+				chose_alc_tot_subj = []; #total holder
 				chose_cig_alc_subj = [];
 				chose_cig_cig_subj = [];
 				chose_cig_neu_subj = [];
+				chose_cig_tot_subj = []; #total holder
 				chose_neu_alc_subj = [];
 				chose_neu_cig_subj = [];
 				chose_neu_neu_subj = [];
+				chose_neu_tot_subj = []; #total holder
 
 				for t in subj:
 					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category==selected_item)):
@@ -1195,6 +1218,8 @@ def computeNrDwells(blocks, eyed='agg'):
 						looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
 						looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
 						looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);
+						
+						total_holder = 0;
 						
 						#conditional
 						if selected_item=='alcohol':
@@ -1207,6 +1232,8 @@ def computeNrDwells(blocks, eyed='agg'):
 								nr_fixs +=1;
 							if (nr_fixs==0): chose_alc_alc_subj.append(0);
 							else: chose_alc_alc_subj.append(nr_fixs); #append nr of fixations
+							total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
+							chose_alc_tot_subj.append(total_holder); #append the total nr of dwells for this trial
 							
 							str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
 							run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
@@ -1216,7 +1243,9 @@ def computeNrDwells(blocks, eyed='agg'):
 								nr_fixs +=1;
 							if (nr_fixs==0): chose_alc_cig_subj.append(0);
 							else: chose_alc_cig_subj.append(nr_fixs);				
-		
+							total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
+							chose_alc_tot_subj.append(total_holder); #append the total nr of dwells for this trial
+							
 							str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
 							run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
 							nr_fixs = sum([1 for r in run_lengths_neu]);
@@ -1225,7 +1254,9 @@ def computeNrDwells(blocks, eyed='agg'):
 								nr_fixs +=1;
 							if (nr_fixs==0): chose_alc_neu_subj.append(0);
 							else: chose_alc_neu_subj.append(nr_fixs);			
-									
+							total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
+							chose_alc_tot_subj.append(total_holder); #append the total nr of dwells for this trial
+							
 						elif selected_item=='cigarette':				
 							str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
 							run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
@@ -1236,6 +1267,8 @@ def computeNrDwells(blocks, eyed='agg'):
 								nr_fixs +=1;
 							if (nr_fixs==0): chose_cig_alc_subj.append(0);
 							else: chose_cig_alc_subj.append(nr_fixs); #append the max, if there is one
+							total_holder+=nr_fixs; #add the nr of dwells from looking at alc to this holder variable
+							chose_cig_tot_subj.append(total_holder); #append the total nr of dwells for this trial
 							
 							str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
 							run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
@@ -1245,7 +1278,9 @@ def computeNrDwells(blocks, eyed='agg'):
 								nr_fixs +=1;
 							if (nr_fixs==0): chose_cig_cig_subj.append(0);
 							else: chose_cig_cig_subj.append(nr_fixs);				
-		
+							total_holder+=nr_fixs; #add the nr of dwells from looking at cig to this holder variable
+							chose_cig_tot_subj.append(total_holder); #append the total nr of dwells for this trial
+							
 							str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
 							run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
 							nr_fixs = sum([1 for r in run_lengths_neu]);
@@ -1254,6 +1289,8 @@ def computeNrDwells(blocks, eyed='agg'):
 								nr_fixs +=1;
 							if (nr_fixs==0): chose_cig_neu_subj.append(0);
 							else: chose_cig_neu_subj.append(nr_fixs);			
+							total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
+							chose_cig_tot_subj.append(total_holder); #append the total nr of dwells for this trial
 							
 						elif selected_item=='neutral':
 							str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
@@ -1265,6 +1302,8 @@ def computeNrDwells(blocks, eyed='agg'):
 								nr_fixs +=1;
 							if (nr_fixs==0): chose_neu_alc_subj.append(0);
 							else: chose_neu_alc_subj.append(nr_fixs); #append the max, if there is one
+							total_holder+=nr_fixs; #add the nr of dwells from looking at alc to this holder variable
+							chose_neu_tot_subj.append(total_holder); #append the total nr of dwells for this trial
 							
 							str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
 							run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
@@ -1274,7 +1313,9 @@ def computeNrDwells(blocks, eyed='agg'):
 								nr_fixs +=1;
 							if (nr_fixs==0): chose_neu_cig_subj.append(0);
 							else: chose_neu_cig_subj.append(nr_fixs);				
-		
+							total_holder+=nr_fixs; #add the nr of dwells from looking at cig to this holder variable
+							chose_neu_tot_subj.append(total_holder); #append the total nr of dwells for this trial
+							
 							str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
 							run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
 							nr_fixs = sum([1 for r in run_lengths_neu]);
@@ -1283,50 +1324,71 @@ def computeNrDwells(blocks, eyed='agg'):
 								nr_fixs +=1;
 							if (nr_fixs==0): chose_neu_neu_subj.append(0);
 							else: chose_neu_neu_subj.append(nr_fixs);			
+							total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
+							chose_neu_tot_subj.append(total_holder); #append the total nr of dwells for this trial
 							
 				#append data to the all subject holders
 				if selected_item=='alcohol':
 					chose_alc_alc_nr_fix.append(mean(chose_alc_alc_subj));
 					chose_alc_cig_nr_fix.append(mean(chose_alc_cig_subj));
 					chose_alc_neu_nr_fix.append(mean(chose_alc_neu_subj));
+					chose_alc_total_nr_fix.append(mean(chose_alc_tot_subj));
 				elif selected_item=='cigarette':
 					chose_cig_alc_nr_fix.append(mean(chose_cig_alc_subj));
 					chose_cig_cig_nr_fix.append(mean(chose_cig_cig_subj));
 					chose_cig_neu_nr_fix.append(mean(chose_cig_neu_subj));
+					chose_cig_total_nr_fix.append(mean(chose_cig_tot_subj));
 				elif selected_item=='neutral':
 					chose_neu_alc_nr_fix.append(mean(chose_neu_alc_subj));
 					chose_neu_cig_nr_fix.append(mean(chose_neu_cig_subj));
-					chose_neu_neu_nr_fix.append(mean(chose_neu_neu_subj));							
+					chose_neu_neu_nr_fix.append(mean(chose_neu_neu_subj));
+					chose_neu_total_nr_fix.append(mean(chose_neu_tot_subj));
+					
+				# if (sub_id == ids[20]) & (selected_item == 'neutral'):
+				# 	1/0 #check out why this person has an average of 15 dwells
+					
+		#1/0 #check the standard error of the choose neutral neutral condition...			
 							
 		#below here append averages to the database
 		db['%s_%s_chose_alc_alc_mean_nr_fix'%(eyed,name)] = nanmean(chose_alc_alc_nr_fix); db['%s_%s_chose_alc_alc_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_alc_alc_nr_fix);
 		db['%s_%s_chose_alc_cig_mean_nr_fix'%(eyed,name)] = nanmean(chose_alc_cig_nr_fix); db['%s_%s_chose_alc_cig_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_alc_cig_nr_fix);
 		db['%s_%s_chose_alc_neu_mean_nr_fix'%(eyed,name)] = nanmean(chose_alc_neu_nr_fix); db['%s_%s_chose_alc_neu_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_alc_neu_nr_fix);				
+		db['%s_%s_chose_alc_tot_mean_nr_fix'%(eyed,name)] = nanmean(chose_alc_total_nr_fix); db['%s_%s_chose_alc_tot_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_alc_total_nr_fix);
+		#HP condition,25 participants, 5 didn't choose alvohol ever
+
 		db['%s_%s_chose_cig_alc_mean_nr_fix'%(eyed,name)] = nanmean(chose_cig_alc_nr_fix); db['%s_%s_chose_cig_alc_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_cig_alc_nr_fix);
 		db['%s_%s_chose_cig_cig_mean_nr_fix'%(eyed,name)] = nanmean(chose_cig_cig_nr_fix); db['%s_%s_chose_cig_cig_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_cig_cig_nr_fix);
-		db['%s_%s_chose_cig_neu_mean_nr_fix'%(eyed,name)] = nanmean(chose_cig_neu_nr_fix); db['%s_%s_chose_cig_neu_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_cig_neu_nr_fix);									
+		db['%s_%s_chose_cig_neu_mean_nr_fix'%(eyed,name)] = nanmean(chose_cig_neu_nr_fix); db['%s_%s_chose_cig_neu_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_cig_neu_nr_fix);
+		db['%s_%s_chose_cig_tot_mean_nr_fix'%(eyed,name)] = nanmean(chose_cig_total_nr_fix); db['%s_%s_chose_cig_tot_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_cig_total_nr_fix);
+		#HP condition,all 29 participants chose cigarette at some point, they are all included here		
+				
 		db['%s_%s_chose_neu_alc_mean_nr_fix'%(eyed,name)] = nanmean(chose_neu_alc_nr_fix); db['%s_%s_chose_neu_alc_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_neu_alc_nr_fix);
 		db['%s_%s_chose_neu_cig_mean_nr_fix'%(eyed,name)] = nanmean(chose_neu_cig_nr_fix); db['%s_%s_chose_neu_cig_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_neu_cig_nr_fix);
 		db['%s_%s_chose_neu_neu_mean_nr_fix'%(eyed,name)] = nanmean(chose_neu_neu_nr_fix); db['%s_%s_chose_neu_neu_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_neu_neu_nr_fix);	
+		db['%s_%s_chose_neu_tot_mean_nr_fix'%(eyed,name)] = nanmean(chose_neu_total_nr_fix); db['%s_%s_chose_neu_tot_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_neu_total_nr_fix);
+		#HP condition, for chose neutral trials: 20 participants only, 9 don't have any trials whre they chose neutral
+		# subject cret27 (ids[20)]) only has only trial where they chose neutral, which leads to the large nr of mean dwells (15)
 		db.sync();
 	
 		#below here append all the data to the DataFrame and then save it as a .csv		
-		for sub_id, alc, cig, neu, alc_alc, alc_cig, alc_neu, cig_alc, cig_cig, cig_neu, neu_alc, neu_cig, neu_neu \
+		for sub_id, alc, cig, neu, alc_alc, alc_cig, alc_neu, cig_alc, cig_cig, cig_neu, neu_alc, neu_cig, neu_neu, tot_fix, ca_tot_fix, cc_tot_fix, cn_tot_fix \
 			in zip(ids, alc_nr_fix, cig_nr_fix, neu_nr_fix, \
 			chose_alc_alc_nr_fix, chose_alc_cig_nr_fix, chose_alc_neu_nr_fix, \
 			chose_cig_alc_nr_fix, chose_cig_cig_nr_fix, chose_cig_neu_nr_fix, \
-			chose_neu_alc_nr_fix, chose_neu_cig_nr_fix, chose_neu_neu_nr_fix):
+			chose_neu_alc_nr_fix, chose_neu_cig_nr_fix, chose_neu_neu_nr_fix, \
+			total_nr_fix, chose_alc_total_nr_fix, chose_cig_total_nr_fix, chose_neu_total_nr_fix):
 
 			#confirm that alc, cig, neu, etc 
 			
 			data.loc[index_counter] = [sub_id, name, mean(alc), mean(cig), mean(neu), \
 									   mean(alc_alc), mean(alc_cig), mean(alc_neu), \
 									mean(cig_alc), mean(cig_cig), mean(cig_neu), \
-									mean(neu_alc), mean(neu_cig), mean(neu_neu)];
+									mean(neu_alc), mean(neu_cig), mean(neu_neu), \
+									mean(tot_fix), mean(ca_tot_fix), mean(cc_tot_fix), mean(cn_tot_fix)];
 			index_counter+=1;					
 
 	if eyed=='agg':
-		data.to_csv(savepath+'avg_nr_fixation_item.csv',index=False);
+		data.to_csv(savepath+'avg_nr_dwells_item.csv',index=False);
 		
 
 def computeProportionSelect(blocks, eyed = 'agg'):

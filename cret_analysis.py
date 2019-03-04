@@ -1105,9 +1105,20 @@ def computeNrDwells(blocks, eyed='agg'):
 			neu_subj = [];			
 			for t in subj:
 				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&
-					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):				
+					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
 					
-					str_alc = ''.join(str(int(g)) for g in t.lookedAtAlcohol if not(isnan(g))); #first get the array into a string
+					#In the computation of the lookedAtXX arrays during trial pre-processing, I include NaNs at times when no itm
+					#was looked at... e.g., when the participant was fixating the center of the screen.
+					#In order to ensure that I capture the change from not looking at one item to looking at any item (like the first dwell),
+					#I need to convert those NaNs to 0's for calculation using the string-based method below. However, I want the original
+					#lookedAtXX arrays to maintain the Nan, 0, 1 coding scheme, so I'll create holder arrays for each trial to use for the nr of dwell
+					#calculations here
+					
+					looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
+					looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
+					looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);
+					
+					str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
 					run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
 					#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
 					nr_fixs = sum([1 for r in run_lengths_alc]);
@@ -1122,7 +1133,7 @@ def computeNrDwells(blocks, eyed='agg'):
 					if (nr_fixs==0): alc_subj.append(0);
 					else: alc_subj.append(nr_fixs); #append nr of fixations
 					
-					str_cig = ''.join(str(int(g)) for g in t.lookedAtCigarette if not(isnan(g))); #parse cigarette
+					str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
 					run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
 					nr_fixs = sum([1 for r in run_lengths_cig]);
 					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
@@ -1132,7 +1143,7 @@ def computeNrDwells(blocks, eyed='agg'):
 					else: cig_subj.append(nr_fixs);
 
 
-					str_neu = ''.join(str(int(g)) for g in t.lookedAtNeutral if not(isnan(g))); #do the parsing for neutral..
+					str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
 					run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
 					nr_fixs = sum([1 for r in run_lengths_neu]);
 					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
@@ -1141,11 +1152,14 @@ def computeNrDwells(blocks, eyed='agg'):
 					if (nr_fixs==0): neu_subj.append(0);
 					else: neu_subj.append(nr_fixs);
 					
-					plotSingleTrialEyeGaze(t,'Nr of dwells: %s'%(sum(alc_subj[-1],cig_subj[-1],neu_subj[-1])));	#now plot the trial's data to see if the dwell calculation is correct
+					#used to plot eye trace and confirm the dwell calculation is correct
+					if t.trial_nr > 16:
 					
-					1/0
-					
-					close('all');
+						plotSingleTrialEyeGaze(t,'Nr of dwells: %s'%(sum(array([alc_subj[-1],cig_subj[-1],neu_subj[-1]]))));	#now plot the trial's data to see if the dwell calculation is correct
+						show();
+						1/0
+						
+						close('all');
 									
 			#below here need to make sure I am getting the information I want (mean nr of dwells on each item, for each subject)
 			
@@ -1177,10 +1191,14 @@ def computeNrDwells(blocks, eyed='agg'):
 
 				for t in subj:
 					if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category==selected_item)):
+	
+						looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
+						looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
+						looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);
 						
 						#conditional
 						if selected_item=='alcohol':
-							str_alc = ''.join(str(int(g)) for g in t.lookedAtAlcohol if not(isnan(g))); #first get the array into a string
+							str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
 							run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
 							#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
 							nr_fixs = sum([1 for r in run_lengths_alc]);
@@ -1190,7 +1208,7 @@ def computeNrDwells(blocks, eyed='agg'):
 							if (nr_fixs==0): chose_alc_alc_subj.append(0);
 							else: chose_alc_alc_subj.append(nr_fixs); #append nr of fixations
 							
-							str_cig = ''.join(str(int(g)) for g in t.lookedAtCigarette if not(isnan(g))); #parse cigarette
+							str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
 							run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
 							nr_fixs = sum([1 for r in run_lengths_cig]);
 							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
@@ -1199,7 +1217,7 @@ def computeNrDwells(blocks, eyed='agg'):
 							if (nr_fixs==0): chose_alc_cig_subj.append(0);
 							else: chose_alc_cig_subj.append(nr_fixs);				
 		
-							str_neu = ''.join(str(int(g)) for g in t.lookedAtNeutral if not(isnan(g))); #do the parsing for neutral..
+							str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
 							run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
 							nr_fixs = sum([1 for r in run_lengths_neu]);
 							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
@@ -1209,7 +1227,7 @@ def computeNrDwells(blocks, eyed='agg'):
 							else: chose_alc_neu_subj.append(nr_fixs);			
 									
 						elif selected_item=='cigarette':				
-							str_alc = ''.join(str(int(g)) for g in t.lookedAtAlcohol if not(isnan(g))); #first get the array into a string
+							str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
 							run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
 							#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
 							nr_fixs = sum([1 for r in run_lengths_alc]);
@@ -1219,7 +1237,7 @@ def computeNrDwells(blocks, eyed='agg'):
 							if (nr_fixs==0): chose_cig_alc_subj.append(0);
 							else: chose_cig_alc_subj.append(nr_fixs); #append the max, if there is one
 							
-							str_cig = ''.join(str(int(g)) for g in t.lookedAtCigarette if not(isnan(g))); #parse cigarette
+							str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
 							run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
 							nr_fixs = sum([1 for r in run_lengths_cig]);
 							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
@@ -1228,7 +1246,7 @@ def computeNrDwells(blocks, eyed='agg'):
 							if (nr_fixs==0): chose_cig_cig_subj.append(0);
 							else: chose_cig_cig_subj.append(nr_fixs);				
 		
-							str_neu = ''.join(str(int(g)) for g in t.lookedAtNeutral if not(isnan(g))); #do the parsing for neutral..
+							str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
 							run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
 							nr_fixs = sum([1 for r in run_lengths_neu]);
 							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
@@ -1238,7 +1256,7 @@ def computeNrDwells(blocks, eyed='agg'):
 							else: chose_cig_neu_subj.append(nr_fixs);			
 							
 						elif selected_item=='neutral':
-							str_alc = ''.join(str(int(g)) for g in t.lookedAtAlcohol if not(isnan(g))); #first get the array into a string
+							str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
 							run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
 							#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
 							nr_fixs = sum([1 for r in run_lengths_alc]);
@@ -1248,7 +1266,7 @@ def computeNrDwells(blocks, eyed='agg'):
 							if (nr_fixs==0): chose_neu_alc_subj.append(0);
 							else: chose_neu_alc_subj.append(nr_fixs); #append the max, if there is one
 							
-							str_cig = ''.join(str(int(g)) for g in t.lookedAtCigarette if not(isnan(g))); #parse cigarette
+							str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
 							run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
 							nr_fixs = sum([1 for r in run_lengths_cig]);
 							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
@@ -1257,7 +1275,7 @@ def computeNrDwells(blocks, eyed='agg'):
 							if (nr_fixs==0): chose_neu_cig_subj.append(0);
 							else: chose_neu_cig_subj.append(nr_fixs);				
 		
-							str_neu = ''.join(str(int(g)) for g in t.lookedAtNeutral if not(isnan(g))); #do the parsing for neutral..
+							str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
 							run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
 							nr_fixs = sum([1 for r in run_lengths_neu]);
 							#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
@@ -3384,8 +3402,11 @@ def compute_BS_SEM(data_matrix):
 
 def plotSingleTrialEyeGaze(trial, string_for_display = ''):
 	
-	#string for display is a string that will be displayed on the plot (e.g., this trial has this many dwells)
-	
+	#string for display is a string that will be displayed on the plot (e.g., this trial has this many dwells)	
+	circle1 = pyplot.Circle(left_pic_coors, distance_threshold, color='lightgrey');
+	circle2 = pyplot.Circle(right_pic_coors, distance_threshold, color='lightgrey');
+	circle3 = pyplot.Circle(up_pic_coors, distance_threshold, color='lightgrey');
+
 	isSaccade = trial.isSaccade; #get the isSaccade data from the previously calculated criterion
 	# # #plot the different saccades for the given trial for use in debugging	
 	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
@@ -3400,6 +3421,11 @@ def plotSingleTrialEyeGaze(trial, string_for_display = ''):
 								 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred','bisque','olivedrab','seagreen','darkcyan','cadetblue',
 								 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew',
 								 'indigo','lightpink','peru','slateblue'];
+	#add the circles
+	ax.add_artist(circle1);
+	ax.add_artist(circle2);
+	ax.add_artist(circle3);
+	
 	#first plot the eye traces with respect to the velocity data
 	#if the eye is in movements, use the color array above. otheriwse use black to denote fixation
 	saccade_counter = 0; nr_saccades = 0;
@@ -3424,13 +3450,13 @@ def plotSingleTrialEyeGaze(trial, string_for_display = ''):
 	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
 	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
 	ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
-	title('Eye Trace and Position Velocity \nSubject %s, Block %s, Trial %s'%(self.sub_id, self.block_nr, self.trial_nr), fontsize = 22);
+	title('Eye Trace and Position Velocity \nSubject %s, Block %s, Trial %s'%(trial.sub_id, trial.block_nr, trial.trial_nr), fontsize = 22);
 	
 	#now plot the velocity data in an inset plot	
 	ia = inset_axes(ax, width="30%", height="30%", loc=1); #set the inset axes as percentages of the original axis size
 	saccade_counter = 0; nr_saccades = 0;
-	for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),
-										 self.filtered_velocities, self.velocities, isSaccade):
+	for i,filt_vel,orig_vel,issac in zip(range(len(trial.sample_times)),
+										 trial.filtered_velocities, trial.velocities, isSaccade):
 		#plot the eye trace in black if not saccading
 		plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
 		if issac == 0:
@@ -3446,7 +3472,7 @@ def plotSingleTrialEyeGaze(trial, string_for_display = ''):
 			if (isSaccade[i-1]==False)&(i>0):  
 				nr_saccades+=1;
 	#plot the velocity trheshold and set labels
-	plot(linspace(0,len(trial.sample_times),len(trial.sample_times)), linspace(new_crit,new_crit+0.01,len(trial.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
+	plot(linspace(0,len(trial.sample_times),len(trial.sample_times)), linspace(trial.saccadeCriterion,trial.saccadeCriterion+0.01,len(trial.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
 	ia.set_ylabel('Velocity', fontsize = 14); ia.set_xlabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
 	
 	fig.text(0.7, 0.4, string_for_display,size=16,weight='bold');
@@ -3835,6 +3861,7 @@ class trial(object):
 		self.lookedAtNeutral[notLookingAtAnyItem] = nan;
 			
 		#2. compute the amount and percentage of time spent looking at each item in each trial
+		#THIS RESULTS IN EACH ARRAY HERE ONLY CORRESPONDING TO THE RELATIVE PROPORTION OF TIME SPENT LOOKING AT EACH ITEM WRT ALL TIME LOOKING AT AN ITEM
 		
 		self.timeLookingAtAlcohol = nansum(self.lookedAtAlcohol);
 		self.percentageTimeLookingAtAlcohol = nansum(self.lookedAtAlcohol)/float(len(self.lookedAtAlcohol)-len(notLookingAtAnyItem));

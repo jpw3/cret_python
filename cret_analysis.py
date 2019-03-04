@@ -80,7 +80,7 @@ matplotlib.pyplot.rc('font',weight='bold');
 ## Data Analysis Methods ##
 ############################################
 
-## this subsequent function determines aspects of the eye tracking data set such as time until first saccade, dwell time on first saccade, etc.
+# this subsequent function determines aspects of the eye tracking data set such as time until first saccade, dwell time on first saccade, etc.
 
 def computeEarlyTrialData(blocks, eyed='agg'):
 	
@@ -1139,19 +1139,19 @@ def computeNrDwells(blocks, eyed='agg'):
 					if str_neu[0]=='1':
 						nr_fixs +=1;
 					if (nr_fixs==0): neu_subj.append(0);
-					else: neu_subj.append(nr_fixs);	
-										
-										
-			1/0;
+					else: neu_subj.append(nr_fixs);
+					
+					plotSingleTrialEyeGaze(t,'Nr of dwells: %s'%(sum(alc_subj[-1],cig_subj[-1],neu_subj[-1])));	#now plot the trial's data to see if the dwell calculation is correct
+					
+					1/0
+					
+					close('all');
+									
 			#below here need to make sure I am getting the information I want (mean nr of dwells on each item, for each subject)
 			
 			alc_nr_fix.append(mean(alc_subj));
 			cig_nr_fix.append(mean(cig_subj));
 			neu_nr_fix.append(mean(neu_subj));
-			
-			1/0	
-		
-		1/0	
 			
 		#below here append averages to the database 
 		db['%s_%s_alc_mean_nr_fix'%(eyed,name)] = nanmean(alc_nr_fix); db['%s_%s_alc_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(alc_nr_fix);
@@ -1291,7 +1291,7 @@ def computeNrDwells(blocks, eyed='agg'):
 		db['%s_%s_chose_neu_cig_mean_nr_fix'%(eyed,name)] = nanmean(chose_neu_cig_nr_fix); db['%s_%s_chose_neu_cig_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_neu_cig_nr_fix);
 		db['%s_%s_chose_neu_neu_mean_nr_fix'%(eyed,name)] = nanmean(chose_neu_neu_nr_fix); db['%s_%s_chose_neu_neu_bs_sems_nr_fix'%(eyed,name)] = compute_BS_SEM(chose_neu_neu_nr_fix);	
 		db.sync();
-
+	
 		#below here append all the data to the DataFrame and then save it as a .csv		
 		for sub_id, alc, cig, neu, alc_alc, alc_cig, alc_neu, cig_alc, cig_cig, cig_neu, neu_alc, neu_cig, neu_neu \
 			in zip(ids, alc_nr_fix, cig_nr_fix, neu_nr_fix, \
@@ -3381,6 +3381,75 @@ def compute_BS_SEM(data_matrix):
 	denom = sqrt(n);
 	standard_error_estimate=sqrt(MSE)/float(denom);
 	return standard_error_estimate;
+
+def plotSingleTrialEyeGaze(trial, string_for_display = ''):
+	
+	#string for display is a string that will be displayed on the plot (e.g., this trial has this many dwells)
+	
+	isSaccade = trial.isSaccade; #get the isSaccade data from the previously calculated criterion
+	# # #plot the different saccades for the given trial for use in debugging	
+	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
+	legend_lines = []; colors = ['red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','gold','yellowgreen',
+								 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred','bisque','olivedrab','seagreen','darkcyan','cadetblue',
+								 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew',
+								 'indigo','lightpink','peru','slateblue', 'red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','gold','yellowgreen',
+								 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred','bisque','olivedrab','seagreen','darkcyan','cadetblue',
+								 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew',
+								 'indigo','lightpink','peru','slateblue','red','green','blue','purple','orange','brown','grey','crimson','deepskyblue','lime','salmon','deeppink','lightsteelblue','palevioletred','azure','gold','yellowgreen',
+								 'paleturquoise','darkorange', 'orchid', 'chocolate', 'yellow', 'lavender','indianred','bisque','olivedrab','seagreen','darkcyan','cadetblue',
+								 'palevioletred','navy','blanchedalmond','tomato','saddlebrown','honeydew',
+								 'indigo','lightpink','peru','slateblue'];
+	#first plot the eye traces with respect to the velocity data
+	#if the eye is in movements, use the color array above. otheriwse use black to denote fixation
+	saccade_counter = 0; nr_saccades = 0;
+	for i,xx,yy,issac in zip(range(len(trial.sample_times)),
+										 trial.eyeX, trial.eyeY, isSaccade):
+		#plot the eye trace in black if not saccading
+		if issac == 0:
+			ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
+			#conditional to switch to the next saccade color
+			#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
+			if (isSaccade[i-1]==True)&(i>0):  					
+				saccade_counter+=1;
+				if saccade_counter > len(colors):
+					saccade_counter=0;					
+		else:
+			ax.plot(xx, yy, color = colors[saccade_counter], marker = 'o', ms = 4);
+			if (isSaccade[i-1]==False)&(i>0):  
+				nr_saccades+=1;
+				legend_lines.append(mlines.Line2D([],[],color=colors[saccade_counter],lw=6,alpha = 1.0, label='saccade  %s'%(nr_saccades)));
+			
+	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+	ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
+	title('Eye Trace and Position Velocity \nSubject %s, Block %s, Trial %s'%(self.sub_id, self.block_nr, self.trial_nr), fontsize = 22);
+	
+	#now plot the velocity data in an inset plot	
+	ia = inset_axes(ax, width="30%", height="30%", loc=1); #set the inset axes as percentages of the original axis size
+	saccade_counter = 0; nr_saccades = 0;
+	for i,filt_vel,orig_vel,issac in zip(range(len(self.sample_times)),
+										 self.filtered_velocities, self.velocities, isSaccade):
+		#plot the eye trace in black if not saccading
+		plot(i, orig_vel, color = 'gray', marker = '*', ms = 1.0, alpha = 0.5),
+		if issac == 0:
+			plot(i, filt_vel, color = 'black', marker = '*', ms = 1.5);  #
+			#conditional to switch to the next saccade color
+			#if the previous sample was saccading and now it isn't time for a swtch (add a number to saccades, switch the color for next time)
+			if (isSaccade[i-1]==True)&(i>0):			
+				saccade_counter+=1;
+				if saccade_counter > len(colors):
+					saccade_counter=0;
+		else:
+			plot(i, filt_vel, color = colors[saccade_counter], marker = '*', ms = 1.5); #filt_vel
+			if (isSaccade[i-1]==False)&(i>0):  
+				nr_saccades+=1;
+	#plot the velocity trheshold and set labels
+	plot(linspace(0,len(trial.sample_times),len(trial.sample_times)), linspace(new_crit,new_crit+0.01,len(trial.sample_times)), color = 'red', ls = 'dashed', lw = 1.0);
+	ia.set_ylabel('Velocity', fontsize = 14); ia.set_xlabel('Time', fontsize = 14); title('Velocity Profile', fontsize = 14);
+	
+	fig.text(0.7, 0.4, string_for_display,size=16,weight='bold');
 
 ############################################
 ## Data Importing Functions ##

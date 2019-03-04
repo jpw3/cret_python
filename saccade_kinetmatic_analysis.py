@@ -313,9 +313,9 @@ def calculateExcludedTrialInformation(block_matrix):
 # 2. Average onset latencies
 
 
-######## MUST DEBUG THIS, HAVEN'T DONE SO YET. 
+######## MUST ENSURE THIS IS WORKING PROPERLY 
 
-def computeSecondarySaccadeData(blocks):
+def computeSecondarySaccadeData(block_matrix):
 	#this function is designed to determine the proportion fo saccades that are corrective and/or exploratory
 	#to do so, find the proportion of subsequent saccades (e.g., 1-back) that remain within the same 3 dva circle
 	#corresponding to the item that the 1-back saccade was on
@@ -326,6 +326,8 @@ def computeSecondarySaccadeData(blocks):
 	#these next two are just here for legacy. May use them in the future to do this analysis for a subset of saccades (e.g., last one)
 	onset_latencies = [[] for su in block_matrix];
 	amplitudes = [[] for su in block_matrix];
+	nr_saccades = [[0] for su in block_matrix]; #all saccades, everything
+	#all_current_item_indices = [[] for su in block_matrix]; #just to have an eye on this
 	
 	#coordinate locations for the top, left, an right picture locations
 	left_pic_coors = array([-5.20,-3.0]); #in dva
@@ -350,6 +352,8 @@ def computeSecondarySaccadeData(blocks):
 						
 						previously_viewed_item_index = -1;
 						currently_viewed_item_index = -1; #this is -1 to start, will change accordingly
+						
+						all_current_item_indices = [];
 						
 						#get the alcohol, cigarette, and neutral coordinates.
 						if t.alcohol_loc == 'up':
@@ -377,8 +381,7 @@ def computeSecondarySaccadeData(blocks):
 						# ^ use this to compare the end point of the current saccade. I will extract the index,
 						#which will always correspond to the same item in each trial, and compare the index for
 						#saccade n against index for saccade n-1
-						
-						1/0
+					
 						
 						#Below here goes through each trial and pulls out the saccde endpoint
 						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
@@ -404,21 +407,22 @@ def computeSecondarySaccadeData(blocks):
 									#here, get the item location that this was closest to
 									#something like min(alc_coors - saccadic endpoint, cig_coors - saccadic endpoint)
 									
-									1/0
-									
 									previously_viewed_item_index = currently_viewed_item_index; #hand off the current item index to the previously viewed item index
 									
 									#find the item I am looking at here. 3 is the degree of visual angle threshold if not looking at anything, wait
-									if sqrt((sac_end_pos[0]-item_coors[0][0])**2 + (sac_end_pos[1]-item_coors[0][1])**2 < distance_threshold):
+									if sqrt((sac_end_pos[0]-item_coors[0][0])**2 + (sac_end_pos[1]-item_coors[0][1])**2) <= distance_threshold:
 										currently_viewed_item_index = 0; #alcohol
-									elif sqrt((sac_end_pos[0]-item_coors[1][0])**2 + (sac_end_pos[1]-item_coors[1][1])**2 < distance_threshold):
+										#1/0	#here, check my calculations are correct
+									elif sqrt((sac_end_pos[0]-item_coors[1][0])**2 + (sac_end_pos[1]-item_coors[1][1])**2) <= distance_threshold:
 										currently_viewed_item_index = 1;  #cigarette
-									elif sqrt((sac_end_pos[0]-item_coors[2][0])**2 + (sac_end_pos[1]-item_coors[2][1])**2 < distance_threshold):
+										#1/0	#here, check my calculations are correct
+									elif sqrt((sac_end_pos[0]-item_coors[2][0])**2 + (sac_end_pos[1]-item_coors[2][1])**2) <= distance_threshold:
 										currently_viewed_item_index = 2; #neutral
+										#1/0	#here, check my calculations are correct
 									else:
 										currently_viewed_item_index = -1;
-										
-									1/0	
+										#1/0	#here, check my calculations are correct		
+									all_current_item_indices.append(currently_viewed_item_index);	
 										
 									#check against the previous saccade location index. If it's the same, index according.
 									#otherwise, just add to the total counter
@@ -428,19 +432,20 @@ def computeSecondarySaccadeData(blocks):
 										#here, the previous saccade was to a non-object location. don't compare or index
 										#also first saccade, don't check or index to add to total count
 										foo = 'bar';
+										#1/0	#here, check my calculations are correct
 									elif currently_viewed_item_index == -1:
 										#here, the current saccade was to a non-object location. don't compare or index
 										foo = 'bar';
+										#1/0	#here, check my calculations are correct
 									elif (previously_viewed_item_index>0) & (currently_viewed_item_index > 0):
 										#finally, here both previous and current saccade were directed to an object
 										#let's compare to see if they are the same object
 										#make sure to add to the total nr of saccades of this type, as well			
 										same_bool = previously_viewed_item_index==currently_viewed_item_index; # 0 or 1
 										
-										stayed_on_items[subj_nr].append(same_bool); #append the comparison boolean
-										totals[subj_nr] += 1; #this adds a count to the counter for a subsequent saccade where both saccades were directed to an item
+										stayed_on_items[subj_nr].append(float(same_bool)); #append the comparison boolean
+										totals[subj_nr][0] += 1; #this adds a count to the counter for a subsequent saccade where both saccades were directed to an item
 										
-										1/0
 									
 							elif issac == 1:
 								#get the starting point for this saccade as well as the time
@@ -448,16 +453,52 @@ def computeSecondarySaccadeData(blocks):
 								if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
 									sac_start_time = t.sample_times[ii];
 									sac_start_pos = array([xx,yy]);
-									onset_latencies[subj_nr].append(sac_start_time);
-									
+									onset_latencies[subj_nr].append(sac_start_time);	
 									
 								elif (t.isSaccade[ii-1]==False)&(ii>0):
 									sac_start_time = t.sample_times[ii];
 									sac_start_pos = array([xx,yy]);
+			
+	#here, find each participant's proportion of trials where a subsequent saccade was directed to the same object
+	#first collect the sum of stayed on item saccades:
+	sums = array([float(sum(s)) for s in stayed_on_items]);
+	
+	totals = array([t[0] for t in totals]); #cast the list of totals as an array for array division
+	
+	props_stayed_on_items = sums/totals; #calculate the subject level proportion fo secondary saccades
+	
+	mew_props = mean(props_stayed_on_items);
+	sems_props = compute_BS_SEM(props_stayed_on_items);
+	
+	print('\n\n NR SACCADES EXPLOIT THE SAME ITEM \n\n')
+	print('\n Average nr of saccades exploiting for %s subjects: %4.1f \n'%(len(block_matrix),mean([float(sum(s)) for s in stayed_on_items])));
+	print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(compute_BS_SEM([float(sum(s)) for s in stayed_on_items])));
+	print('\n Average percentage of saccades exploiting for %s subjects: %4.3f \n'%(len(block_matrix),mew_props));
+	print('\n Between-subjects standard error of the mean: %4.3f \n\n\n\n'%(sems_props));		
 
-		#here, find each participant's proportion of trials where a subsequent saccade swas directed to the same object
 
+	#set the plotting params back to the standard
+	matplotlib.rcParams['ytick.labelsize']=20; matplotlib.rcParams['xtick.labelsize']=20;
+	matplotlib.rcParams['xtick.major.width']=2.0; matplotlib.rcParams['ytick.major.width']=2.0;
+	matplotlib.rcParams['xtick.major.size']=10.0; matplotlib.rcParams['ytick.major.size']=10.0;
 
+	#plot the distribution of average saccadic onset latencies
+	
+	fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
+	#ax1.set_xlim([0.5,1.0]);#ax1.set_ylim(0, 0.8); ax1.set_yticks(arange(0, 0.81, 0.1)); # ax1.set_xticks([0.85, 1.15, 1.45]);
+	ax1.set_ylabel('Frequency',size=18); ax1.set_xlabel('Mean proportion of corrective/exploiting saccades',size=18,labelpad=8);
+	ax1.hist(props_stayed_on_items, color = 'gray', bins = 20);
+
+	ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+	ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+	ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+	title('Distribution of subject average proportion of corrective/exploiting saccades', fontsize = 22);
+	
+	#add text detailing the mean saccadic latency
+	fig.text(0.18, 0.48, 'Mean Proportion:\n %3.2f +- %3.2f '%(mew_props,sems_props),size=16,weight='bold');
+	savefig(figurepath+ 'SaccadeKinematics/' + 'CORRECTIVE_SACCADES_AVERAGE_PROP_DISTRIBUTION_ALLSUBJECTS.png');		
+
+	1/0	
 
 def computeFirstSaccadeKinematics(block_matrix):
 

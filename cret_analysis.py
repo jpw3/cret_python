@@ -23,16 +23,16 @@ import os.path
 
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 # 
-# datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-# savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-# shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-# figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
-
-datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+# 
+# datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+# savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+# shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+# figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -1080,6 +1080,8 @@ def computePreviousTrialData(blocks, eyed='agg'):
 	if eyed=='agg':
 		index_counter=0; #index counter for the DataFrame object
 		#here, create a dataframe object to save the subsequent data
+		data = pd.DataFrame(columns = ['sub_id','trial_type','prev_resp_cur_resp_avg_prop','prev_resp_cur_firstdwell_avg_prop', \
+									   'prev_lastdwell_cur_resp_avg_prop','prev_lastdwell_cur_firstdwell_avg_prop']);
 		
 	#get the aggregate breakdown as well as when they chose each item
 	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):			
@@ -1212,9 +1214,30 @@ def computePreviousTrialData(blocks, eyed='agg'):
 			prev_last_dwell_resps_bools.append(sum(subj_prev_last_resps_bools)/float(len(subj_prev_last_resps_bools)));
 			prev_last_dwell_dwells_bools.append(sum(subj_prev_last_dwell_bools)/float(len(subj_prev_last_dwell_bools)));
 			
-		1/0
-		#here, find average and standard error or these variables
-		
+
+		#here, find average and standard error or these variables, then print it to the interpreter
+				
+		print('\n\n TRIAL TYPE %s \n\n'%name)
+		print('\n Average proportion of trials the last-dwelled item on trial N-1 was the first dwelled item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_last_dwell_dwells_bools)));
+		print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_last_dwell_dwells_bools)));
+		print('\n Average proportion of trials the last-dwelled item on trial N-1 was the selected item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_last_dwell_resps_bools)));
+		print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_last_dwell_resps_bools)));
+		print('\n Average proportion of trials the selected item on trial N-1 was the first dwelled item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_resp_dwells_bools)));
+		print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_resp_dwells_bools)));
+		print('\n Average proportion of trials the selected item on trial N-1 was the selected item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_resp_resps_bools)));
+		print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_resp_resps_bools)));		
+
+		#add data to the data frame object to save as a .csv
+		if eyed=='agg':
+			for subid, pr_cr, pr_cf, pl_cr, pl_cf in zip(ids, prev_resp_resps_bools, prev_resp_dwells_bools, prev_last_dwell_resps_bools,prev_last_dwell_dwells_bools):
+				data.loc[index_counter] = [subid, name, pr_cr, pr_cf, pl_cr, pl_cf];
+				index_counter+=1;
+
+
+	if eyed=='agg':
+		data.to_csv(savepath+'prev_trial_data.csv',index=False);
+
+	1/0
 		
 		
 		

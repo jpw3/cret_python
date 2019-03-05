@@ -40,9 +40,10 @@ matplotlib.pyplot.rc('font',weight='bold');
 
 #now the break down by each type of substanc chosen
 fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
-ax1.set_xlim([0.4,3.0]); ax1.set_xticks([1,1.7,2.4]); ax1.set_ylim(0.,3); ax1.set_yticks(linspace(0,3,7));
-ax1.set_ylabel('Average number of dwells for %s condition as a function of choice'%name,size=18); ax1.set_xlabel('Substance',size=18,labelpad=15);
-ax1.set_xticklabels(['Alcohol Selected','Cigarette Selected','Neutral Selected']);
+title('Average number of dwells for %s condition as a function of choice'%name, fontsize = 22);
+ax1.set_xlim([0.4,3.3]); ax1.set_xticks([1,1.7,2.4]); ax1.set_ylim(0.,3); ax1.set_yticks(linspace(0,3,7));
+ax1.set_ylabel('Average number of dwells',size=18); ax1.set_xlabel('Substance selected',size=18,labelpad=15);
+ax1.set_xticklabels(['Alcohol','Cigarettes','Neutral']);
 colors=['red','blue','green'];
 
 
@@ -85,7 +86,7 @@ ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
 legend_lines = [mlines.Line2D([],[],color=colors[0],lw=6,alpha = 1, label='looked at alcohol'),
                  mlines.Line2D([],[],color=colors[1],lw=6,alpha = 1, label='looked at cigarettes'),
                  mlines.Line2D([],[],color=colors[2],lw=6,alpha = 1, label='looked at neutral')];
-ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2]],loc='upper center', bbox_to_anchor=(0.5, 1.1),ncol=3,fontsize = 14);
+ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2]],loc='lower center', bbox_to_anchor=(0.975, 0.5),ncol=1,fontsize = 14);
 
 #save the labeled figure as a .png	
 filename = '%s_by_choice_nr_unique_dwells_labeled'%name;
@@ -136,43 +137,43 @@ show();
 
 
 
-#mean nr of dwells on each substance
-fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
-title('Average number of totals dwells for each condition', fontsize = 22);
-ax1.set_xlim([0.5,2.05]); ax1.set_xticks([0.85, 1.15, 1.45, 1.8]); ax1.set_ylim(0.,3); ax1.set_yticks(linspace(0,4,9)); 
-ax1.set_ylabel('Average number of dwells',size=18); ax1.set_xlabel('Selected Item',size=18,labelpad=15);
-ax1.set_xticklabels(['HC/HA','HC/LA','LC/HA','LC/LA']);
-ax1.bar(0.85,db['%s_%s_tot_mean_nr_fix'%(eyed,'high_pref')], color = 'gray', width = 0.25);
-ax1.errorbar(0.85, db['%s_%s_tot_mean_nr_fix'%(eyed,'high_pref')],
-             yerr=[[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'high_pref')]],[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'high_pref')]]],color='black',lw=6.0,capsize = 0);
-
-ax1.bar(1.15,db['%s_%s_tot_mean_nr_fix'%(eyed,'highC_lowA')], color = 'gray', width = 0.25);
-ax1.errorbar(1.15, db['%s_%s_tot_mean_nr_fix'%(eyed,'highC_lowA')],
-             yerr=[[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'highC_lowA')]],[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'highC_lowA')]]],color='black',lw=6.0,capsize = 0);
-
-ax1.bar(1.45,db['%s_%s_tot_mean_nr_fix'%(eyed,'lowC_highA')], color = 'gray', width = 0.25);
-ax1.errorbar(1.45, db['%s_%s_tot_mean_nr_fix'%(eyed,'lowC_highA')],
-             yerr=[[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'lowC_highA')]],[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'lowC_highA')]]],color='black',lw=6.0,capsize = 0);
-
-ax1.bar(1.8,db['%s_%s_tot_mean_nr_fix'%(eyed,'lowC_lowA')], color =  'gray', width = 0.25);
-ax1.errorbar(1.8, db['%s_%s_tot_mean_nr_fix'%(eyed,'lowC_lowA')],
-             yerr=[[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'lowC_lowA')]],[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'lowC_lowA')]]],color='black',lw=6.0,capsize = 0);
-
-ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
-ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
-ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
-#save the labeled figure as a .png	
-filename = 'ALLCONDITIONS_total_nr_uniqe_dwells_labelled';
-savefig(savepath+filename+'.png',dpi=400);
-
-#then get rid of labels and save as a .eps
-labels = [item.get_text() for item in ax1.get_xticklabels()]; labels[0]=''; labels[1]=''; labels[2]=''; labels[3]=''; #labels[4]='';#have to do this to center the x ticks on correct spot without incurring ticks at every spot
-ax1.set_xticklabels(labels);
-ax1.set_yticklabels(['','','','','','','','','','','','','','']);
-ax1.set_ylabel(''); ax1.set_xlabel(''); title('');
-filename = 'ALLCONDITIONS_total_nr_uniqe_dwells';
-savefig(savepath+filename+'.eps',dpi=400);
-show();
+# #mean nr of dwells on each substance
+# fig = figure(figsize = (12.8,7.64)); ax1=gca(); #grid(True);
+# title('Average number of totals dwells for each condition', fontsize = 22);
+# ax1.set_xlim([0.5,2.05]); ax1.set_xticks([0.85, 1.15, 1.45, 1.8]); ax1.set_ylim(0.,3); ax1.set_yticks(linspace(0,4,9)); 
+# ax1.set_ylabel('Average number of dwells',size=18); ax1.set_xlabel('Selected Item',size=18,labelpad=15);
+# ax1.set_xticklabels(['HC/HA','HC/LA','LC/HA','LC/LA']);
+# ax1.bar(0.85,db['%s_%s_tot_mean_nr_fix'%(eyed,'high_pref')], color = 'gray', width = 0.25);
+# ax1.errorbar(0.85, db['%s_%s_tot_mean_nr_fix'%(eyed,'high_pref')],
+#              yerr=[[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'high_pref')]],[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'high_pref')]]],color='black',lw=6.0,capsize = 0);
+# 
+# ax1.bar(1.15,db['%s_%s_tot_mean_nr_fix'%(eyed,'highC_lowA')], color = 'gray', width = 0.25);
+# ax1.errorbar(1.15, db['%s_%s_tot_mean_nr_fix'%(eyed,'highC_lowA')],
+#              yerr=[[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'highC_lowA')]],[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'highC_lowA')]]],color='black',lw=6.0,capsize = 0);
+# 
+# ax1.bar(1.45,db['%s_%s_tot_mean_nr_fix'%(eyed,'lowC_highA')], color = 'gray', width = 0.25);
+# ax1.errorbar(1.45, db['%s_%s_tot_mean_nr_fix'%(eyed,'lowC_highA')],
+#              yerr=[[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'lowC_highA')]],[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'lowC_highA')]]],color='black',lw=6.0,capsize = 0);
+# 
+# ax1.bar(1.8,db['%s_%s_tot_mean_nr_fix'%(eyed,'lowC_lowA')], color =  'gray', width = 0.25);
+# ax1.errorbar(1.8, db['%s_%s_tot_mean_nr_fix'%(eyed,'lowC_lowA')],
+#              yerr=[[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'lowC_lowA')]],[db['%s_%s_tot_bs_sems_nr_fix'%(eyed,'lowC_lowA')]]],color='black',lw=6.0,capsize = 0);
+# 
+# ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+# ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+# ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+# #save the labeled figure as a .png	
+# filename = 'ALLCONDITIONS_total_nr_uniqe_dwells_labelled';
+# savefig(savepath+filename+'.png',dpi=400);
+# 
+# #then get rid of labels and save as a .eps
+# labels = [item.get_text() for item in ax1.get_xticklabels()]; labels[0]=''; labels[1]=''; labels[2]=''; labels[3]=''; #labels[4]='';#have to do this to center the x ticks on correct spot without incurring ticks at every spot
+# ax1.set_xticklabels(labels);
+# ax1.set_yticklabels(['','','','','','','','','','','','','','']);
+# ax1.set_ylabel(''); ax1.set_xlabel(''); title('');
+# filename = 'ALLCONDITIONS_total_nr_uniqe_dwells';
+# savefig(savepath+filename+'.eps',dpi=400);
+# show();
 
 
 

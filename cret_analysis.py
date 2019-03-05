@@ -1064,6 +1064,144 @@ def computeSustainedResponses(blocks, eyed = 'agg'):
 		data.to_csv(savepath+'avg_sustained_response_item.csv',index=False);
 		
 		
+def computeOneDwellTrialData(blocks, eyed='agg'):
+	#check out the data for the trials where one dwell occurred
+	#Compute:
+	#1. For each subject, compute number/proportion of single dwell trials
+	#^(compare against the corrective saccade data to see if high percentage of corrective saccades correlated with nr of single dwell trials)
+	#2. What are the latencies of single dwell trials?
+	#3. Where are these one dwell trials going? (Heatmaps)
+	#4. What is being selected on single dwell trials?
+	
+	#below here, use the code to compute the number of dwells from the function below
+	db = subject_data;
+
+	rexp_pattern = re.compile(r'01'); #this regular expression pattern looks for strings with a 1 or anything continuous run of 1s
+	
+	#loop through and get all the trials for each subject
+	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
+
+	#find each subjects' cue substance based on which item them chose more often during PAPC trials where they selected the alcohol or cigarette
+	if eyed=='agg':
+		index_counter=0; #index counter for the DataFrame object
+		#here, create a dataframe object to save the subsequent data
+		
+	#find the number of dwells for each of the alcohol, cigarettes, and neutral items
+	#get the aggregate breakdown as well as when they chose each item
+	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):		
+		
+		#proportion of trials the one dwells occurs on
+		alc_prop_trials = [];
+		cig_prop_trials = [];
+		neu_prop_trials = [];
+		total_prop_trials = []; #a holder to determine the total nr of dwells across items
+		chose_alc_alc_prop_trials= [];
+		chose_alc_cig_prop_trials = [];
+		chose_alc_neu_prop_trials = [];
+		chose_alc_total_prop_trials = [];
+		chose_cig_alc_prop_trials = [];
+		chose_cig_cig_prop_trials = [];
+		chose_cig_neu_prop_trials = [];
+		chose_cig_total_prop_trials = [];
+		chose_neu_alc_prop_trials = [];
+		chose_neu_cig_prop_trials = [];
+		chose_neu_neu_prop_trials = [];
+		chose_neu_total_prop_trials = [];
+		#latency holders for the one dwells occurs
+		alc_lats = [];
+		cig_lats = [];
+		neu_lats = [];
+		total_lats = []; #a holder to determine the total nr of dwells across items
+		chose_alc_alc_lats= [];
+		chose_alc_cig_lats = [];
+		chose_alc_neu_lats = [];
+		chose_alc_total_lats = [];
+		chose_cig_alc_lats = [];
+		chose_cig_cig_lats = [];
+		chose_cig_neu_lats = [];
+		chose_cig_total_lats = [];
+		chose_neu_alc_lats = [];
+		chose_neu_cig_lats = [];
+		chose_neu_neu_lats = [];
+		chose_neu_total_lats = [];		
+		#which object the one dwells looked at
+		alc_dwelled_items = [];
+		cig_dwelled_items = [];
+		neu_dwelled_items = [];
+		total_dwelled_items = []; #a holder to determine the total nr of dwells across items
+		chose_alc_alc_dwelled_items= [];
+		chose_alc_cig_dwelled_items = [];
+		chose_alc_neu_dwelled_items = [];
+		chose_alc_total_dwelled_items = [];
+		chose_cig_alc_dwelled_items = [];
+		chose_cig_cig_dwelled_items = [];
+		chose_cig_neu_dwelled_items = [];
+		chose_cig_total_dwelled_items = [];
+		chose_neu_alc_dwelled_items = [];
+		chose_neu_cig_dwelled_items = [];
+		chose_neu_neu_dwelled_items = [];
+		chose_neu_total_dwelled_items = [];
+		
+		#first run the analysis for all trials of this trial type, not breaking it down by whether they chose alcohol, cigeratte, or neutral
+		#loop through trials for each subject
+		for subj,sub_id in zip(trial_matrix, ids):
+			alc_subj = [];
+			cig_subj = [];
+			neu_subj = [];
+			tot_subj = [];
+			
+			for t in subj:
+				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&
+					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
+					
+					#In the computation of the lookedAtXX arrays during trial pre-processing, I include NaNs at times when no itm
+					#was looked at... e.g., when the participant was fixating the center of the screen.
+					#In order to ensure that I capture the change from not looking at one item to looking at any item (like the first dwell),
+					#I need to convert those NaNs to 0's for calculation using the string-based method below. However, I want the original
+					#lookedAtXX arrays to maintain the Nan, 0, 1 coding scheme, so I'll create holder arrays for each trial to use for the nr of dwell
+					#calculations here
+					
+					looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
+					looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
+					looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);
+					
+					total_holder = 0; #this determines how many items are dwelled on
+					
+					str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
+					run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
+					#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
+					nr_fixs = sum([1 for r in run_lengths_alc]);
+					#Nuances of this code are below
+					if str_alc[0]=='1':
+						nr_fixs +=1;
+					total_holder+=nr_fixs; #add the nr of dwells from looking at alc to this holder variable
+					
+					str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
+					run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
+					nr_fixs = sum([1 for r in run_lengths_cig]);
+					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+					if str_cig[0]=='1':
+						nr_fixs +=1;
+					total_holder+=nr_fixs; #add the nr of dwells from looking at cig to this holder variable
+
+
+					str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
+					run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
+					nr_fixs = sum([1 for r in run_lengths_neu]);
+					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+					if str_neu[0]=='1':
+						nr_fixs +=1;
+					total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
+					
+					#conditional to determine if the number of dwells was one or not
+					if total_holder==1:
+						foo = 'bar';
+		
+		
+		
+		
+		
+		
 def computeNrDwells(blocks, eyed='agg'):		
 	# determine the number of unique fixations to each item in a trial
 	#compute this for all trial types, and then do it for breakdown of which item was selected

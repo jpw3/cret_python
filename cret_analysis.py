@@ -1091,64 +1091,33 @@ def computeOneDwellTrialData(blocks, eyed='agg'):
 	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):		
 		
 		#proportion of trials the one dwells occurs on
-		alc_prop_trials = [];
-		cig_prop_trials = [];
-		neu_prop_trials = [];
-		total_prop_trials = []; #a holder to determine the total nr of dwells across items
-		chose_alc_alc_prop_trials= [];
-		chose_alc_cig_prop_trials = [];
-		chose_alc_neu_prop_trials = [];
-		chose_alc_total_prop_trials = [];
-		chose_cig_alc_prop_trials = [];
-		chose_cig_cig_prop_trials = [];
-		chose_cig_neu_prop_trials = [];
-		chose_cig_total_prop_trials = [];
-		chose_neu_alc_prop_trials = [];
-		chose_neu_cig_prop_trials = [];
-		chose_neu_neu_prop_trials = [];
-		chose_neu_total_prop_trials = [];
-		#latency holders for the one dwells occurs
-		alc_lats = [];
-		cig_lats = [];
-		neu_lats = [];
-		total_lats = []; #a holder to determine the total nr of dwells across items
-		chose_alc_alc_lats= [];
-		chose_alc_cig_lats = [];
-		chose_alc_neu_lats = [];
-		chose_alc_total_lats = [];
-		chose_cig_alc_lats = [];
-		chose_cig_cig_lats = [];
-		chose_cig_neu_lats = [];
-		chose_cig_total_lats = [];
-		chose_neu_alc_lats = [];
-		chose_neu_cig_lats = [];
-		chose_neu_neu_lats = [];
-		chose_neu_total_lats = [];		
+		alc_prop_trials = []; cig_prop_trials = []; neu_prop_trials = []; total_prop_trials = [];
+		chose_alc_alc_prop_trials= []; chose_alc_cig_prop_trials = []; chose_alc_neu_prop_trials = []; chose_alc_total_prop_trials = [];
+		chose_cig_alc_prop_trials = []; chose_cig_cig_prop_trials = []; chose_cig_neu_prop_trials = []; chose_cig_total_prop_trials = [];
+		chose_neu_alc_prop_trials = []; chose_neu_cig_prop_trials = []; chose_neu_neu_prop_trials = []; chose_neu_total_prop_trials = [];
+		#latency for first saccade holders for the one dwells occurs
+		alc_lats = []; cig_lats = [];neu_lats = []; total_lats = []; 
+		chose_alc_alc_lats= []; chose_alc_cig_lats = []; chose_alc_neu_lats = []; chose_alc_total_lats = [];
+		chose_cig_alc_lats = []; chose_cig_cig_lats = []; chose_cig_neu_lats = []; chose_cig_total_lats = [];
+		chose_neu_alc_lats = []; chose_neu_cig_lats = []; chose_neu_neu_lats = []; chose_neu_total_lats = [];
+		#end points of the first saccade
+		alc_endpoints = []; cig_endpoints = [];neu_endpoints = []; total_endpoints= []; 
+		chose_alc_alc_endpoints= []; chose_alc_cig_endpoints = []; chose_alc_neu_endpoints = []; chose_alc_total_endpoints = [];
+		chose_cig_alc_endpoints = []; chose_cig_cig_endpoints = []; chose_cig_neu_endpoints = []; chose_cig_total_endpoints = [];
+		chose_neu_alc_endpoints = []; chose_neu_cig_endpoints = []; chose_neu_neu_endpoints = []; chose_neu_total_endpoints = [];		
 		#which object the one dwells looked at
-		alc_dwelled_items = [];
-		cig_dwelled_items = [];
-		neu_dwelled_items = [];
-		total_dwelled_items = []; #a holder to determine the total nr of dwells across items
-		chose_alc_alc_dwelled_items= [];
-		chose_alc_cig_dwelled_items = [];
-		chose_alc_neu_dwelled_items = [];
-		chose_alc_total_dwelled_items = [];
-		chose_cig_alc_dwelled_items = [];
-		chose_cig_cig_dwelled_items = [];
-		chose_cig_neu_dwelled_items = [];
-		chose_cig_total_dwelled_items = [];
-		chose_neu_alc_dwelled_items = [];
-		chose_neu_cig_dwelled_items = [];
-		chose_neu_neu_dwelled_items = [];
-		chose_neu_total_dwelled_items = [];
+		alc_dwelled_items = []; cig_dwelled_items = []; neu_dwelled_items = []; total_dwelled_items = []; 
+		chose_alc_alc_dwelled_items= []; chose_alc_cig_dwelled_items = []; chose_alc_neu_dwelled_items = [];chose_alc_total_dwelled_items = [];
+		chose_cig_alc_dwelled_items = []; chose_cig_cig_dwelled_items = []; chose_cig_neu_dwelled_items = []; chose_cig_total_dwelled_items = [];
+		chose_neu_alc_dwelled_items = []; chose_neu_cig_dwelled_items = []; chose_neu_neu_dwelled_items = []; chose_neu_total_dwelled_items = [];
 		
 		#first run the analysis for all trials of this trial type, not breaking it down by whether they chose alcohol, cigeratte, or neutral
 		#loop through trials for each subject
 		for subj,sub_id in zip(trial_matrix, ids):
-			alc_subj = [];
-			cig_subj = [];
-			neu_subj = [];
-			tot_subj = [];
+			alc_subj = []; cig_subj = []; neu_subj = []; tot_subj = [];
+			alc_subj_lats  = []; cig_subj_lats  = []; neu_subj_lats  = []; tot_subj_lats  = [];
+			alc_subj_endpoints = []; cig_subj_endpoints = []; neu_subj_endpoints = []; tot_subj_endpoints = [];
+			alc_subj_dwelled_items = []; cig_subj_dwelled_items = []; neu_subj_dwelled_items = []; tot_subj_dwelled_items = [];
 			
 			for t in subj:
 				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&
@@ -1184,7 +1153,6 @@ def computeOneDwellTrialData(blocks, eyed='agg'):
 						nr_fixs +=1;
 					total_holder+=nr_fixs; #add the nr of dwells from looking at cig to this holder variable
 
-
 					str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
 					run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
 					nr_fixs = sum([1 for r in run_lengths_neu]);
@@ -1194,8 +1162,47 @@ def computeOneDwellTrialData(blocks, eyed='agg'):
 					total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
 					
 					#conditional to determine if the number of dwells was one or not
+					#below here append the behavioral information to the holder variables
 					if total_holder==1:
-						foo = 'bar';
+						
+						sac_start_time = 0;
+						sac_start_pos = array([]);						
+						sac_end_time = 0;
+						sac_end_pos = array([]);
+						
+						#Below here goes through each trial and pulls out the first saccde
+						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+						# we get to the end of the trial
+						
+						saccade_counter = 0;
+						while saccade_counter==0:
+							for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+																 t.eyeX, t.eyeY, t.isSaccade):
+								#if no saccade has been made yet, keep running through the isSaccade array
+								# issac < 1 will be zero at all non-saccading time points, including the start
+								if issac == 0:
+									#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+									if (t.isSaccade[ii-1]==True)&(ii>0):
+										sac_end_time = t.sample_times[ii];
+										sac_end_pos = array([xx,yy]);
+										saccade_counter+=1;
+									
+									#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
+									if (ii == range(len(t.sample_times))[-1]):
+										saccade_counter = 100;
+										
+								elif issac == 1:
+									#get the starting point for this saccade as well as the time
+									#the first transition between 0 and 1 will be the first saccade start
+									if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+										sac_start_time = t.sample_times[ii];
+										sac_start_pos = array([xx,yy]);
+						
+						#calculate the latency and endpoint, then save to the subject's array
+						total_subj_lats.append(sac_start_time);
+						total_subj_endpoints.append(sac_end_pos);
+						
+						#add prop times and dwelled items
 		
 		
 		

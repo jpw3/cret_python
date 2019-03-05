@@ -1064,6 +1064,160 @@ def computeSustainedResponses(blocks, eyed = 'agg'):
 		data.to_csv(savepath+'avg_sustained_response_item.csv',index=False);
 		
 		
+		
+def computePreviousTrialData(blocks, eyed='agg'):
+	#compute the effect that the previous trial's (N-1) choice as well as last dwelled (fixated) item has on the current trial (N)
+	db = subject_data;
+	
+	#first, check out effect that previous trial response has on current trial response/first dwelled item
+	#this is likely to be biased due to the biases in choice
+	
+	rexp_pattern = re.compile(r'01'); #this regular expression pattern looks for strings with a 1 or anything continuous run of 1s
+	
+	#loop through and get all the trials for each subject
+	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];	
+		
+	if eyed=='agg':
+		index_counter=0; #index counter for the DataFrame object
+		#here, create a dataframe object to save the subsequent data
+		
+	#get the aggregate breakdown as well as when they chose each item
+	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):			
+		
+		#this counter variables hold boolean (0 or 1) values corresponding to whether the previous trials response corresponded to the current trials response/first dwelled item
+		prev_resp_resps_bools = [];
+		prev_resp_dwells_bools = [];
+		prev_last_dwell_resps_bools = [];
+		prev_last_dwell_dwells_bools = [];		
+		
+		for subj,sub_id in zip(trial_matrix, ids):		
+			subj_prev_resp_resps_bools = [];
+			subj_prev_resp_dwells_bools = [];
+			subj_prev_last_resps_bools = []; #previous trial's last dwelled item's boolean match with the current response
+			subj_prev_last_dwell_bools = [];			
+
+			for i,t in enumerate(subj):
+				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&
+					(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
+					
+					#can't do n-back calculation for the first trial in a block
+					if t.trial_nr>0:
+						
+						#get the previous trial response and last looked at item!
+						prev_response = subj[i-1].preferred_category;
+						
+						#get previous last dwelled item
+						prev_alc_subj = []; prev_cig_subj = []; prev_neu_subj = [];
+							
+						prev_looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedAtAlcohol]);
+						prev_looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedAtCigarette]);
+						prev_looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedAtNeutral]);					
+						
+						str_alc = ''.join(str(int(g)) for g in prev_looked_at_alcohol if not(isnan(g))); #first get the array into a string
+						
+						#get last instane of the '1' in this array. if never loooked at, will return a -1
+						alc_indices = str_alc.rfind('1'); #rfind searches the string from right to left
+						
+						if isinstance(alc_indices, int):
+							alc_last_index_lookedat = alc_indices;
+						else:
+							alc_last_index_lookedat = alc_indices[0];
+							
+						str_cig = ''.join(str(int(g)) for g in prev_looked_at_cigarette if not(isnan(g))); #parse cigarette
+						cig_indices = str_cig.rfind('1');		
+						if isinstance(cig_indices, int):
+							cig_last_index_lookedat = cig_indices;
+						else:
+							cig_last_index_lookedat = cig_indices[0];
+	
+						str_neu = ''.join(str(int(g)) for g in prev_looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
+						neu_indices = str_neu.rfind('1');		
+						if isinstance(neu_indices, int):
+							neu_last_index_lookedat = neu_indices;
+						else:
+							neu_last_index_lookedat = neu_indices[0];
+						
+						last_instances =  array([alc_last_index_lookedat, cig_last_index_lookedat, neu_last_index_lookedat]); #always keep it alcohol, cigarette, neutral
+						last_item_index = where(last_instances == max(last_instances))[0][0];
+						
+						#conditonal to find the last item that was looked at accoridng to the index corresponding to the item 
+						if last_item_index==0:
+							prev_last_dwelled_item = 'alcohol';
+						elif last_item_index==1:
+							prev_last_dwelled_item = 'cigarette';
+						elif last_item_index== 2:
+							prev_last_dwelled_item = 'neutral';
+
+						#now get the current trial first looked at item and response
+						
+						current_response = t.preferred_category;
+						
+						#and the first looked at item in this trial. It's the same thing as used above, but using string.find() rather than string.rfind()
+						alc_subj = []; cig_subj = []; neu_subj = [];
+							
+						looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
+						looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
+						looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);										
+						
+						curr_str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
+						
+						#get last instane of the '1' in this array. if never loooked at, will return a -1
+						curr_alc_indices = curr_str_alc.find('1'); #rfind searches the string from right to left
+						
+						if isinstance(curr_alc_indices, int):
+							curr_alc_last_index_lookedat = curr_alc_indices;
+						else:
+							curr_alc_last_index_lookedat = curr_alc_indices[0];
+						if curr_alc_last_index_lookedat==-1:
+							curr_alc_last_index_lookedat = 100*1000; #this ensures that instead of a -1 being input into the array, I input a massive nr (needed for minimum calculation)
+							
+						curr_str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
+						curr_cig_indices = curr_str_cig.find('1');		
+						if isinstance(curr_cig_indices, int):
+							curr_cig_last_index_lookedat = curr_cig_indices;
+						else:
+							curr_cig_last_index_lookedat = curr_cig_indices[0];
+						if curr_cig_last_index_lookedat==-1:
+							curr_cig_last_index_lookedat = 100*1000;
+							
+						curr_str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
+						curr_neu_indices = curr_str_neu.find('1');		
+						if isinstance(curr_neu_indices, int):
+							curr_neu_last_index_lookedat = curr_neu_indices;
+						else:
+							curr_neu_last_index_lookedat = curr_neu_indices[0];
+						if curr_neu_last_index_lookedat==-1:
+							curr_neu_last_index_lookedat = 100*1000;
+
+						curr_first_instances =  array([curr_alc_last_index_lookedat, curr_cig_last_index_lookedat, curr_neu_last_index_lookedat]); #always keep it alcohol, cigarette, neutral
+						curr_first_item_index = where(curr_first_instances == min(curr_first_instances))[0][0];
+						
+						#conditonal to find the last item that was looked at accoridng to the index corresponding to the item 
+						if curr_first_item_index==0:
+							curr_first_dwelled_item = 'alcohol';
+						elif curr_first_item_index==1:
+							curr_first_dwelled_item = 'cigarette';
+						elif curr_first_item_index== 2:
+							curr_first_dwelled_item = 'neutral';
+							
+						#now below here, compare the current trial's response and first looked at item with the last trials response and last looked at item	
+						subj_prev_resp_resps_bools.append(prev_response==current_response);
+						subj_prev_resp_dwells_bools.append(prev_response==curr_first_dwelled_item);
+						subj_prev_last_resps_bools.append(prev_last_dwelled_item==current_response); #previous trial's last dwelled item's boolean match with the current response
+						subj_prev_last_dwell_bools.append(prev_last_dwelled_item==curr_first_dwelled_item);
+
+			#here, append the aggregated proportion of trials these variables matched to the average holders for each subject
+			prev_resp_resps_bools.append(sum(subj_prev_resp_resps_bools)/float(len(subj_prev_resp_resps_bools)));
+			prev_resp_dwells_bools.append(sum(subj_prev_resp_dwells_bools)/float(len(subj_prev_resp_dwells_bools)));
+			prev_last_dwell_resps_bools.append(sum(subj_prev_last_resps_bools)/float(len(subj_prev_last_resps_bools)));
+			prev_last_dwell_dwells_bools.append(sum(subj_prev_last_dwell_bools)/float(len(subj_prev_last_dwell_bools)));
+			
+		1/0
+		#here, find average and standard error or these variables
+		
+		
+		
+		
 def computeOneDwellTrialData(blocks, eyed='agg'):
 	#check out the data for the trials where one dwell occurred
 	#Compute:

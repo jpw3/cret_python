@@ -80,324 +80,324 @@ matplotlib.pyplot.rc('font',weight='bold');
 ## Data Analysis Methods ##
 ############################################
 
-# this subsequent function determines aspects of the eye tracking data set such as time until first saccade, dwell time on first saccade, etc.
-
-def computeEarlyTrialData(blocks, eyed='agg'):
-	
-	# #import trial-specific data for all participants
-	# hp_trial_data = pd.read_csv(savepath+'/stim_locked/high_pref_trialdata.csv');
-	# hcla_trial_data = pd.read_csv(savepath+'/stim_locked/highC_lowA_trialdata.csv');
-	# lcha_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_highA_trialdata.csv');
-	# lp_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_lowA_trialdata.csv');
-	# 
-	# #collect all the data trial for the first participant (cret 03)
-	# 
-	# trial_data = pd.concat([hp_trial_data[hp_trial_data['subject_nr']==1], hcla_trial_data[hcla_trial_data['subject_nr']==1], lcha_trial_data[lcha_trial_data['subject_nr']==1], lp_trial_data[lp_trial_data['subject_nr']==1]]);
-	#choices = [];
-	
-	trial_counter = 0;
-	#create plot to show first saccades
-	#first create circles indicating where I'm crediting item assignment
-	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
-	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
-	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
-
-	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
-	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
-	#add the circles
-	ax.add_artist(circle1);
-	ax.add_artist(circle2);
-	ax.add_artist(circle3);
-	
-	#ttFS = []; #time to first saccades, average for each participant. for use when doing this for all participants at the same time
-	
-	for b in blocks:
-		trials = [tri for bee in b for tri in bee.trials];
-		times = []; #to store the time to first saccades for this participant
-		
-		for t in trials:
-			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)): #&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2)&(t.trial_type=='high_pref')):
-				
-				trial_counter+=1;
-				
-				#first plot the eye trace for this trial's first saccade
-				saccade_counter = 0;
-				
-				while saccade_counter==0:
-					for i,xx,yy,issac in zip(range(len(t.sample_times)),
-														 t.eyeX, t.eyeY, t.isSaccade):
-						#plot the eye trace in black if not saccading
-						if issac == 0:
-							#ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
-							#conditional to switch to the next saccade color
-							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
-							if (t.isSaccade[i-1]==True)&(i>0):
-								ax.plot(xx, yy, marker = 'x', color = 'red', ms = 15);
-								saccade_counter+=1;
-							
-							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
-							if (i == range(len(t.sample_times))[-1]):
-								saccade_counter = 100;
-						# else:
-						# 	if ((t.isSaccade[i-1]==False)&(i>0))|(i==0):
-						# 		ax.plot(xx, yy, marker = 'x', color = 'green', ms = 7);
-						# 	else:	
-						# 		ax.plot(xx, yy, color = 'black', marker = 'o', ms = 4);
-					
-				#timing of first saccade
-				
-				binaryList = list(t.isSaccade.astype(int));			
-				firstIndex = binaryList.index(1) if (1 in binaryList) else -1; #get the first index of a '1' in the isSaccade vector, indicating this is when the first saccade occurre			
-				timeToFirstSaccade = firstIndex + 1 if (firstIndex > 0) else -1; #get the time point in ms of the first saccade to this trial, -1 means no saccade occurred
-	
-				#add this time to the list if they made a saccade in this time window
-				if (timeToFirstSaccade > 0):
-					times.append(timeToFirstSaccade); #choices.append(t.preferred_category)			
-					
-	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
-	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
-	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
-	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
-	title('First Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
-
-	#histogram the time until first saccades
-	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
-	hist(times);
-	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('First saccade latencies', fontsize = 14);			
-	mew_latency = mean(times);
-	
-	#add text detailing the mean saccadic latency
-	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
-	
-	
-	#save the figure
-	savefig(figurepath+'ALLTRIALS_first_saccade_data_subj_%s.png'%(t.sub_id));	
-	
-	## #now create the figures for the second saccade data
-	
-	#first create circles indicating where I'm crediting item assignment
-	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
-	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
-	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
-	
-	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[0]/2,display_size[0]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
-	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
-	#add the circles
-	ax.add_artist(circle1);
-	ax.add_artist(circle2);
-	ax.add_artist(circle3);	
-	
-	dwell_times = [];
-	
-	for b in blocks:
-		trials = [tri for bee in b for tri in bee.trials];
-		times = []; #to store the time to first saccades for this participant
-		
-		for t in trials:
-			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)): # &(t.nr_saccades>1)):
-				
-				dt = 0; #dwell time for this participants
-				
-				#first plot the eye trace for this trial's first saccade
-				saccade_counter = 0;
-				
-				while saccade_counter<2:
-					for i,xx,yy,issac in zip(range(len(t.sample_times)),
-														 t.eyeX, t.eyeY, t.isSaccade):
-						#plot the eye trace in black if not saccading
-						if issac == 0:
-							if (saccade_counter==1)&(t.isSaccade[i-1]==False):
-								dt+=1;							
-							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
-							if (t.isSaccade[i-1]==True)&(i>0):
-								#conditional checks if it's the second saccade or not								
-								if saccade_counter==1:
-									ax.plot(xx, yy, marker = 'x', color = 'blue', ms = 15);
-								saccade_counter+=1;
-								
-							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
-							if (i == range(len(t.sample_times))[-1]):
-								saccade_counter = 100;								
-								
-				#add this time to the list if they made a saccade in this time window
-				if (dt > 0):
-					dwell_times.append(dt);				
-					
-	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
-	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
-	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
-	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
-	title('Second Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
-
-	#histogram the time until first saccades
-	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
-	hist(dwell_times);
-	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('Second saccade latencies', fontsize = 14);			
-	mew_latency = mean(dwell_times);
-	
-	#add text detailing the mean saccadic latency
-	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
-	
-	#save the figure
-	savefig(figurepath+'ALLTRIALS_second_saccade_data_subj_%s.png'%(t.sub_id));
-	
-	1/0;	
-		
-			#incorporate a conditional to match the trial type
-			
-			
-##the following function does the same thing as above, but only for trials where the first saccade started at the origin
-
-def computeEarlyTrialDataOriginStartTrialsOnly(blocks, eyed='agg'):
-	
-	# #import trial-specific data for all participants
-	# hp_trial_data = pd.read_csv(savepath+'/stim_locked/high_pref_trialdata.csv');
-	# hcla_trial_data = pd.read_csv(savepath+'/stim_locked/highC_lowA_trialdata.csv');
-	# lcha_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_highA_trialdata.csv');
-	# lp_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_lowA_trialdata.csv');
-	# 
-	# #collect all the data trial for the first participant (cret 03)
-	# 
-	# trial_data = pd.concat([hp_trial_data[hp_trial_data['subject_nr']==1], hcla_trial_data[hcla_trial_data['subject_nr']==1], lcha_trial_data[lcha_trial_data['subject_nr']==1], lp_trial_data[lp_trial_data['subject_nr']==1]]);
-	#choices = [];
-	
-	#create plot to show first saccades
-	#first create circles indicating where I'm crediting item assignment
-	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
-	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
-	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
-
-	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[0]/2,display_size[0]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
-	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
-	#add the circles
-	ax.add_artist(circle1);
-	ax.add_artist(circle2);
-	ax.add_artist(circle3);
-	
-	#ttFS = []; #time to first saccades, average for each participant. for use when doing this for all participants at the same time
-	trial_counter = 0;
-	for b in blocks:
-		trials = [tri for bee in b for tri in bee.trials];
-		times = []; #to store the time to first saccades for this participant
-		
-		for t in trials:
-			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2)): #&(t.trial_type==1)): #
-				
-				trial_counter+=1;
-				#first plot the eye trace for this trial's first saccade
-				saccade_counter = 0;
-				
-				while saccade_counter==0:
-					for i,xx,yy,issac in zip(range(len(t.sample_times)),
-														 t.eyeX, t.eyeY, t.isSaccade):
-						#plot the eye trace in black if not saccading
-						if issac == 0:
-							#ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
-							#conditional to switch to the next saccade color
-							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
-							if (t.isSaccade[i-1]==True)&(i>0):
-								ax.plot(xx, yy, marker = 'x', color = 'red', ms = 15);
-								saccade_counter+=1;
-							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
-							if (i == range(len(t.sample_times))[-1]):
-								saccade_counter = 100;
-					
-				#timing of first saccade
-				
-				binaryList = list(t.isSaccade.astype(int));			
-				firstIndex = binaryList.index(1) if (1 in binaryList) else -1; #get the first index of a '1' in the isSaccade vector, indicating this is when the first saccade occurre			
-				timeToFirstSaccade = firstIndex + 1 if (firstIndex > 0) else -1; #get the time point in ms of the first saccade to this trial, -1 means no saccade occurred
-	
-				#add this time to the list if they made a saccade in this time window
-				if (timeToFirstSaccade > 0):
-					times.append(timeToFirstSaccade); #choices.append(t.preferred_category)			
-					
-	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
-	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
-	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
-	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
-	title('First Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
-
-	#histogram the time until first saccades
-	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
-	hist(times);
-	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('First saccade latencies', fontsize = 14);			
-	mew_latency = mean(times);
-	
-	#add text detailing the mean saccadic latency
-	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
-	
-	#save the figure
-	savefig(figurepath+'ORIGINSTARTTRIALS_first_saccade_data_subj_%s.png'%(t.sub_id));	
-	
-	## #now create the figures for the second saccade data
-	
-	#first create circles indicating where I'm crediting item assignment
-	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
-	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
-	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
-	
-	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[0]/2,display_size[0]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
-	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
-	#add the circles
-	ax.add_artist(circle1);
-	ax.add_artist(circle2);
-	ax.add_artist(circle3);	
-	
-	dwell_times = [];
-	
-	for b in blocks:
-		trials = [tri for bee in b for tri in bee.trials];
-		times = []; #to store the time to first saccades for this participant
-		
-		for t in trials:
-			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2)): # &(t.nr_saccades>1)):
-				
-				dt = 0; #dwell time for this participants
-				
-				#first plot the eye trace for this trial's first saccade
-				saccade_counter = 0;
-				
-				while saccade_counter<2:
-					for i,xx,yy,issac in zip(range(len(t.sample_times)),
-														 t.eyeX, t.eyeY, t.isSaccade):
-						#plot the eye trace in black if not saccading
-						if issac == 0:
-							if (saccade_counter==1)&(t.isSaccade[i-1]==False):
-								dt+=1;							
-							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
-							if (t.isSaccade[i-1]==True)&(i>0):
-								#conditional checks if it's the second saccade or not								
-								if saccade_counter==1:
-									ax.plot(xx, yy, marker = 'x', color = 'blue', ms = 15);
-								saccade_counter+=1;
-							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
-							if (i == range(len(t.sample_times))[-1]):
-								saccade_counter = 100;
-								
-				#add this time to the list if they made a saccade in this time window
-				if (dt > 0):
-					dwell_times.append(dt);				
-					
-	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
-	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
-	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
-	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
-	title('Second Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
-
-	#histogram the time until first saccades
-	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
-	hist(dwell_times);
-	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('Second saccade latencies', fontsize = 14);			
-	mew_latency = mean(dwell_times);
-	
-	#add text detailing the mean saccadic latency
-	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
-	
-	#save the figure
-	savefig(figurepath+'ORIGINSTARTTRIALS_second_saccade_data_subj_%s.png'%(t.sub_id));
-	
-	1/0;	
+# # this subsequent function determines aspects of the eye tracking data set such as time until first saccade, dwell time on first saccade, etc.
+# 
+# def computeEarlyTrialData(blocks, eyed='agg'):
+# 	
+# 	# #import trial-specific data for all participants
+# 	# hp_trial_data = pd.read_csv(savepath+'/stim_locked/high_pref_trialdata.csv');
+# 	# hcla_trial_data = pd.read_csv(savepath+'/stim_locked/highC_lowA_trialdata.csv');
+# 	# lcha_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_highA_trialdata.csv');
+# 	# lp_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_lowA_trialdata.csv');
+# 	# 
+# 	# #collect all the data trial for the first participant (cret 03)
+# 	# 
+# 	# trial_data = pd.concat([hp_trial_data[hp_trial_data['subject_nr']==1], hcla_trial_data[hcla_trial_data['subject_nr']==1], lcha_trial_data[lcha_trial_data['subject_nr']==1], lp_trial_data[lp_trial_data['subject_nr']==1]]);
+# 	#choices = [];
+# 	
+# 	trial_counter = 0;
+# 	#create plot to show first saccades
+# 	#first create circles indicating where I'm crediting item assignment
+# 	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
+# 	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
+# 	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
+# 
+# 	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[1]/2,display_size[1]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+# 	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
+# 	#add the circles
+# 	ax.add_artist(circle1);
+# 	ax.add_artist(circle2);
+# 	ax.add_artist(circle3);
+# 	
+# 	#ttFS = []; #time to first saccades, average for each participant. for use when doing this for all participants at the same time
+# 	
+# 	for b in blocks:
+# 		trials = [tri for bee in b for tri in bee.trials];
+# 		times = []; #to store the time to first saccades for this participant
+# 		
+# 		for t in trials:
+# 			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)): #&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2)&(t.trial_type=='high_pref')):
+# 				
+# 				trial_counter+=1;
+# 				
+# 				#first plot the eye trace for this trial's first saccade
+# 				saccade_counter = 0;
+# 				
+# 				while saccade_counter==0:
+# 					for i,xx,yy,issac in zip(range(len(t.sample_times)),
+# 														 t.eyeX, t.eyeY, t.isSaccade):
+# 						#plot the eye trace in black if not saccading
+# 						if issac == 0:
+# 							#ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
+# 							#conditional to switch to the next saccade color
+# 							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
+# 							if (t.isSaccade[i-1]==True)&(i>0):
+# 								ax.plot(xx, yy, marker = 'x', color = 'red', ms = 15);
+# 								saccade_counter+=1;
+# 							
+# 							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
+# 							if (i == range(len(t.sample_times))[-1]):
+# 								saccade_counter = 100;
+# 						# else:
+# 						# 	if ((t.isSaccade[i-1]==False)&(i>0))|(i==0):
+# 						# 		ax.plot(xx, yy, marker = 'x', color = 'green', ms = 7);
+# 						# 	else:	
+# 						# 		ax.plot(xx, yy, color = 'black', marker = 'o', ms = 4);
+# 					
+# 				#timing of first saccade
+# 				
+# 				binaryList = list(t.isSaccade.astype(int));			
+# 				firstIndex = binaryList.index(1) if (1 in binaryList) else -1; #get the first index of a '1' in the isSaccade vector, indicating this is when the first saccade occurre			
+# 				timeToFirstSaccade = firstIndex + 1 if (firstIndex > 0) else -1; #get the time point in ms of the first saccade to this trial, -1 means no saccade occurred
+# 	
+# 				#add this time to the list if they made a saccade in this time window
+# 				if (timeToFirstSaccade > 0):
+# 					times.append(timeToFirstSaccade); #choices.append(t.preferred_category)			
+# 					
+# 	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+# 	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+# 	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+# 	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
+# 	title('First Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
+# 
+# 	#histogram the time until first saccades
+# 	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
+# 	hist(times);
+# 	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('First saccade latencies', fontsize = 14);			
+# 	mew_latency = mean(times);
+# 	
+# 	#add text detailing the mean saccadic latency
+# 	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
+# 	
+# 	
+# 	#save the figure
+# 	savefig(figurepath+'ALLTRIALS_first_saccade_data_subj_%s.png'%(t.sub_id));	
+# 	
+# 	## #now create the figures for the second saccade data
+# 	
+# 	#first create circles indicating where I'm crediting item assignment
+# 	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
+# 	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
+# 	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
+# 	
+# 	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[0]/2,display_size[0]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+# 	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
+# 	#add the circles
+# 	ax.add_artist(circle1);
+# 	ax.add_artist(circle2);
+# 	ax.add_artist(circle3);	
+# 	
+# 	dwell_times = [];
+# 	
+# 	for b in blocks:
+# 		trials = [tri for bee in b for tri in bee.trials];
+# 		times = []; #to store the time to first saccades for this participant
+# 		
+# 		for t in trials:
+# 			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)): # &(t.nr_saccades>1)):
+# 				
+# 				dt = 0; #dwell time for this participants
+# 				
+# 				#first plot the eye trace for this trial's first saccade
+# 				saccade_counter = 0;
+# 				
+# 				while saccade_counter<2:
+# 					for i,xx,yy,issac in zip(range(len(t.sample_times)),
+# 														 t.eyeX, t.eyeY, t.isSaccade):
+# 						#plot the eye trace in black if not saccading
+# 						if issac == 0:
+# 							if (saccade_counter==1)&(t.isSaccade[i-1]==False):
+# 								dt+=1;							
+# 							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
+# 							if (t.isSaccade[i-1]==True)&(i>0):
+# 								#conditional checks if it's the second saccade or not								
+# 								if saccade_counter==1:
+# 									ax.plot(xx, yy, marker = 'x', color = 'blue', ms = 15);
+# 								saccade_counter+=1;
+# 								
+# 							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
+# 							if (i == range(len(t.sample_times))[-1]):
+# 								saccade_counter = 100;								
+# 								
+# 				#add this time to the list if they made a saccade in this time window
+# 				if (dt > 0):
+# 					dwell_times.append(dt);				
+# 					
+# 	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+# 	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+# 	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+# 	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
+# 	title('Second Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
+# 
+# 	#histogram the time until first saccades
+# 	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
+# 	hist(dwell_times);
+# 	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('Second saccade latencies', fontsize = 14);			
+# 	mew_latency = mean(dwell_times);
+# 	
+# 	#add text detailing the mean saccadic latency
+# 	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
+# 	
+# 	#save the figure
+# 	savefig(figurepath+'ALLTRIALS_second_saccade_data_subj_%s.png'%(t.sub_id));
+# 	
+# 	1/0;	
+# 		
+# 			#incorporate a conditional to match the trial type
+# 			
+# 			
+# ##the following function does the same thing as above, but only for trials where the first saccade started at the origin
+# 
+# def computeEarlyTrialDataOriginStartTrialsOnly(blocks, eyed='agg'):
+# 	
+# 	# #import trial-specific data for all participants
+# 	# hp_trial_data = pd.read_csv(savepath+'/stim_locked/high_pref_trialdata.csv');
+# 	# hcla_trial_data = pd.read_csv(savepath+'/stim_locked/highC_lowA_trialdata.csv');
+# 	# lcha_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_highA_trialdata.csv');
+# 	# lp_trial_data = pd.read_csv(savepath+'/stim_locked/lowC_lowA_trialdata.csv');
+# 	# 
+# 	# #collect all the data trial for the first participant (cret 03)
+# 	# 
+# 	# trial_data = pd.concat([hp_trial_data[hp_trial_data['subject_nr']==1], hcla_trial_data[hcla_trial_data['subject_nr']==1], lcha_trial_data[lcha_trial_data['subject_nr']==1], lp_trial_data[lp_trial_data['subject_nr']==1]]);
+# 	#choices = [];
+# 	
+# 	#create plot to show first saccades
+# 	#first create circles indicating where I'm crediting item assignment
+# 	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
+# 	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
+# 	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
+# 
+# 	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[0]/2,display_size[0]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+# 	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
+# 	#add the circles
+# 	ax.add_artist(circle1);
+# 	ax.add_artist(circle2);
+# 	ax.add_artist(circle3);
+# 	
+# 	#ttFS = []; #time to first saccades, average for each participant. for use when doing this for all participants at the same time
+# 	trial_counter = 0;
+# 	for b in blocks:
+# 		trials = [tri for bee in b for tri in bee.trials];
+# 		times = []; #to store the time to first saccades for this participant
+# 		
+# 		for t in trials:
+# 			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2)): #&(t.trial_type==1)): #
+# 				
+# 				trial_counter+=1;
+# 				#first plot the eye trace for this trial's first saccade
+# 				saccade_counter = 0;
+# 				
+# 				while saccade_counter==0:
+# 					for i,xx,yy,issac in zip(range(len(t.sample_times)),
+# 														 t.eyeX, t.eyeY, t.isSaccade):
+# 						#plot the eye trace in black if not saccading
+# 						if issac == 0:
+# 							#ax.plot(xx,yy, color = 'black', marker = 'o', ms = 4);
+# 							#conditional to switch to the next saccade color
+# 							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
+# 							if (t.isSaccade[i-1]==True)&(i>0):
+# 								ax.plot(xx, yy, marker = 'x', color = 'red', ms = 15);
+# 								saccade_counter+=1;
+# 							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
+# 							if (i == range(len(t.sample_times))[-1]):
+# 								saccade_counter = 100;
+# 					
+# 				#timing of first saccade
+# 				
+# 				binaryList = list(t.isSaccade.astype(int));			
+# 				firstIndex = binaryList.index(1) if (1 in binaryList) else -1; #get the first index of a '1' in the isSaccade vector, indicating this is when the first saccade occurre			
+# 				timeToFirstSaccade = firstIndex + 1 if (firstIndex > 0) else -1; #get the time point in ms of the first saccade to this trial, -1 means no saccade occurred
+# 	
+# 				#add this time to the list if they made a saccade in this time window
+# 				if (timeToFirstSaccade > 0):
+# 					times.append(timeToFirstSaccade); #choices.append(t.preferred_category)			
+# 					
+# 	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+# 	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+# 	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+# 	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
+# 	title('First Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
+# 
+# 	#histogram the time until first saccades
+# 	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
+# 	hist(times);
+# 	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('First saccade latencies', fontsize = 14);			
+# 	mew_latency = mean(times);
+# 	
+# 	#add text detailing the mean saccadic latency
+# 	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
+# 	
+# 	#save the figure
+# 	savefig(figurepath+'ORIGINSTARTTRIALS_first_saccade_data_subj_%s.png'%(t.sub_id));	
+# 	
+# 	## #now create the figures for the second saccade data
+# 	
+# 	#first create circles indicating where I'm crediting item assignment
+# 	circle1 = pyplot.Circle(left_pic_coors, 4, color='lightgrey');
+# 	circle2 = pyplot.Circle(right_pic_coors, 4, color='lightgrey');
+# 	circle3 = pyplot.Circle(up_pic_coors, 4, color='lightgrey');
+# 	
+# 	fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,display_size[0]/2]); ax.set_ylim([-display_size[0]/2,display_size[0]/2]); #display_size[1]/2,display_size[1]/2]); #figsize = (12.8,7.64)
+# 	ax.set_ylabel('Y Position, Degrees of Visual Angle',size=18); ax.set_xlabel('X Position, Degrees of Visual Angle',size=18,labelpad=11); hold(True);
+# 	#add the circles
+# 	ax.add_artist(circle1);
+# 	ax.add_artist(circle2);
+# 	ax.add_artist(circle3);	
+# 	
+# 	dwell_times = [];
+# 	
+# 	for b in blocks:
+# 		trials = [tri for bee in b for tri in bee.trials];
+# 		times = []; #to store the time to first saccades for this participant
+# 		
+# 		for t in trials:
+# 			if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2)): # &(t.nr_saccades>1)):
+# 				
+# 				dt = 0; #dwell time for this participants
+# 				
+# 				#first plot the eye trace for this trial's first saccade
+# 				saccade_counter = 0;
+# 				
+# 				while saccade_counter<2:
+# 					for i,xx,yy,issac in zip(range(len(t.sample_times)),
+# 														 t.eyeX, t.eyeY, t.isSaccade):
+# 						#plot the eye trace in black if not saccading
+# 						if issac == 0:
+# 							if (saccade_counter==1)&(t.isSaccade[i-1]==False):
+# 								dt+=1;							
+# 							#if the previous sample was saccading and now it isn't, the first saccade is complete and plotting can stop
+# 							if (t.isSaccade[i-1]==True)&(i>0):
+# 								#conditional checks if it's the second saccade or not								
+# 								if saccade_counter==1:
+# 									ax.plot(xx, yy, marker = 'x', color = 'blue', ms = 15);
+# 								saccade_counter+=1;
+# 							#if there s no saccade, this will trigger the stop I need to move out of the infinite loop	
+# 							if (i == range(len(t.sample_times))[-1]):
+# 								saccade_counter = 100;
+# 								
+# 				#add this time to the list if they made a saccade in this time window
+# 				if (dt > 0):
+# 					dwell_times.append(dt);				
+# 					
+# 	ax.spines['right'].set_visible(False); ax.spines['top'].set_visible(False);
+# 	ax.spines['bottom'].set_linewidth(2.0); ax.spines['left'].set_linewidth(2.0);
+# 	ax.yaxis.set_ticks_position('left'); ax.xaxis.set_ticks_position('bottom');
+# 	#ax.legend(handles=[hand for hand in legend_lines],loc = 2,ncol=3,fontsize = 10); 
+# 	title('Second Saccade Endpoints\n Subject %s'%(t.sub_id), fontsize = 22);					
+# 
+# 	#histogram the time until first saccades
+# 	ia = inset_axes(ax, width="15%", height="25%", loc=1); #set the inset axes as percentages of the original axis size
+# 	hist(dwell_times);
+# 	ia.set_ylabel('Frequency', fontsize = 14); ia.set_xlabel('Latency', fontsize = 14); title('Second saccade latencies', fontsize = 14);			
+# 	mew_latency = mean(dwell_times);
+# 	
+# 	#add text detailing the mean saccadic latency
+# 	fig.text(0.8, 0.48, 'MEAN LATENCY:\n %s ms'%(round(mew_latency)),size=16,weight='bold');
+# 	
+# 	#save the figure
+# 	savefig(figurepath+'ORIGINSTARTTRIALS_second_saccade_data_subj_%s.png'%(t.sub_id));
+# 	
+# 	1/0;	
 			
 
 
@@ -1077,26 +1077,24 @@ def computePreviousTrialData(blocks, eyed='agg'):
 	#loop through and get all the trials for each subject
 	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];	
 		
+	#HERE, RUN A LOCATION-BASED PREVIOUS TRIAL ANALYSIS	
+
 	if eyed=='agg':
 		index_counter=0; #index counter for the DataFrame object
 		#here, create a dataframe object to save the subsequent data
-		data = pd.DataFrame(columns = ['sub_id','trial_type','prev_resp_cur_resp_avg_prop','prev_resp_cur_firstdwell_avg_prop', \
-									   'prev_lastdwell_cur_resp_avg_prop','prev_lastdwell_cur_firstdwell_avg_prop']);
+		data = pd.DataFrame(columns = ['sub_id','trial_type','prev_lastdwellloc_cur_firstdwellloc_avg_prop','first_sac_latency']);		
 		
 	#get the aggregate breakdown as well as when they chose each item
 	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):			
 		
-		#this counter variables hold boolean (0 or 1) values corresponding to whether the previous trials response corresponded to the current trials response/first dwelled item
-		prev_resp_resps_bools = [];
-		prev_resp_dwells_bools = [];
-		prev_last_dwell_resps_bools = [];
-		prev_last_dwell_dwells_bools = [];		
+		#this counter variable hold boolean (0 or 1) values corresponding to whether the previous trials last dwelled loc is the first dwelled loc on trial N
+		prev_last_dwell_dwells_bools = [];
+		lengs = [];
+		latencies = [];
 		
 		for subj,sub_id in zip(trial_matrix, ids):		
-			subj_prev_resp_resps_bools = [];
-			subj_prev_resp_dwells_bools = [];
-			subj_prev_last_resps_bools = []; #previous trial's last dwelled item's boolean match with the current response
-			subj_prev_last_dwell_bools = [];			
+			subj_prev_last_dwell_bools = [];
+			subj_latencies = [];
 
 			for i,t in enumerate(subj):
 				if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&
@@ -1105,137 +1103,324 @@ def computePreviousTrialData(blocks, eyed='agg'):
 					#can't do n-back calculation for the first trial in a block
 					if t.trial_nr>0:
 						
-						#get the previous trial response and last looked at item!
-						prev_response = subj[i-1].preferred_category;
-						
-						#get previous last dwelled item
-						prev_alc_subj = []; prev_cig_subj = []; prev_neu_subj = [];
-							
-						prev_looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedAtAlcohol]);
-						prev_looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedAtCigarette]);
-						prev_looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedAtNeutral]);					
-						
-						str_alc = ''.join(str(int(g)) for g in prev_looked_at_alcohol if not(isnan(g))); #first get the array into a string
-						
+						#get the previous last dwelled location
+		
+						prev_looked_at_up = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedUp]);
+						prev_looked_at_left = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedLeft]);
+						prev_looked_at_right = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedRight]);			
+
+						str_up = ''.join(str(int(g)) for g in prev_looked_at_up if not(isnan(g))); #first get the array into a string
+
 						#get last instane of the '1' in this array. if never loooked at, will return a -1
-						alc_indices = str_alc.rfind('1'); #rfind searches the string from right to left
+						up_indices = str_up.rfind('1'); #rfind searches the string from right to left
 						
-						if isinstance(alc_indices, int):
-							alc_last_index_lookedat = alc_indices;
+						if isinstance(up_indices, int):
+							up_last_index_lookedat = up_indices;
 						else:
-							alc_last_index_lookedat = alc_indices[0];
+							up_last_index_lookedat = up_indices[0];
 							
-						str_cig = ''.join(str(int(g)) for g in prev_looked_at_cigarette if not(isnan(g))); #parse cigarette
-						cig_indices = str_cig.rfind('1');		
-						if isinstance(cig_indices, int):
-							cig_last_index_lookedat = cig_indices;
+						str_left = ''.join(str(int(g)) for g in prev_looked_at_left if not(isnan(g))); #parse cigarette
+						left_indices = str_left.rfind('1');		
+						if isinstance(left_indices, int):
+							left_last_index_lookedat = left_indices;
 						else:
-							cig_last_index_lookedat = cig_indices[0];
+							left_last_index_lookedat = left_indices[0];
 	
-						str_neu = ''.join(str(int(g)) for g in prev_looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
-						neu_indices = str_neu.rfind('1');		
-						if isinstance(neu_indices, int):
-							neu_last_index_lookedat = neu_indices;
+						str_right = ''.join(str(int(g)) for g in prev_looked_at_right if not(isnan(g))); #do the parsing for neutral..
+						right_indices = str_right.rfind('1');		
+						if isinstance(right_indices, int):
+							right_last_index_lookedat = right_indices;
 						else:
-							neu_last_index_lookedat = neu_indices[0];
+							right_last_index_lookedat = right_indices[0];
 						
-						last_instances =  array([alc_last_index_lookedat, cig_last_index_lookedat, neu_last_index_lookedat]); #always keep it alcohol, cigarette, neutral
-						last_item_index = where(last_instances == max(last_instances))[0][0];
-						
+						last_instances =  array([up_last_index_lookedat, left_last_index_lookedat, right_last_index_lookedat]); #always keep it up, left, right
+						last_item_index = where(last_instances == max(last_instances))[0][0];		
+		
 						#conditonal to find the last item that was looked at accoridng to the index corresponding to the item 
 						if last_item_index==0:
-							prev_last_dwelled_item = 'alcohol';
+							prev_last_dwelled_item = 'up';
 						elif last_item_index==1:
-							prev_last_dwelled_item = 'cigarette';
+							prev_last_dwelled_item = 'left';
 						elif last_item_index== 2:
-							prev_last_dwelled_item = 'neutral';
+							prev_last_dwelled_item = 'right';		
 
-						#now get the current trial first looked at item and response
-						
-						current_response = t.preferred_category;
-						
-						#and the first looked at item in this trial. It's the same thing as used above, but using string.find() rather than string.rfind()
-						alc_subj = []; cig_subj = []; neu_subj = [];
-							
-						looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
-						looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
-						looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);										
-						
-						curr_str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
-						
+					#and the first looked at item in this trial. It's the same thing as used above, but using string.find() rather than string.rfind()		
+
+						#get the current first dwelled location
+		
+						curr_looked_at_up = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedUp]);
+						curr_looked_at_left = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedLeft]);
+						curr_looked_at_right = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedRight]);			
+
+						curr_str_up = ''.join(str(int(g)) for g in curr_looked_at_up if not(isnan(g))); #first get the array into a string
+
 						#get last instane of the '1' in this array. if never loooked at, will return a -1
-						curr_alc_indices = curr_str_alc.find('1'); #rfind searches the string from right to left
+						curr_up_indices = curr_str_up.find('1'); #find searches the string from left to right
 						
-						if isinstance(curr_alc_indices, int):
-							curr_alc_last_index_lookedat = curr_alc_indices;
+						if isinstance(curr_up_indices, int):
+							curr_up_first_index_lookedat = curr_up_indices;
 						else:
-							curr_alc_last_index_lookedat = curr_alc_indices[0];
-						if curr_alc_last_index_lookedat==-1:
-							curr_alc_last_index_lookedat = 100*1000; #this ensures that instead of a -1 being input into the array, I input a massive nr (needed for minimum calculation)
+							curr_up_first_index_lookedat = curr_up_indices[0];
+						if curr_up_first_index_lookedat==-1:
+							curr_up_first_index_lookedat = 100*1000; #this ensures that instead of a -1 being input into the array, I input a massive nr (needed for minimum calculation)
 							
-						curr_str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
-						curr_cig_indices = curr_str_cig.find('1');		
-						if isinstance(curr_cig_indices, int):
-							curr_cig_last_index_lookedat = curr_cig_indices;
+						curr_str_left = ''.join(str(int(g)) for g in curr_looked_at_left if not(isnan(g))); #parse cigarette
+						curr_left_indices = curr_str_left.find('1');		
+						if isinstance(curr_left_indices, int):
+							curr_left_first_index_lookedat = curr_left_indices;
 						else:
-							curr_cig_last_index_lookedat = curr_cig_indices[0];
-						if curr_cig_last_index_lookedat==-1:
-							curr_cig_last_index_lookedat = 100*1000;
-							
-						curr_str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
-						curr_neu_indices = curr_str_neu.find('1');		
-						if isinstance(curr_neu_indices, int):
-							curr_neu_last_index_lookedat = curr_neu_indices;
+							curr_left_first_index_lookedat = curr_left_indices[0];
+						if curr_left_first_index_lookedat==-1:
+							curr_left_first_index_lookedat = 100*1000; #this ensures that instead of a -1 being input into the array, I input a massive nr (needed for minimum calculation)
+								
+						curr_str_right = ''.join(str(int(g)) for g in curr_looked_at_right if not(isnan(g))); #do the parsing for neutral..
+						curr_right_indices = curr_str_right.find('1');		
+						if isinstance(curr_right_indices, int):
+							curr_right_first_index_lookedat = curr_right_indices;
 						else:
-							curr_neu_last_index_lookedat = curr_neu_indices[0];
-						if curr_neu_last_index_lookedat==-1:
-							curr_neu_last_index_lookedat = 100*1000;
-
-						curr_first_instances =  array([curr_alc_last_index_lookedat, curr_cig_last_index_lookedat, curr_neu_last_index_lookedat]); #always keep it alcohol, cigarette, neutral
-						curr_first_item_index = where(curr_first_instances == min(curr_first_instances))[0][0];
-						
+							curr_right_first_index_lookedat = curr_right_indices[0];
+						if curr_right_first_index_lookedat==-1:
+							curr_right_first_index_lookedat = 100*1000; #this ensures that instead of a -1 being input into the array, I input a massive nr (needed for minimum calculation)			
+													
+						curr_first_instances =  array([curr_up_first_index_lookedat, curr_left_first_index_lookedat, curr_right_first_index_lookedat]); #always keep it up, left, right
+						curr_first_item_index = where(curr_first_instances == min(curr_first_instances))[0][0];				
+		
 						#conditonal to find the last item that was looked at accoridng to the index corresponding to the item 
 						if curr_first_item_index==0:
-							curr_first_dwelled_item = 'alcohol';
+							curr_first_dwelled_item = 'up';
 						elif curr_first_item_index==1:
-							curr_first_dwelled_item = 'cigarette';
+							curr_first_dwelled_item = 'left';
 						elif curr_first_item_index== 2:
-							curr_first_dwelled_item = 'neutral';
+							curr_first_dwelled_item = 'right';
 							
 						#now below here, compare the current trial's response and first looked at item with the last trials response and last looked at item	
-						subj_prev_resp_resps_bools.append(prev_response==current_response);
-						subj_prev_resp_dwells_bools.append(prev_response==curr_first_dwelled_item);
-						subj_prev_last_resps_bools.append(prev_last_dwelled_item==current_response); #previous trial's last dwelled item's boolean match with the current response
 						subj_prev_last_dwell_bools.append(prev_last_dwelled_item==curr_first_dwelled_item);
-
+						
+						#now here find the latency of the first saccade on current trial (trial N)
+						sac_start_time = 0;
+						sac_start_pos = array([]);						
+						sac_end_time = 0;
+						sac_end_pos = array([]);
+						
+						#Below here goes through each trial and pulls out the first saccde
+						# the while loop below runs through until a saccade is found (saccade_counter = 1) or
+						# we get to the end of the trial
+						
+						saccade_counter = 0;
+						while saccade_counter==0:
+							for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+																 t.eyeX, t.eyeY, t.isSaccade):
+								#if no saccade has been made yet, keep running through the isSaccade array
+								# issac < 1 will be zero at all non-saccading time points, including the start
+								if issac == 0:
+									#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+									if (t.isSaccade[ii-1]==True)&(ii>0):
+										sac_end_time = t.sample_times[ii];
+										sac_end_pos = array([xx,yy]);
+										saccade_counter+=1;
+									
+									#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
+									if (ii == range(len(t.sample_times))[-1]):
+										saccade_counter = 100;
+										
+								elif issac == 1:
+									#get the starting point for this saccade as well as the time
+									#the first transition between 0 and 1 will be the first saccade start
+									if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+										sac_start_time = t.sample_times[ii];
+										sac_start_pos = array([xx,yy]);
+						
+						#calculate the latency and amplitude, then save to the subject's array
+						subj_latencies.append(sac_start_time);
+						
+						
 			#here, append the aggregated proportion of trials these variables matched to the average holders for each subject
-			prev_resp_resps_bools.append(sum(subj_prev_resp_resps_bools)/float(len(subj_prev_resp_resps_bools)));
-			prev_resp_dwells_bools.append(sum(subj_prev_resp_dwells_bools)/float(len(subj_prev_resp_dwells_bools)));
-			prev_last_dwell_resps_bools.append(sum(subj_prev_last_resps_bools)/float(len(subj_prev_last_resps_bools)));
 			prev_last_dwell_dwells_bools.append(sum(subj_prev_last_dwell_bools)/float(len(subj_prev_last_dwell_bools)));
+			lengs.append(len(subj_prev_last_dwell_bools));
+			latencies.append(mean(subj_latencies));
 			
+		#lengs = array([len(s) for s in prev_last_dwell_dwells_bools]);
 
 		#here, find average and standard error or these variables, then print it to the interpreter
 				
 		print('\n\n TRIAL TYPE %s \n\n'%name)
-		print('\n Average proportion of trials the last-dwelled item on trial N-1 was the first dwelled item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_last_dwell_dwells_bools)));
+		print('\n Average proportion of trials the last fixated location on trial N-1 was the first fixated location on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_last_dwell_dwells_bools)));
 		print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_last_dwell_dwells_bools)));
-		print('\n Average proportion of trials the last-dwelled item on trial N-1 was the selected item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_last_dwell_resps_bools)));
-		print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_last_dwell_resps_bools)));
-		print('\n Average proportion of trials the selected item on trial N-1 was the first dwelled item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_resp_dwells_bools)));
-		print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_resp_dwells_bools)));
-		print('\n Average proportion of trials the selected item on trial N-1 was the selected item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_resp_resps_bools)));
-		print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_resp_resps_bools)));		
+		print('Mean nr of trials for each participant: %s \n\n'%mean(array(lengs)));
+		print('Mean first saccade current trial latency for each participant: %4.2f \n\n'%nanmean(latencies));
+		print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(latencies)));
+
 
 		#add data to the data frame object to save as a .csv
 		if eyed=='agg':
-			for subid, pr_cr, pr_cf, pl_cr, pl_cf in zip(ids, prev_resp_resps_bools, prev_resp_dwells_bools, prev_last_dwell_resps_bools,prev_last_dwell_dwells_bools):
-				data.loc[index_counter] = [subid, name, pr_cr, pr_cf, pl_cr, pl_cf];
+			for subid,  pl_cf, fr in zip(ids, prev_last_dwell_dwells_bools, latencies):
+				data.loc[index_counter] = [subid, name, pl_cf, fr];
 				index_counter+=1;
 
-
 	if eyed=='agg':
-		data.to_csv(savepath+'prev_trial_data.csv',index=False);
+		data.to_csv(savepath+'prev_trial_location-based_data.csv',index=False);
+		
+	#BELOW HERE IS CODE TO RUN AN ITEM-BASED PREVIOUS TRIAL PRIMING ANALYSIS
+		
+	# if eyed=='agg':
+	# 	index_counter=0; #index counter for the DataFrame object
+	# 	#here, create a dataframe object to save the subsequent data
+	# 	data = pd.DataFrame(columns = ['sub_id','trial_type','prev_resp_cur_resp_avg_prop','prev_resp_cur_firstdwell_avg_prop', \
+	# 								   'prev_lastdwell_cur_resp_avg_prop','prev_lastdwell_cur_firstdwell_avg_prop']);
+	# 	
+	# #get the aggregate breakdown as well as when they chose each item
+	# for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):			
+	# 	
+	# 	#this counter variables hold boolean (0 or 1) values corresponding to whether the previous trials response corresponded to the current trials response/first dwelled item
+	# 	prev_resp_resps_bools = [];
+	# 	prev_resp_dwells_bools = [];
+	# 	prev_last_dwell_resps_bools = [];
+	# 	prev_last_dwell_dwells_bools = [];		
+	# 	
+	# 	for subj,sub_id in zip(trial_matrix, ids):		
+	# 		subj_prev_resp_resps_bools = [];
+	# 		subj_prev_resp_dwells_bools = [];
+	# 		subj_prev_last_resps_bools = []; #previous trial's last dwelled item's boolean match with the current response
+	# 		subj_prev_last_dwell_bools = [];			
+	# 
+	# 		for i,t in enumerate(subj):
+	# 			if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&
+	# 				(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
+	# 				
+	# 				#can't do n-back calculation for the first trial in a block
+	# 				if t.trial_nr>0:
+	# 					
+	# 					#get the previous trial response and last looked at item!
+	# 					prev_response = subj[i-1].preferred_category;
+	# 					
+	# 					#get previous last dwelled item
+	# 					prev_alc_subj = []; prev_cig_subj = []; prev_neu_subj = [];
+	# 						
+	# 					prev_looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedAtAlcohol]);
+	# 					prev_looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedAtCigarette]);
+	# 					prev_looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedAtNeutral]);					
+	# 					
+	# 					str_alc = ''.join(str(int(g)) for g in prev_looked_at_alcohol if not(isnan(g))); #first get the array into a string
+	# 					
+	# 					#get last instane of the '1' in this array. if never loooked at, will return a -1
+	# 					alc_indices = str_alc.rfind('1'); #rfind searches the string from right to left
+	# 					
+	# 					if isinstance(alc_indices, int):
+	# 						alc_last_index_lookedat = alc_indices;
+	# 					else:
+	# 						alc_last_index_lookedat = alc_indices[0];
+	# 						
+	# 					str_cig = ''.join(str(int(g)) for g in prev_looked_at_cigarette if not(isnan(g))); #parse cigarette
+	# 					cig_indices = str_cig.rfind('1');		
+	# 					if isinstance(cig_indices, int):
+	# 						cig_last_index_lookedat = cig_indices;
+	# 					else:
+	# 						cig_last_index_lookedat = cig_indices[0];
+	# 
+	# 					str_neu = ''.join(str(int(g)) for g in prev_looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
+	# 					neu_indices = str_neu.rfind('1');		
+	# 					if isinstance(neu_indices, int):
+	# 						neu_last_index_lookedat = neu_indices;
+	# 					else:
+	# 						neu_last_index_lookedat = neu_indices[0];
+	# 					
+	# 					last_instances =  array([alc_last_index_lookedat, cig_last_index_lookedat, neu_last_index_lookedat]); #always keep it alcohol, cigarette, neutral
+	# 					last_item_index = where(last_instances == max(last_instances))[0][0];
+						# 
+						# #conditonal to find the last item that was looked at accoridng to the index corresponding to the item 
+						# if last_item_index==0:
+						# 	prev_last_dwelled_item = 'alcohol';
+						# elif last_item_index==1:
+						# 	prev_last_dwelled_item = 'cigarette';
+						# elif last_item_index== 2:
+						# 	prev_last_dwelled_item = 'neutral';
+						# 
+						# #now get the current trial first looked at item and response
+						# 
+						# current_response = t.preferred_category;
+						# 
+						# #and the first looked at item in this trial. It's the same thing as used above, but using string.find() rather than string.rfind()
+						# alc_subj = []; cig_subj = []; neu_subj = [];
+						# 	
+						# looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
+						# looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
+						# looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);										
+			# 			
+			# 			curr_str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
+			# 			
+			# 			#get last instane of the '1' in this array. if never loooked at, will return a -1
+			# 			curr_alc_indices = curr_str_alc.find('1'); #rfind searches the string from right to left
+			# 			
+			# 			if isinstance(curr_alc_indices, int):
+			# 				curr_alc_last_index_lookedat = curr_alc_indices;
+			# 			else:
+			# 				curr_alc_last_index_lookedat = curr_alc_indices[0];
+			# 			if curr_alc_last_index_lookedat==-1:
+			# 				curr_alc_last_index_lookedat = 100*1000; #this ensures that instead of a -1 being input into the array, I input a massive nr (needed for minimum calculation)
+			# 				
+			# 			curr_str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
+			# 			curr_cig_indices = curr_str_cig.find('1');		
+			# 			if isinstance(curr_cig_indices, int):
+			# 				curr_cig_last_index_lookedat = curr_cig_indices;
+			# 			else:
+			# 				curr_cig_last_index_lookedat = curr_cig_indices[0];
+			# 			if curr_cig_last_index_lookedat==-1:
+			# 				curr_cig_last_index_lookedat = 100*1000;
+			# 				
+			# 			curr_str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
+			# 			curr_neu_indices = curr_str_neu.find('1');		
+			# 			if isinstance(curr_neu_indices, int):
+			# 				curr_neu_last_index_lookedat = curr_neu_indices;
+			# 			else:
+			# 				curr_neu_last_index_lookedat = curr_neu_indices[0];
+			# 			if curr_neu_last_index_lookedat==-1:
+			# 				curr_neu_last_index_lookedat = 100*1000;
+			# 
+			# 			curr_first_instances =  array([curr_alc_last_index_lookedat, curr_cig_last_index_lookedat, curr_neu_last_index_lookedat]); #always keep it alcohol, cigarette, neutral
+			# 			curr_first_item_index = where(curr_first_instances == min(curr_first_instances))[0][0];
+			# 			
+			# 			#conditonal to find the last item that was looked at accoridng to the index corresponding to the item 
+			# 			if curr_first_item_index==0:
+			# 				curr_first_dwelled_item = 'alcohol';
+			# 			elif curr_first_item_index==1:
+			# 				curr_first_dwelled_item = 'cigarette';
+			# 			elif curr_first_item_index== 2:
+			# 				curr_first_dwelled_item = 'neutral';
+			# 				
+			# 			#now below here, compare the current trial's response and first looked at item with the last trials response and last looked at item	
+			# 			subj_prev_resp_resps_bools.append(prev_response==current_response);
+			# 			subj_prev_resp_dwells_bools.append(prev_response==curr_first_dwelled_item);
+			# 			subj_prev_last_resps_bools.append(prev_last_dwelled_item==current_response); #previous trial's last dwelled item's boolean match with the current response
+			# 			subj_prev_last_dwell_bools.append(prev_last_dwelled_item==curr_first_dwelled_item);
+			# 
+			# #here, append the aggregated proportion of trials these variables matched to the average holders for each subject
+			# prev_resp_resps_bools.append(sum(subj_prev_resp_resps_bools)/float(len(subj_prev_resp_resps_bools)));
+			# prev_resp_dwells_bools.append(sum(subj_prev_resp_dwells_bools)/float(len(subj_prev_resp_dwells_bools)));
+			# prev_last_dwell_resps_bools.append(sum(subj_prev_last_resps_bools)/float(len(subj_prev_last_resps_bools)));
+			# prev_last_dwell_dwells_bools.append(sum(subj_prev_last_dwell_bools)/float(len(subj_prev_last_dwell_bools)));
+		# 	
+		# 
+		# #here, find average and standard error or these variables, then print it to the interpreter
+		# 		
+		# print('\n\n TRIAL TYPE %s \n\n'%name)
+		# print('\n Average proportion of trials the last-dwelled item on trial N-1 was the first dwelled item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_last_dwell_dwells_bools)));
+		# print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_last_dwell_dwells_bools)));
+		# print('\n Average proportion of trials the last-dwelled item on trial N-1 was the selected item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_last_dwell_resps_bools)));
+		# print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_last_dwell_resps_bools)));
+		# print('\n Average proportion of trials the selected item on trial N-1 was the first dwelled item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_resp_dwells_bools)));
+		# print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_resp_dwells_bools)));
+		# print('\n Average proportion of trials the selected item on trial N-1 was the selected item on trial N for %s subjects: %4.2f \n'%(len(blocks),nanmean(prev_resp_resps_bools)));
+		# print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(prev_resp_resps_bools)));		
+	# 
+	# 	#add data to the data frame object to save as a .csv
+	# 	if eyed=='agg':
+	# 		for subid, pr_cr, pr_cf, pl_cr, pl_cf in zip(ids, prev_resp_resps_bools, prev_resp_dwells_bools, prev_last_dwell_resps_bools,prev_last_dwell_dwells_bools):
+	# 			data.loc[index_counter] = [subid, name, pr_cr, pr_cf, pl_cr, pl_cf];
+	# 			index_counter+=1;
+	# 
+	# 
+	# if eyed=='agg':
+	# 	data.to_csv(savepath+'prev_trial_data.csv',index=False);
 
 	1/0
 		
@@ -4236,6 +4421,11 @@ class trial(object):
 			self.lookedAtNeutral = lookedLeft;
 		elif self.neutral_loc == 'right':
 			self.lookedAtNeutral = lookedRight;
+			
+		#and then assign the original arrays of direction
+		self.lookedUp = lookedUp;
+		self.lookedLeft = lookedLeft;
+		self.lookedRight = lookedRight;
 			
 		#1.1 find the timepoints where the subject wasn't looking at any item and replace it with nan
 		

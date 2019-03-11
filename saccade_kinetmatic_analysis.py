@@ -28,17 +28,17 @@ import os.path
 ############################################
 
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
-# 
-# datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-# savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-# shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-# figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
-# 
-datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+
+# # 
+# datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+# savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+# shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+# figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -527,32 +527,35 @@ def computeFirstSaccadeKinematics(block_matrix):
 						# we get to the end of the trial
 						
 						saccade_counter = 0;
-						while saccade_counter==0:
-							for ii,xx,yy,issac in zip(range(len(t.sample_times)),
-																 t.eyeX, t.eyeY, t.isSaccade):
-								#if no saccade has been made yet, keep running through the isSaccade array
-								# issac < 1 will be zero at all non-saccading time points, including the start
-								if issac == 0:
-									#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
-									if (t.isSaccade[ii-1]==True)&(ii>0):
-										sac_end_time = t.sample_times[ii];
-										sac_end_pos = array([xx,yy]);
-										saccade_counter+=1;
+						
+						#while saccade_counter == 0:
+						for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+															 t.eyeX, t.eyeY, t.isSaccade):
+							#if no saccade has been made yet, keep running through the isSaccade array
+							# issac < 1 will be zero at all non-saccading time points, including the start
+							if issac == 0:
+								#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+								if (t.isSaccade[ii-1]==True)&(ii>0):
+									sac_end_time = t.sample_times[ii];
+									sac_end_pos = array([xx,yy]);
+									saccade_counter+=1;
+									break; 
+								
+								# #if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
+								# if (ii == range(len(t.sample_times))[-1]):
+								# 	saccade_counter = 100;
 									
-									#if there is no saccade, this will trigger the stop I need to move out of the infinite loop	
-									if (ii == range(len(t.sample_times))[-1]):
-										saccade_counter = 100;
-										
-								elif issac == 1:
-									#get the starting point for this saccade as well as the time
-									#the first transition between 0 and 1 will be the first saccade start
-									if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
-										sac_start_time = t.sample_times[ii];
-										sac_start_pos = array([xx,yy]);
+							elif issac == 1:
+								#get the starting point for this saccade as well as the time
+								#the first transition between 0 and 1 will be the first saccade start
+								if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+									sac_start_time = t.sample_times[ii];
+									sac_start_pos = array([xx,yy]);
 						
 						#calculate the latency and amplitude, then save to the subject's array
-						onset_latencies[subj_nr].append(sac_start_time);
-						amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
+						if sac_end_time > 0:
+							onset_latencies[subj_nr].append(sac_start_time);
+							amplitudes[subj_nr].append(sqrt((sac_start_pos[0] - sac_end_pos[0])**2+(sac_start_pos[1] - sac_end_pos[1])**2));
 											
 	#here, get the mean onset latencies for each participant, also get the between-participants SEM
 	mew_latencies = array([mean(lat) for lat in onset_latencies]);

@@ -23,16 +23,16 @@ import os.path
 
 # Trial types: 1 = high C, high A; 2 = High C, low A; 3 = low C, high A; 4 = low C, lowA 
 # 
-datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+# datapath = '/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+# savepath =  '/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+# shelvepath =  '/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+# figurepath = '/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
-# 
-# datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
-# savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
-# shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
-# figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
+
+datapath = '/Volumes/WORK_HD/data/CRET/'; #'/Users/jameswilmott/Documents/MATLAB/data/CRET/'; #
+savepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/';  # #/'/Users/james/Documents/Python/CRET/data/';  # 
+shelvepath =  '/Volumes/WORK_HD/code/Python/CRET/data/'; #'/Users/jameswilmott/Documents/Python/CRET/data/'; # # #  #'/Users/james/Documents/Python/CRET/data/'; # 
+figurepath = '/Volumes/WORK_HD/code/Python/CRET/figures/'; #'/Users/jameswilmott/Documents/Python/CRET/figures/'; # #'/Users/james/Documents/Python/CRET/figures/'; #
 
 #import database (shelve) for saving processed data and a .csv for saving the velocity threshold criterion data
 subject_data = shelve.open(shelvepath+'data');
@@ -414,7 +414,7 @@ def collectTemporalGazeProfileTrialsRawTimecourse(blocks, ttype, eyed = 'agg'):
 	
     name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
 	
-    data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item','block_nr','trial_nr','first_sac_latency','first_sac_item','nr_dwells','prev_trial_last_dwelled_loc','prev_trial_type','prev_choice'] \
+    data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item','block_nr','trial_nr','first_sac_latency','first_sac_item','last_sac_item','nr_dwells','prev_trial_last_dwelled_loc','prev_trial_type','prev_choice'] \
         ,['t_%s'%(t) for t in linspace(1,10000,10000)]])); #add all participants together to the same dataFrame for simplicty
     #maximum length of trial across all participants is ~9.5 seconds, so adding up to 100000 data points to include all time points        
 	#SCORING FOR ITEM (entry at t_XX): 0 = not looked at any item, 1 = looked at alcohol, 2 = looked at cigarette, 3 = looked at neutral, nan = timepoint didn't exist in the trial
@@ -467,9 +467,22 @@ def collectTemporalGazeProfileTrialsRawTimecourse(blocks, ttype, eyed = 'agg'):
                     #calculate the first saccade latency
                     first_sac_onset_latency = sac_start_time; 
 
-                    #get the first item looked at
-                    first_sac_item_identity = t.firstCategoryLookedAt;  #make sure I know how I am calculating this
-                    
+                    #get the first item looked at			
+                    if t.firstCategoryLookedAt=='alcohol':
+                        first_sac_item_identity = 1;
+                    elif t.firstCategoryLookedAt=='cigarette':
+                        first_sac_item_identity = 2;
+                    elif t.firstCategoryLookedAt=='neutral':
+                        first_sac_item_identity = 3;
+
+                    #get the last item looked at
+                    if t.lastCategoryLookedAt=='alcohol':
+                        last_sac_item_identity = 1;
+                    elif t.lastCategoryLookedAt=='cigarette':
+                        last_sac_item_identity = 2;
+                    elif t.lastCategoryLookedAt=='neutral':
+                        last_sac_item_identity = 3;						
+
                     #now here collect the total number of dwells
                     rexp_pattern = re.compile(r'01'); #this regular expression pattern looks for strings with a 1 or anything continuous run of 1s
 					#In the computation of the lookedAtXX arrays during trial pre-processing, I include NaNs at times when no itm
@@ -526,48 +539,53 @@ def collectTemporalGazeProfileTrialsRawTimecourse(blocks, ttype, eyed = 'agg'):
                     
                     if t.trial_nr > 1:
                         #this code below finds the location of the last dwell on trial N-1 a
-                        prev_looked_at_up = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedUp]);
-                        prev_looked_at_left = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedLeft]);
-                        prev_looked_at_right = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedRight]);			
+						prev_looked_at_up = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedUp]);
+						prev_looked_at_left = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedLeft]);
+						prev_looked_at_right = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedRight]);			
         
-                        str_up = ''.join(str(int(g)) for g in prev_looked_at_up if not(isnan(g))); #first get the array into a string
+						str_up = ''.join(str(int(g)) for g in prev_looked_at_up if not(isnan(g))); #first get the array into a string
         
                         #get last instane of the '1' in this array. if never loooked at, will return a -1
-                        up_indices = str_up.rfind('1'); #rfind searches the string from right to left
+						up_indices = str_up.rfind('1'); #rfind searches the string from right to left
                         
-                        if isinstance(up_indices, int):
-                            up_last_index_lookedat = up_indices;
-                        else:
-                            up_last_index_lookedat = up_indices[0];
+						if isinstance(up_indices, int):
+							up_last_index_lookedat = up_indices;
+						else:
+							up_last_index_lookedat = up_indices[0];
                             
-                        str_left = ''.join(str(int(g)) for g in prev_looked_at_left if not(isnan(g))); #parse cigarette
-                        left_indices = str_left.rfind('1');		
-                        if isinstance(left_indices, int):
-                            left_last_index_lookedat = left_indices;
-                        else:
-                            left_last_index_lookedat = left_indices[0];
+						str_left = ''.join(str(int(g)) for g in prev_looked_at_left if not(isnan(g))); #parse cigarette
+						left_indices = str_left.rfind('1');		
+						if isinstance(left_indices, int):
+							left_last_index_lookedat = left_indices;
+						else:
+							left_last_index_lookedat = left_indices[0];
         
-                        str_right = ''.join(str(int(g)) for g in prev_looked_at_right if not(isnan(g))); #do the parsing for neutral..
-                        right_indices = str_right.rfind('1');		
-                        if isinstance(right_indices, int):
-                            right_last_index_lookedat = right_indices;
-                        else:
-                            right_last_index_lookedat = right_indices[0];
+						str_right = ''.join(str(int(g)) for g in prev_looked_at_right if not(isnan(g))); #do the parsing for neutral..
+						right_indices = str_right.rfind('1');		
+						if isinstance(right_indices, int):
+							right_last_index_lookedat = right_indices;
+						else:
+							right_last_index_lookedat = right_indices[0];
                         
-                        last_instances =  array([up_last_index_lookedat, left_last_index_lookedat, right_last_index_lookedat]); #always keep it up, left, right
-                        last_item_index = where(last_instances == max(last_instances))[0][0];		
+						last_instances =  array([up_last_index_lookedat, left_last_index_lookedat, right_last_index_lookedat]); #always keep it up, left, right
+						last_item_index = where(last_instances == max(last_instances))[0][0];		
         
                         #conditonal to find the last item that was looked at accoridng to the index corresponding to the item 
-                        if last_item_index==0:
-                            prev_last_dwelled_item = 'up';
-                        elif last_item_index==1:
-                            prev_last_dwelled_item = 'left';
-                        elif last_item_index== 2:
-                            prev_last_dwelled_item = 'right';
+						if last_item_index==0:
+							prev_last_dwelled_item = 'up';
+						elif last_item_index==1:
+							prev_last_dwelled_item = 'left';
+						elif last_item_index== 2:
+							prev_last_dwelled_item = 'right';
                             
-                        previous_trial_type = subj[i-1].trial_type; #get the previous trial type
-                        previous_choice = subj[i-1].preferred_category;
-                        
+						previous_trial_type = subj[i-1].trial_type; #get the previous trial type
+						
+						if subj[i-1].preferred_category=='alcohol':
+							previous_choice = 1;
+						elif subj[i-1].preferred_category=='cigarette':
+							previous_choice = 2;
+						elif subj[i-1].preferred_category=='neutral':
+							previous_choice = 3;    						                       
                     else:
                         prev_last_dwelled_item = nan;
                         previous_trial_type = nan;
@@ -575,7 +593,7 @@ def collectTemporalGazeProfileTrialsRawTimecourse(blocks, ttype, eyed = 'agg'):
 
                     #2. now finally get the gaze position information, aligning trials to the offset of the first saccade
                     #keep the start of the array nans until the timepoint when the trial has data for it
-                    gaze_data = [nan for i in range(10000)]; #this will be length 5000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans                    
+                    gaze_data = [nan for ja in range(10000)]; #this will be length 5000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans                    
                     trial_end_index = len(t.lookedAtNeutral); #get the duration of the trial (e.g., how many samples, corresponding to how many milliseconds)
     
                     #trials longer than 5000 ms will be trimmed to 5000 ms
@@ -584,23 +602,23 @@ def collectTemporalGazeProfileTrialsRawTimecourse(blocks, ttype, eyed = 'agg'):
                     
                     iterator = 0; first_sac_offset = sac_end_time; #here, use the saccade end time to ofset the iterator through the gaze data array
                     #now go through for the 5000 time points prior to decision and score whether the paricipants was looking at 
-                    for i in (arange(10000)):
-                        if ((i+first_sac_offset)>=trial_end_index):
+                    for j in (arange(10000)):
+                        if ((j+first_sac_offset)>=trial_end_index):
                             continue;					
-                        elif (isnan(t.lookedAtNeutral[i+first_sac_offset]) & isnan(t.lookedAtAlcohol[i+first_sac_offset]) & isnan(t.lookedAtCigarette[i+first_sac_offset])):
+                        elif (isnan(t.lookedAtNeutral[j+first_sac_offset]) & isnan(t.lookedAtAlcohol[j+first_sac_offset]) & isnan(t.lookedAtCigarette[j+first_sac_offset])):
                             #at this point, there was a nan inserted because the participant did not look at each item
                             #when there are no items looked at, include a 0
                             gaze_data[iterator] = 0;
-                        elif (t.lookedAtAlcohol[i+first_sac_offset]==1):
+                        elif (t.lookedAtAlcohol[j+first_sac_offset]==1):
                             gaze_data[iterator] = 1;
-                        elif (t.lookedAtCigarette[i+first_sac_offset]==1):						
+                        elif (t.lookedAtCigarette[j+first_sac_offset]==1):						
                             gaze_data[iterator] = 2;						
-                        elif (t.lookedAtNeutral[i+first_sac_offset]==1):	
+                        elif (t.lookedAtNeutral[j+first_sac_offset]==1):	
                             gaze_data[iterator] = 3;
                         iterator+=1;
                         
-                    if t.sub_id == ids[-1]: #stop at the subject who had very long RTS   
-                        1/0; #check the first saccade offset is working as expected, and check if the appropriate thing to do in the first confitional cheking for trial_end_index is appropriate to use the first_sac_offset
+                    #if t.sub_id == ids[-1]: #stop at the subject who had very long RTS   
+                    #    1/0; #check the first saccade offset is working as expected, and check if the appropriate thing to do in the first confitional cheking for trial_end_index is appropriate to use the first_sac_offset
                         
                     #for ease of the regression computation, get the selected item into a numerical representation, same mapping as with item looked at
                     if t.preferred_category=='alcohol':
@@ -612,18 +630,20 @@ def collectTemporalGazeProfileTrialsRawTimecourse(blocks, ttype, eyed = 'agg'):
                         
                     #at this point have collected data for gaze profile together
                     #get all data points together for ease of incorporating into the dataFrame
-                    this_trials_data = concatenate([[subj_nr, ttype, selected_item, t.block_nr, t.trial_nr, first_sac_onset_latency, first_sac_item_identity, \
+                    this_trials_data = concatenate([[subj_nr, ttype, selected_item, t.block_nr, t.trial_nr, first_sac_onset_latency, first_sac_item_identity, last_sac_item_identity, \
                                                      total_nr_dwells, prev_last_dwelled_item, previous_trial_type, previous_choice],gaze_data]); #each trial variable, then each timepoint data   int(subj_nr+1)
-                    
+
+					
                     #now translate this to the dataframe for this participant
                     data.loc[trial_index_counter] = this_trials_data;
 			
-                    trial_index_counter += 1; #index for next trial
+                    trial_index_counter += 1; #1/0; #index for next trial
+					
 				
 	print "completed subject %s.. \n\n"%subj_nr	
 
 	#save the database
-    data.to_csv(savepath+'/first_sac_locked/'+'%s_trialdata.csv'%name,index=False);
+    data.to_csv(savepath+'first_sac_locked/'+'%s_trialdata.csv'%name,index=False);
 	#data.to_csv(savepath+'/stim_locked/'+'%s_trialdata.csv'%name,index=False); #previous iteration of this was to align to the onset of the stimulus
 	# ends here
 
@@ -4571,24 +4591,23 @@ class trial(object):
 			self.lastCategoryLookedAt = 'none';
 			self.lastItemLookedAt = 'none';
 			self.timeLastItemLookedAt = -1;
-			
-			
+		
 		# 5. Using the same (adjusted) analysis as above for the last item looked at, determine the FIRST item looked at within each trial
 		if nansum(self.lookedAtAlcohol) == 0:
-			earliestAlc = -1;
+			earliestAlc = inf;
 		else:
 			earliestAlc = min(where(self.lookedAtAlcohol > 0)[0]);	
 		if nansum(self.lookedAtCigarette) == 0:
-			earliestCig = -1;
+			earliestCig = inf;
 		else:
 			earliestCig = min(where(self.lookedAtCigarette > 0)[0]);
 		if nansum(self.lookedAtNeutral) == 0:	
-			earliestNeu = -1;
+			earliestNeu = inf;
 		else:
 			earliestNeu = min(where(self.lookedAtNeutral > 0)[0]);
 			
-		#get the ranking of the values. The first rank (1) will be the largest value, and correspond the latest item looked at
-		ranks = stats.rankdata(array([earliestAlc, earliestCig, earliestNeu]), method = 'min');
+		#get the ranking of the values. The first rank (1) will be the smallest value, and correspond to first item. 'max' ensures a tie will be 3, won't be picked up below
+		ranks = stats.rankdata(array([earliestAlc, earliestCig, earliestNeu]), method = 'max');
 				
 		#conditional to determine which item had the lowest rank and thus latest time in the trial it was looked at
 		if ranks[0] == 1:
@@ -4606,9 +4625,10 @@ class trial(object):
 		else:
 			self.firstCategoryLookedAt = 'none';
 			self.firstItemLookedAt = 'none';
-			self.timeFirstItemLookedAt = -1;			
+			self.timeFirstItemLookedAt = -1;
 			
-
+		# if (self.sub_id=='cret03')&(self.block_nr==1)&(self.trial_nr == 10):	
+		# 	1/0;			
 
 	def plotSaccadeGetVelocity(self, startingVelCrit, completed=0):
 		

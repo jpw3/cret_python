@@ -643,7 +643,7 @@ def collectTemporalGazeProfileTrialsRawTimecourse(blocks, ttype, eyed = 'agg'):
 	print "completed subject %s.. \n\n"%subj_nr	
 
 	#save the database
-    data.to_csv(savepath+'first_sac_locked/'+'%s_trialdata.csv'%name,index=False);
+    data.to_csv(savepath+'%s_trialdata.csv'%name,index=False); #+'first_sac_locked/'
 	#data.to_csv(savepath+'/stim_locked/'+'%s_trialdata.csv'%name,index=False); #previous iteration of this was to align to the onset of the stimulus
 	# ends here
 

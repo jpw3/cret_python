@@ -121,6 +121,8 @@ def calculateExcludedTrialInformation(block_matrix):
 
 # 1. Calculate the percentage and raw number of trials excluded for a dropped sample
 # I will do this for each trial type and aggregated
+	total_nr_trials_excluded = [[0] for su in block_matrix];
+	#total_total_nr_trials = [[0] for su in block_matrix];
 
 #aggregated
 	# Pre-allocate data structure holders
@@ -132,8 +134,11 @@ def calculateExcludedTrialInformation(block_matrix):
 		for b in blocks:
 			for t in b.trials:
 				total_nr_trials[subj_nr][0] += 1;
+				#total_total_nr_trials[subj_nr][0] += 1;
 				if t.dropped_sample == 1:
 					nr_trials_excluded[subj_nr][0] += 1;
+					total_nr_trials_excluded[subj_nr][0]  += 1;
+					
 
 	# Calculate percentages
 	perc_trials_excluded = array([float(nr[0])/tot[0] if tot>0 else 0 for nr,tot in zip(nr_trials_excluded, total_nr_trials)]);
@@ -149,6 +154,7 @@ def calculateExcludedTrialInformation(block_matrix):
 	print('\n Average percentage of trials excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
 	print('\n Between-subjects standard error of the mean: %4.3f \n\n\n'%(perc_sem));
 
+
 #broken down by trial type
 	for name,ttype in zip(['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'],[1,2,3,4]):
 		nr_trials_excluded_tt = [[0] for su in block_matrix];
@@ -160,9 +166,11 @@ def calculateExcludedTrialInformation(block_matrix):
 				for t in b.trials:
 					if t.trial_type==ttype:
 						total_nr_trials_tt[subj_nr][0] += 1;
+						
 						if t.dropped_sample == 1:
 							nr_trials_excluded_tt[subj_nr][0] += 1;
-	
+	                        
+							
 		# Calculate percentages		
 		perc_trials_excluded_tt = [float(nr[0])/tot[0] if (tot[0]>0) else 0 for nr,tot in zip(nr_trials_excluded_tt, total_nr_trials_tt)];
 
@@ -193,8 +201,10 @@ def calculateExcludedTrialInformation(block_matrix):
 		for b in blocks:
 			for t in b.trials:
 				total_nr_trials[subj_nr][0] += 1;
+				#total_total_nr_trials[subj_nr][0] += 1;
 				if (t.dropped_sample==0) & (t.didntLookAtAnyItems == 1):  #hold the dropped samples to zero to make sure I am getting the marginal values here
 					nr_trials_excluded[subj_nr][0] += 1;
+					total_nr_trials_excluded[subj_nr][0] += 1;
 
 # Calculate percentages
 	perc_trials_excluded = [float(nr[0])/tot[0] for nr,tot in zip(nr_trials_excluded, total_nr_trials)];
@@ -244,18 +254,20 @@ def calculateExcludedTrialInformation(block_matrix):
 #3. Calculate the nr of trials where eyes were not focused within 2.5 degrees of visual angle at trial start
 # Pre-allocate data structure holders
 	nr_trials_excluded = [[0] for su in block_matrix];
-	total_nr_trials = [[0] for su in block_matrix];
+	total_nr_trials_1 = [[0] for su in block_matrix];
 
 #loop through each trial and score whether trial was excluded because of a dropped sample
 	for subj_nr, blocks in enumerate(block_matrix):
 		for b in blocks:
 			for t in b.trials:
-				total_nr_trials[subj_nr][0] += 1;
+				total_nr_trials_1[subj_nr][0] += 1;
+				#total_total_nr_trials[subj_nr][0] += 1;
 				if (t.dropped_sample==0) & (t.didntLookAtAnyItems == 0) & (sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) > 2.5):  #hold the dropped samples to zero to make sure I am getting the marginal values here
 					nr_trials_excluded[subj_nr][0] += 1;
+					total_nr_trials_excluded[subj_nr][0] += 1;
 
 # Calculate percentages
-	perc_trials_excluded = [float(nr[0])/tot[0] for nr,tot in zip(nr_trials_excluded, total_nr_trials)];
+	perc_trials_excluded = [float(nr[0])/tot[0] for nr,tot in zip(nr_trials_excluded, total_nr_trials_1)];
 	
 	mew_raw = mean(array(nr_trials_excluded));
 	raw_sem = compute_BS_SEM(array(nr_trials_excluded));
@@ -267,7 +279,7 @@ def calculateExcludedTrialInformation(block_matrix):
 	print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(raw_sem));
 	print('\n Average percentage of trials excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
 	print('\n Between-subjects standard error of the mean: %4.3f \n\n\n'%(perc_sem));
-	
+
 #broken down by trial type
 	for name,ttype in zip(['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'],[1,2,3,4]):
 		nr_trials_excluded_tt = [[0] for su in block_matrix];
@@ -298,6 +310,26 @@ def calculateExcludedTrialInformation(block_matrix):
 		print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(raw_sem));
 		print('\n Average percentage of trials excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
 		print('\n Between-subjects standard error of the mean: %4.3f \n\n\n\n'%(perc_sem));
+		
+#finally, print out the total number of trials excluded for participants across all trial types etc.
+	perc_trials_excluded = [float(nr[0])/tot[0] if (tot[0]>0) else 0 for nr,tot in zip(total_nr_trials_excluded, total_nr_trials)];
+	
+	mew_raw = mean(array(total_nr_trials_excluded));
+	raw_sem = compute_BS_SEM(array(total_nr_trials_excluded));
+	mew_perc = mean(perc_trials_excluded);
+	perc_sem = compute_BS_SEM(perc_trials_excluded);
+
+	print('\n\n TOTAL TRIALS EXCLUDED \n\n\n')
+	print('\n Average nr of trials excluded for %s subjects: %4.1f \n'%(len(block_matrix),mew_raw));
+	print('\n Between-subjects standard error of the mean: %4.1f \n\n'%(raw_sem));
+	print('\n Average percentage of trials excluded for %s subjects: %4.3f \n'%(len(block_matrix),mew_perc));
+	print('\n Between-subjects standard error of the mean: %4.3f \n\n\n'%(perc_sem));
+	
+	indices = where(array([p>0.6 for p in perc_trials_excluded])== True)[0];
+	i_d_s = [ids[y] for y in indices];
+	
+	1/0
+		
 
 
 ############################################

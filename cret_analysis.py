@@ -3380,7 +3380,8 @@ def computeLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 			for t in subj:
 				#conditional to differentiate between not-cue trials when selecteing the non-cue or not
 				#the second conditional include nuetral trials that were preferred only
-				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category == selected_item)):
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
+                    &(t.trial_type == ttype)&(t.preferred_category == selected_item)):
 					#cycle through each time point, aggregating the data accordingly
 					
 					for i in (arange(2000)):
@@ -3531,7 +3532,8 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 			for t in subj:
 				#conditional to differentiate between not-cue trials when selecteing the non-cue or not
 				#the second conditional include nuetral trials that were preferred only
-				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.preferred_category == selected_item)):
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
+                    &(t.trial_type == ttype)&(t.preferred_category == selected_item)):
 					#neutral is always the same...
 					#cycle through each time point, going backward through the array (e.g., -1, -2..) and aggregating the data accordingly
 					for i in (arange(2000)+1):

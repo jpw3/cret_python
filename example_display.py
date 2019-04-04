@@ -41,7 +41,7 @@ fig = figure(figsize = (11,7.5)); ax = gca(); ax.set_xlim([-display_size[0]/2,di
 ax.set_facecolor('lightgrey');
 ax.plot(eyeX, eyeY, color = 'red', lw = 5);
 
-savefig(figurepath+'ORIGINSTARTTRIALS_second_saccade_data_subj_%s.png'%(t.sub_id))
+savefig(figurepath+'example_eye_trace_BLANK.png');
 
 1/0
 

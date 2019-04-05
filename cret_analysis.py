@@ -2222,24 +2222,32 @@ def computeNrDwells(blocks, eyed='agg'):
 		
 
 def computeProportionSelect(blocks, eyed = 'agg'):
-	db = subject_data;
+    db = subject_data;
 	#loop through and get all the trials for each subject
-	trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
+    trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
 	
-	for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):	
+    for ttype, name in zip([1,2,3,4],['high_pref', 'highC_lowA','lowC_highA','lowC_lowA']):	
 	
 		#this formulation is for the non-preference breakdown. not_hp stands for 'all high preference trials, even those where neutral was selected'
-		all_hp_all_substances = [[tee.preferred_category for tee in subject if ((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == ttype)&
-			(tee.skip == 0)&(sqrt(tee.eyeX[0]**2 + tee.eyeY[0]**2) < 2.5))]
-			for subject in trial_matrix]; #first get all the selected categories
-		all_hp_prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_hp_all_substances]; #now get proportion of time seleteced alcohol
-		all_hp_prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_hp_all_substances];
-		all_hp_prop_chose_neu = [sum([val == 'neutral' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_hp_all_substances];
-	
-		#save them to the database
-		db['%s_%s_all_hp_mean_chose_alc'%(eyed,name)] = nanmean(all_hp_prop_chose_alc); db['%s_%s_all_hp_bs_sems_chose_alc'%(eyed,name)] = compute_BS_SEM(all_hp_prop_chose_alc);	
-		db['%s_%s_all_hp_mean_chose_cig'%(eyed,name)] = nanmean(all_hp_prop_chose_cig); db['%s_%s_all_hp_bs_sems_chose_cig'%(eyed,name)] = compute_BS_SEM(all_hp_prop_chose_cig);
-		db['%s_%s_all_hp_mean_chose_neu'%(eyed,name)] = nanmean(all_hp_prop_chose_neu); db['%s_%s_all_hp_bs_sems_chose_neu'%(eyed,name)] = compute_BS_SEM(all_hp_prop_chose_neu);
+        all_hp_all_substances = [[tee.preferred_category for tee in subject if ((tee.dropped_sample == 0)&(tee.didntLookAtAnyItems == 0)&(tee.trial_type == ttype))] for subject in trial_matrix];
+            #& (tee.skip == 0)&(sqrt(tee.eyeX[0]**2 + tee.eyeY[0]**2) < 2.5)
+        #first get all the selected categories
+        all_hp_prop_chose_alc = [sum([val == 'alcohol' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_hp_all_substances]; #now get proportion of time seleteced alcohol
+        all_hp_prop_chose_cig = [sum([val == 'cigarette' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_hp_all_substances];
+        all_hp_prop_chose_neu = [sum([val == 'neutral' for val in subject])/float(len([val == 'alcohol' for val in subject])) for subject in all_hp_all_substances];
+        
+        print('\n\n TRIAL TYPE %s \n\n'%name)
+        print('\n Average proportion selecting alcohol: %4.2f \n'%(nanmean(all_hp_prop_chose_alc)));
+        print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(all_hp_prop_chose_alc)));
+        print('\n Average proportion selecting cigarette: %4.2f \n'%(nanmean(all_hp_prop_chose_cig)));
+        print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(all_hp_prop_chose_cig)));
+        print('\n Average proportion selecting neutral: %4.2f \n'%(nanmean(all_hp_prop_chose_neu)));
+        print('\n Between-subjects standard error of the mean: %4.2f \n\n'%(compute_BS_SEM(all_hp_prop_chose_neu)));
+        
+# 		#save them to the database
+#         db['%s_%s_all_hp_mean_chose_alc'%(eyed,name)] = nanmean(all_hp_prop_chose_alc); db['%s_%s_all_hp_bs_sems_chose_alc'%(eyed,name)] = compute_BS_SEM(all_hp_prop_chose_alc);	
+#         db['%s_%s_all_hp_mean_chose_cig'%(eyed,name)] = nanmean(all_hp_prop_chose_cig); db['%s_%s_all_hp_bs_sems_chose_cig'%(eyed,name)] = compute_BS_SEM(all_hp_prop_chose_cig);
+#         db['%s_%s_all_hp_mean_chose_neu'%(eyed,name)] = nanmean(all_hp_prop_chose_neu); db['%s_%s_all_hp_bs_sems_chose_neu'%(eyed,name)] = compute_BS_SEM(all_hp_prop_chose_neu);
 	db.sync();
 	
 

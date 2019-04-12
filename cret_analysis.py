@@ -399,494 +399,494 @@ matplotlib.pyplot.rc('font',weight='bold');
 # 	
 # 	1/0;	
 
-def collectTemporalGazeProfileTrialsRawTimecourseStimOnsetAligned(blocks, ttype, eyed = 'agg'):
-	#collects each participants' trial data where they didn't blink or look down
-	#this collects trial with respect to the onset of the stimulus display
-    #this collects time points according to their raw time course, rather than normalized to 100 equally spaced time points
-	#loop through and get all the trials for each subject
-    trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
-	
-	#collect which trial type to run this analysis for
-	#ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
-	
-    name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
-	
-    data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item','block_nr','trial_nr','first_sac_latency','first_sac_item','last_sac_item','nr_dwells','prev_trial_last_dwelled_loc','prev_trial_type','prev_choice'] \
-        ,['t_%s'%(t) for t in linspace(1,10000,10000)]])); #add all participants together to the same dataFrame for simplicty
-    #maximum length of trial across all participants is ~9.5 seconds, so adding up to 100000 data points to include all time points        
-	#SCORING FOR ITEM (entry at t_XX): 0 = not looked at any item, 1 = looked at alcohol, 2 = looked at cigarette, 3 = looked at neutral, nan = timepoint didn't exist in the trial
-    trial_index_counter = 0;
-
-    for subj_nr,subj in zip(ids, trial_matrix):    #enumerate(trial_matrix):
-
-        for i,t in enumerate(subj):
-			#conditional to differentiate between trials that should be skipped for this trial type, etc.
-            if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
-                
-                if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
-                
-                    #0. first, get first saccade latency, first saccade item identity, nr of dwells on current trial
-                    #need the first saccade latency before collecting the gaze data, otherwise I can't align the data according to the first saccade onset
-
-                    #this code gets the first saccade latency
-                    sac_start_time = 0;
-                    sac_start_pos = array([]);						
-                    sac_end_time = 0;
-                    sac_end_pos = array([]);
-                    
-                    #Below here goes through each trial and pulls out the first saccde
-                    # the while loop below runs through until a saccade is found (saccade_counter = 1) or
-                    # we get to the end of the trial
-                    
-                    saccade_counter = 0;
-                    
-                    for ii,xx,yy,issac in zip(range(len(t.sample_times)),
-                                                         t.eyeX, t.eyeY, t.isSaccade):
-                        #if no saccade has been made yet, keep running through the isSaccade array
-                        # issac < 1 will be zero at all non-saccading time points, including the start
-                        if issac == 0:
-                            #if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
-                            if (t.isSaccade[ii-1]==True)&(ii>0):
-                                sac_end_time = t.sample_times[ii];
-                                sac_end_pos = array([xx,yy]);
-                                saccade_counter+=1;
-                                break; #once I get the first saccade, end it here
-                            
-
-                                
-                        elif issac == 1:
-                            #get the starting point for this saccade as well as the time
-                            #the first transition between 0 and 1 will be the first saccade start
-                            if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
-                                sac_start_time = t.sample_times[ii];
-                                sac_start_pos = array([xx,yy]);       
-                    
-                    #calculate the first saccade latency
-                    first_sac_onset_latency = sac_start_time; 
-
-                    #get the first item looked at			
-                    if t.firstCategoryLookedAt=='alcohol':
-                        first_sac_item_identity = 1;
-                    elif t.firstCategoryLookedAt=='cigarette':
-                        first_sac_item_identity = 2;
-                    elif t.firstCategoryLookedAt=='neutral':
-                        first_sac_item_identity = 3;
-
-                    #get the last item looked at
-                    if t.lastCategoryLookedAt=='alcohol':
-                        last_sac_item_identity = 1;
-                    elif t.lastCategoryLookedAt=='cigarette':
-                        last_sac_item_identity = 2;
-                    elif t.lastCategoryLookedAt=='neutral':
-                        last_sac_item_identity = 3;						
-
-                    #now here collect the total number of dwells
-                    rexp_pattern = re.compile(r'01'); #this regular expression pattern looks for strings with a 1 or anything continuous run of 1s
-					#In the computation of the lookedAtXX arrays during trial pre-processing, I include NaNs at times when no itm
-					#was looked at... e.g., when the participant was fixating the center of the screen.
-					#In order to ensure that I capture the change from not looking at one item to looking at any item (like the first dwell),
-					#I need to convert those NaNs to 0's for calculation using the string-based method below. However, I want the original
-					#lookedAtXX arrays to maintain the Nan, 0, 1 coding scheme, so I'll create holder arrays for each trial to use for the nr of dwell
-					#calculations here
-					
-                    looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
-                    looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
-                    looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);
-					
-                    total_holder = 0;
-					
-                    str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
-                    run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
-					#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
-                    nr_fixs = sum([1 for r in run_lengths_alc]);
-					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp.
-					#this will only be the case if they weren't looking at anything to start (e.g., there were nan's to start, then the first item was looked at)
-					#notice that because I have included NaNs in the t.lookedAtXX arrays for when items are not being looked at, the subsequent str_alc array
-					#represents sequences of 1s and 0 s corresponding runs of looking at items, squished into the array; This means str_alc does not include
-					#any information about samples where the eye was not on an item, which means this method cannot be used to understand differences in time between
-					#dwells when that time is not being spent on an item. This is important to keep in mind
-                    if str_alc[0]=='1':
-                        nr_fixs +=1;
-				
-                    total_holder+=nr_fixs; #add the nr of dwells from looking at alc to this holder variable
-					
-                    str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
-                    run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
-                    nr_fixs = sum([1 for r in run_lengths_cig]);
-					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
-                    if str_cig[0]=='1':
-                        nr_fixs +=1;
-
-                    total_holder+=nr_fixs; #add the nr of dwells from looking at cig to this holder variable
-
-                    str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
-                    run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
-                    nr_fixs = sum([1 for r in run_lengths_neu]);
-					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
-                    if str_neu[0]=='1':
-                        nr_fixs +=1;
-
-                    total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
-					
-                    total_nr_dwells = total_holder; #this is the variable for collecting total nr of dwells on this trial               
-                    
-
-                    #1. get the previous trial last dwelled location and previous trial type
-                    #conditional here is to only compute these values if this was not the first trial in a block. If it was, add nan's to these values
-                    
-                    if t.trial_nr > 1:
-                        #this code below finds the location of the last dwell on trial N-1 a
-						prev_looked_at_up = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedUp]);
-						prev_looked_at_left = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedLeft]);
-						prev_looked_at_right = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedRight]);			
-        
-						str_up = ''.join(str(int(g)) for g in prev_looked_at_up if not(isnan(g))); #first get the array into a string
-        
-                        #get last instane of the '1' in this array. if never loooked at, will return a -1
-						up_indices = str_up.rfind('1'); #rfind searches the string from right to left
-                        
-						if isinstance(up_indices, int):
-							up_last_index_lookedat = up_indices;
-						else:
-							up_last_index_lookedat = up_indices[0];
-                            
-						str_left = ''.join(str(int(g)) for g in prev_looked_at_left if not(isnan(g))); #parse cigarette
-						left_indices = str_left.rfind('1');		
-						if isinstance(left_indices, int):
-							left_last_index_lookedat = left_indices;
-						else:
-							left_last_index_lookedat = left_indices[0];
-        
-						str_right = ''.join(str(int(g)) for g in prev_looked_at_right if not(isnan(g))); #do the parsing for neutral..
-						right_indices = str_right.rfind('1');		
-						if isinstance(right_indices, int):
-							right_last_index_lookedat = right_indices;
-						else:
-							right_last_index_lookedat = right_indices[0];
-                        
-						last_instances =  array([up_last_index_lookedat, left_last_index_lookedat, right_last_index_lookedat]); #always keep it up, left, right
-						last_item_index = where(last_instances == max(last_instances))[0][0];		
-        
-                        #conditonal to find the last item that was looked at accoridng to the index corresponding to the item 
-						if last_item_index==0:
-							prev_last_dwelled_item = 'up';
-						elif last_item_index==1:
-							prev_last_dwelled_item = 'left';
-						elif last_item_index== 2:
-							prev_last_dwelled_item = 'right';
-                            
-						previous_trial_type = subj[i-1].trial_type; #get the previous trial type
-						
-						if subj[i-1].preferred_category=='alcohol':
-							previous_choice = 1;
-						elif subj[i-1].preferred_category=='cigarette':
-							previous_choice = 2;
-						elif subj[i-1].preferred_category=='neutral':
-							previous_choice = 3;    						                       
-                    else:
-                        prev_last_dwelled_item = nan;
-                        previous_trial_type = nan;
-                        previous_choice = nan;
-
-                    #2. now finally get the gaze position information, aligning trials to the onset of the stimulus
-                    #keep the start of the array nans until the timepoint when the trial has data for it
-                    gaze_data = [nan for ja in range(10000)]; #this will be length 10000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans                    
-                    trial_end_index = len(t.lookedAtNeutral); #get the duration of the trial (e.g., how many samples, corresponding to how many milliseconds)
-    
-                    #trials longer than 10000 ms will be trimmed to 10000 ms
-                    if trial_end_index > 10000:
-                        trial_end_index = 10000;
-                    
-                    iterator = 0; 
-                    #now go through for the 10000 time points prior to decision and score whether the paricipants was looking at 
-                    for j in (arange(10000)):
-                        if ((j)>=trial_end_index):
-                            continue;					
-                        elif (isnan(t.lookedAtNeutral[j]) & isnan(t.lookedAtAlcohol[j]) & isnan(t.lookedAtCigarette[j])):
-                            #at this point, there was a nan inserted because the participant did not look at each item
-                            #when there are no items looked at, include a 0
-                            gaze_data[iterator] = 0;
-                        elif (t.lookedAtAlcohol[j]==1):
-                            gaze_data[iterator] = 1;
-                        elif (t.lookedAtCigarette[j]==1):						
-                            gaze_data[iterator] = 2;						
-                        elif (t.lookedAtNeutral[j]==1):	
-                            gaze_data[iterator] = 3;
-                        iterator+=1;
-                        
-                    #for ease of the regression computation, get the selected item into a numerical representation, same mapping as with item looked at
-                    if t.preferred_category=='alcohol':
-                        selected_item = 1;
-                    elif t.preferred_category=='cigarette':
-                        selected_item = 2;
-                    elif t.preferred_category=='neutral':
-                        selected_item = 3;                                  
-                        
-                    #at this point have collected data for gaze profile together
-                    #get all data points together for ease of incorporating into the dataFrame
-                    this_trials_data = concatenate([[subj_nr, ttype, selected_item, t.block_nr, t.trial_nr, first_sac_onset_latency, first_sac_item_identity, last_sac_item_identity, \
-                                                     total_nr_dwells, prev_last_dwelled_item, previous_trial_type, previous_choice],gaze_data]); #each trial variable, then each timepoint data   int(subj_nr+1)
-
-					
-                    #now translate this to the dataframe for this participant
-                    data.loc[trial_index_counter] = this_trials_data;
-			
-                    trial_index_counter += 1; #1/0; #index for next trial
-                    
-	print "completed subject %s.. \n\n"%subj_nr	
-
-	#save the database
-    data.to_csv(savepath+'/stim_locked/'+'%s_trialdata_STIMLOCKED.csv'%name,index=False); 
-	#data.to_csv(savepath+'/stim_locked/'+'%s_trialdata.csv'%name,index=False); #previous iteration of this was to align to the onset of the stimulus
-	# ends here                    
-                    
-
-
-def collectTemporalGazeProfileTrialsRawTimecourse(blocks, ttype, eyed = 'agg'):
-	#collects each participants' trial data where they didn't blink or look down
-	#this collects trial with respect to the onset of the first saccade
-    #this collects time points according to their raw time course, rather than normalized to 100 equally spaced time points
-	
-	#loop through and get all the trials for each subject
-    trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
-	
-	#collect which trial type to run this analysis for
-	#ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
-	
-    name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
-	
-    data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item','block_nr','trial_nr','first_sac_latency','first_sac_item','last_sac_item','nr_dwells','prev_trial_last_dwelled_loc','prev_trial_type','prev_choice'] \
-        ,['t_%s'%(t) for t in linspace(1,10000,10000)]])); #add all participants together to the same dataFrame for simplicty
-    #maximum length of trial across all participants is ~9.5 seconds, so adding up to 100000 data points to include all time points        
-	#SCORING FOR ITEM (entry at t_XX): 0 = not looked at any item, 1 = looked at alcohol, 2 = looked at cigarette, 3 = looked at neutral, nan = timepoint didn't exist in the trial
-    trial_index_counter = 0;
-	
-    for subj_nr,subj in zip(ids, trial_matrix):    #enumerate(trial_matrix):
-
-        for i,t in enumerate(subj):
-			#conditional to differentiate between trials that should be skipped for this trial type, etc.
-            if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
-                
-                if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
-                
-                    #0. first, get first saccade latency, first saccade item identity, nr of dwells on current trial
-                    #need the first saccade latency before collecting the gaze data, otherwise I can't align the data according to the first saccade onset
-
-                    #this code gets the first saccade latency
-                    sac_start_time = 0;
-                    sac_start_pos = array([]);						
-                    sac_end_time = 0;
-                    sac_end_pos = array([]);
-                    
-                    #Below here goes through each trial and pulls out the first saccde
-                    # the while loop below runs through until a saccade is found (saccade_counter = 1) or
-                    # we get to the end of the trial
-                    
-                    saccade_counter = 0;
-                    
-                    for ii,xx,yy,issac in zip(range(len(t.sample_times)),
-                                                         t.eyeX, t.eyeY, t.isSaccade):
-                        #if no saccade has been made yet, keep running through the isSaccade array
-                        # issac < 1 will be zero at all non-saccading time points, including the start
-                        if issac == 0:
-                            #if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
-                            if (t.isSaccade[ii-1]==True)&(ii>0):
-                                sac_end_time = t.sample_times[ii];
-                                sac_end_pos = array([xx,yy]);
-                                saccade_counter+=1;
-                                break; #once I get the first saccade, end it here
-                            
-
-                                
-                        elif issac == 1:
-                            #get the starting point for this saccade as well as the time
-                            #the first transition between 0 and 1 will be the first saccade start
-                            if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
-                                sac_start_time = t.sample_times[ii];
-                                sac_start_pos = array([xx,yy]);       
-                    
-                    #calculate the first saccade latency
-                    first_sac_onset_latency = sac_start_time; 
-
-                    #get the first item looked at			
-                    if t.firstCategoryLookedAt=='alcohol':
-                        first_sac_item_identity = 1;
-                    elif t.firstCategoryLookedAt=='cigarette':
-                        first_sac_item_identity = 2;
-                    elif t.firstCategoryLookedAt=='neutral':
-                        first_sac_item_identity = 3;
-
-                    #get the last item looked at
-                    if t.lastCategoryLookedAt=='alcohol':
-                        last_sac_item_identity = 1;
-                    elif t.lastCategoryLookedAt=='cigarette':
-                        last_sac_item_identity = 2;
-                    elif t.lastCategoryLookedAt=='neutral':
-                        last_sac_item_identity = 3;						
-
-                    #now here collect the total number of dwells
-                    rexp_pattern = re.compile(r'01'); #this regular expression pattern looks for strings with a 1 or anything continuous run of 1s
-					#In the computation of the lookedAtXX arrays during trial pre-processing, I include NaNs at times when no itm
-					#was looked at... e.g., when the participant was fixating the center of the screen.
-					#In order to ensure that I capture the change from not looking at one item to looking at any item (like the first dwell),
-					#I need to convert those NaNs to 0's for calculation using the string-based method below. However, I want the original
-					#lookedAtXX arrays to maintain the Nan, 0, 1 coding scheme, so I'll create holder arrays for each trial to use for the nr of dwell
-					#calculations here
-					
-                    looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
-                    looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
-                    looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);
-					
-                    total_holder = 0;
-					
-                    str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
-                    run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
-					#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
-                    nr_fixs = sum([1 for r in run_lengths_alc]);
-					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp.
-					#this will only be the case if they weren't looking at anything to start (e.g., there were nan's to start, then the first item was looked at)
-					#notice that because I have included NaNs in the t.lookedAtXX arrays for when items are not being looked at, the subsequent str_alc array
-					#represents sequences of 1s and 0 s corresponding runs of looking at items, squished into the array; This means str_alc does not include
-					#any information about samples where the eye was not on an item, which means this method cannot be used to understand differences in time between
-					#dwells when that time is not being spent on an item. This is important to keep in mind
-                    if str_alc[0]=='1':
-                        nr_fixs +=1;
-				
-                    total_holder+=nr_fixs; #add the nr of dwells from looking at alc to this holder variable
-					
-                    str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
-                    run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
-                    nr_fixs = sum([1 for r in run_lengths_cig]);
-					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
-                    if str_cig[0]=='1':
-                        nr_fixs +=1;
-
-                    total_holder+=nr_fixs; #add the nr of dwells from looking at cig to this holder variable
-
-                    str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
-                    run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
-                    nr_fixs = sum([1 for r in run_lengths_neu]);
-					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
-                    if str_neu[0]=='1':
-                        nr_fixs +=1;
-
-                    total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
-					
-                    total_nr_dwells = total_holder; #this is the variable for collecting total nr of dwells on this trial               
-                    
-
-                    #1. get the previous trial last dwelled location and previous trial type
-                    #conditional here is to only compute these values if this was not the first trial in a block. If it was, add nan's to these values
-                    
-                    if t.trial_nr > 1:
-                        #this code below finds the location of the last dwell on trial N-1 a
-						prev_looked_at_up = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedUp]);
-						prev_looked_at_left = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedLeft]);
-						prev_looked_at_right = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedRight]);			
-        
-						str_up = ''.join(str(int(g)) for g in prev_looked_at_up if not(isnan(g))); #first get the array into a string
-        
-                        #get last instane of the '1' in this array. if never loooked at, will return a -1
-						up_indices = str_up.rfind('1'); #rfind searches the string from right to left
-                        
-						if isinstance(up_indices, int):
-							up_last_index_lookedat = up_indices;
-						else:
-							up_last_index_lookedat = up_indices[0];
-                            
-						str_left = ''.join(str(int(g)) for g in prev_looked_at_left if not(isnan(g))); #parse cigarette
-						left_indices = str_left.rfind('1');		
-						if isinstance(left_indices, int):
-							left_last_index_lookedat = left_indices;
-						else:
-							left_last_index_lookedat = left_indices[0];
-        
-						str_right = ''.join(str(int(g)) for g in prev_looked_at_right if not(isnan(g))); #do the parsing for neutral..
-						right_indices = str_right.rfind('1');		
-						if isinstance(right_indices, int):
-							right_last_index_lookedat = right_indices;
-						else:
-							right_last_index_lookedat = right_indices[0];
-                        
-						last_instances =  array([up_last_index_lookedat, left_last_index_lookedat, right_last_index_lookedat]); #always keep it up, left, right
-						last_item_index = where(last_instances == max(last_instances))[0][0];		
-        
-                        #conditonal to find the last item that was looked at accoridng to the index corresponding to the item 
-						if last_item_index==0:
-							prev_last_dwelled_item = 'up';
-						elif last_item_index==1:
-							prev_last_dwelled_item = 'left';
-						elif last_item_index== 2:
-							prev_last_dwelled_item = 'right';
-                            
-						previous_trial_type = subj[i-1].trial_type; #get the previous trial type
-						
-						if subj[i-1].preferred_category=='alcohol':
-							previous_choice = 1;
-						elif subj[i-1].preferred_category=='cigarette':
-							previous_choice = 2;
-						elif subj[i-1].preferred_category=='neutral':
-							previous_choice = 3;    						                       
-                    else:
-                        prev_last_dwelled_item = nan;
-                        previous_trial_type = nan;
-                        previous_choice = nan;
-
-                    #2. now finally get the gaze position information, aligning trials to the offset of the first saccade
-                    #keep the start of the array nans until the timepoint when the trial has data for it
-                    gaze_data = [nan for ja in range(10000)]; #this will be length 5000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans                    
-                    trial_end_index = len(t.lookedAtNeutral); #get the duration of the trial (e.g., how many samples, corresponding to how many milliseconds)
-    
-                    #trials longer than 5000 ms will be trimmed to 5000 ms
-                    if trial_end_index > 10000:
-                        trial_end_index = 10000;
-                    
-                    iterator = 0; first_sac_offset = sac_end_time; #here, use the saccade end time to ofset the iterator through the gaze data array
-                    #now go through for the 5000 time points prior to decision and score whether the paricipants was looking at 
-                    for j in (arange(10000)):
-                        if ((j+first_sac_offset)>=trial_end_index):
-                            continue;					
-                        elif (isnan(t.lookedAtNeutral[j+first_sac_offset]) & isnan(t.lookedAtAlcohol[j+first_sac_offset]) & isnan(t.lookedAtCigarette[j+first_sac_offset])):
-                            #at this point, there was a nan inserted because the participant did not look at each item
-                            #when there are no items looked at, include a 0
-                            gaze_data[iterator] = 0;
-                        elif (t.lookedAtAlcohol[j+first_sac_offset]==1):
-                            gaze_data[iterator] = 1;
-                        elif (t.lookedAtCigarette[j+first_sac_offset]==1):						
-                            gaze_data[iterator] = 2;						
-                        elif (t.lookedAtNeutral[j+first_sac_offset]==1):	
-                            gaze_data[iterator] = 3;
-                        iterator+=1;
-                        
-                    #if t.sub_id == ids[-1]: #stop at the subject who had very long RTS   
-                    #    1/0; #check the first saccade offset is working as expected, and check if the appropriate thing to do in the first confitional cheking for trial_end_index is appropriate to use the first_sac_offset
-                        
-                    #for ease of the regression computation, get the selected item into a numerical representation, same mapping as with item looked at
-                    if t.preferred_category=='alcohol':
-                        selected_item = 1;
-                    elif t.preferred_category=='cigarette':
-                        selected_item = 2;
-                    elif t.preferred_category=='neutral':
-                        selected_item = 3;                                  
-                        
-                    #at this point have collected data for gaze profile together
-                    #get all data points together for ease of incorporating into the dataFrame
-                    this_trials_data = concatenate([[subj_nr, ttype, selected_item, t.block_nr, t.trial_nr, first_sac_onset_latency, first_sac_item_identity, last_sac_item_identity, \
-                                                     total_nr_dwells, prev_last_dwelled_item, previous_trial_type, previous_choice],gaze_data]); #each trial variable, then each timepoint data   int(subj_nr+1)
-
-					
-                    #now translate this to the dataframe for this participant
-                    data.loc[trial_index_counter] = this_trials_data;
-			
-                    trial_index_counter += 1; #1/0; #index for next trial
-					
-				
-	print "completed subject %s.. \n\n"%subj_nr	
-
-	#save the database
-    data.to_csv(savepath+'%s_trialdata.csv'%name,index=False); #+'first_sac_locked/'
-	#data.to_csv(savepath+'/stim_locked/'+'%s_trialdata.csv'%name,index=False); #previous iteration of this was to align to the onset of the stimulus
-	# ends here
+# def collectTemporalGazeProfileTrialsRawTimecourseStimOnsetAligned(blocks, ttype, eyed = 'agg'):
+# 	#collects each participants' trial data where they didn't blink or look down
+# 	#this collects trial with respect to the onset of the stimulus display
+#     #this collects time points according to their raw time course, rather than normalized to 100 equally spaced time points
+# 	#loop through and get all the trials for each subject
+#     trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
+# 	
+# 	#collect which trial type to run this analysis for
+# 	#ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
+# 	
+#     name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
+# 	
+#     data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item','block_nr','trial_nr','first_sac_latency','first_sac_item','last_sac_item','nr_dwells','prev_trial_last_dwelled_loc','prev_trial_type','prev_choice'] \
+#         ,['t_%s'%(t) for t in linspace(1,10000,10000)]])); #add all participants together to the same dataFrame for simplicty
+#     #maximum length of trial across all participants is ~9.5 seconds, so adding up to 100000 data points to include all time points        
+# 	#SCORING FOR ITEM (entry at t_XX): 0 = not looked at any item, 1 = looked at alcohol, 2 = looked at cigarette, 3 = looked at neutral, nan = timepoint didn't exist in the trial
+#     trial_index_counter = 0;
+# 
+#     for subj_nr,subj in zip(ids, trial_matrix):    #enumerate(trial_matrix):
+# 
+#         for i,t in enumerate(subj):
+# 			#conditional to differentiate between trials that should be skipped for this trial type, etc.
+#             if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
+#                 
+#                 if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
+#                 
+#                     #0. first, get first saccade latency, first saccade item identity, nr of dwells on current trial
+#                     #need the first saccade latency before collecting the gaze data, otherwise I can't align the data according to the first saccade onset
+# 
+#                     #this code gets the first saccade latency
+#                     sac_start_time = 0;
+#                     sac_start_pos = array([]);						
+#                     sac_end_time = 0;
+#                     sac_end_pos = array([]);
+#                     
+#                     #Below here goes through each trial and pulls out the first saccde
+#                     # the while loop below runs through until a saccade is found (saccade_counter = 1) or
+#                     # we get to the end of the trial
+#                     
+#                     saccade_counter = 0;
+#                     
+#                     for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+#                                                          t.eyeX, t.eyeY, t.isSaccade):
+#                         #if no saccade has been made yet, keep running through the isSaccade array
+#                         # issac < 1 will be zero at all non-saccading time points, including the start
+#                         if issac == 0:
+#                             #if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+#                             if (t.isSaccade[ii-1]==True)&(ii>0):
+#                                 sac_end_time = t.sample_times[ii];
+#                                 sac_end_pos = array([xx,yy]);
+#                                 saccade_counter+=1;
+#                                 break; #once I get the first saccade, end it here
+#                             
+# 
+#                                 
+#                         elif issac == 1:
+#                             #get the starting point for this saccade as well as the time
+#                             #the first transition between 0 and 1 will be the first saccade start
+#                             if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+#                                 sac_start_time = t.sample_times[ii];
+#                                 sac_start_pos = array([xx,yy]);       
+#                     
+#                     #calculate the first saccade latency
+#                     first_sac_onset_latency = sac_start_time; 
+# 
+#                     #get the first item looked at			
+#                     if t.firstCategoryLookedAt=='alcohol':
+#                         first_sac_item_identity = 1;
+#                     elif t.firstCategoryLookedAt=='cigarette':
+#                         first_sac_item_identity = 2;
+#                     elif t.firstCategoryLookedAt=='neutral':
+#                         first_sac_item_identity = 3;
+# 
+#                     #get the last item looked at
+#                     if t.lastCategoryLookedAt=='alcohol':
+#                         last_sac_item_identity = 1;
+#                     elif t.lastCategoryLookedAt=='cigarette':
+#                         last_sac_item_identity = 2;
+#                     elif t.lastCategoryLookedAt=='neutral':
+#                         last_sac_item_identity = 3;						
+# 
+#                     #now here collect the total number of dwells
+#                     rexp_pattern = re.compile(r'01'); #this regular expression pattern looks for strings with a 1 or anything continuous run of 1s
+# 					#In the computation of the lookedAtXX arrays during trial pre-processing, I include NaNs at times when no itm
+# 					#was looked at... e.g., when the participant was fixating the center of the screen.
+# 					#In order to ensure that I capture the change from not looking at one item to looking at any item (like the first dwell),
+# 					#I need to convert those NaNs to 0's for calculation using the string-based method below. However, I want the original
+# 					#lookedAtXX arrays to maintain the Nan, 0, 1 coding scheme, so I'll create holder arrays for each trial to use for the nr of dwell
+# 					#calculations here
+# 					
+#                     looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
+#                     looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
+#                     looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);
+# 					
+#                     total_holder = 0;
+# 					
+#                     str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
+#                     run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
+# 					#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
+#                     nr_fixs = sum([1 for r in run_lengths_alc]);
+# 					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp.
+# 					#this will only be the case if they weren't looking at anything to start (e.g., there were nan's to start, then the first item was looked at)
+# 					#notice that because I have included NaNs in the t.lookedAtXX arrays for when items are not being looked at, the subsequent str_alc array
+# 					#represents sequences of 1s and 0 s corresponding runs of looking at items, squished into the array; This means str_alc does not include
+# 					#any information about samples where the eye was not on an item, which means this method cannot be used to understand differences in time between
+# 					#dwells when that time is not being spent on an item. This is important to keep in mind
+#                     if str_alc[0]=='1':
+#                         nr_fixs +=1;
+# 				
+#                     total_holder+=nr_fixs; #add the nr of dwells from looking at alc to this holder variable
+# 					
+#                     str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
+#                     run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
+#                     nr_fixs = sum([1 for r in run_lengths_cig]);
+# 					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+#                     if str_cig[0]=='1':
+#                         nr_fixs +=1;
+# 
+#                     total_holder+=nr_fixs; #add the nr of dwells from looking at cig to this holder variable
+# 
+#                     str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
+#                     run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
+#                     nr_fixs = sum([1 for r in run_lengths_neu]);
+# 					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+#                     if str_neu[0]=='1':
+#                         nr_fixs +=1;
+# 
+#                     total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
+# 					
+#                     total_nr_dwells = total_holder; #this is the variable for collecting total nr of dwells on this trial               
+#                     
+# 
+#                     #1. get the previous trial last dwelled location and previous trial type
+#                     #conditional here is to only compute these values if this was not the first trial in a block. If it was, add nan's to these values
+#                     
+#                     if t.trial_nr > 1:
+#                         #this code below finds the location of the last dwell on trial N-1 a
+# 						prev_looked_at_up = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedUp]);
+# 						prev_looked_at_left = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedLeft]);
+# 						prev_looked_at_right = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedRight]);			
+#         
+# 						str_up = ''.join(str(int(g)) for g in prev_looked_at_up if not(isnan(g))); #first get the array into a string
+#         
+#                         #get last instane of the '1' in this array. if never loooked at, will return a -1
+# 						up_indices = str_up.rfind('1'); #rfind searches the string from right to left
+#                         
+# 						if isinstance(up_indices, int):
+# 							up_last_index_lookedat = up_indices;
+# 						else:
+# 							up_last_index_lookedat = up_indices[0];
+#                             
+# 						str_left = ''.join(str(int(g)) for g in prev_looked_at_left if not(isnan(g))); #parse cigarette
+# 						left_indices = str_left.rfind('1');		
+# 						if isinstance(left_indices, int):
+# 							left_last_index_lookedat = left_indices;
+# 						else:
+# 							left_last_index_lookedat = left_indices[0];
+#         
+# 						str_right = ''.join(str(int(g)) for g in prev_looked_at_right if not(isnan(g))); #do the parsing for neutral..
+# 						right_indices = str_right.rfind('1');		
+# 						if isinstance(right_indices, int):
+# 							right_last_index_lookedat = right_indices;
+# 						else:
+# 							right_last_index_lookedat = right_indices[0];
+#                         
+# 						last_instances =  array([up_last_index_lookedat, left_last_index_lookedat, right_last_index_lookedat]); #always keep it up, left, right
+# 						last_item_index = where(last_instances == max(last_instances))[0][0];		
+#         
+#                         #conditonal to find the last item that was looked at accoridng to the index corresponding to the item 
+# 						if last_item_index==0:
+# 							prev_last_dwelled_item = 'up';
+# 						elif last_item_index==1:
+# 							prev_last_dwelled_item = 'left';
+# 						elif last_item_index== 2:
+# 							prev_last_dwelled_item = 'right';
+#                             
+# 						previous_trial_type = subj[i-1].trial_type; #get the previous trial type
+# 						
+# 						if subj[i-1].preferred_category=='alcohol':
+# 							previous_choice = 1;
+# 						elif subj[i-1].preferred_category=='cigarette':
+# 							previous_choice = 2;
+# 						elif subj[i-1].preferred_category=='neutral':
+# 							previous_choice = 3;    						                       
+#                     else:
+#                         prev_last_dwelled_item = nan;
+#                         previous_trial_type = nan;
+#                         previous_choice = nan;
+# 
+#                     #2. now finally get the gaze position information, aligning trials to the onset of the stimulus
+#                     #keep the start of the array nans until the timepoint when the trial has data for it
+#                     gaze_data = [nan for ja in range(10000)]; #this will be length 10000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans                    
+#                     trial_end_index = len(t.lookedAtNeutral); #get the duration of the trial (e.g., how many samples, corresponding to how many milliseconds)
+#     
+#                     #trials longer than 10000 ms will be trimmed to 10000 ms
+#                     if trial_end_index > 10000:
+#                         trial_end_index = 10000;
+#                     
+#                     iterator = 0; 
+#                     #now go through for the 10000 time points prior to decision and score whether the paricipants was looking at 
+#                     for j in (arange(10000)):
+#                         if ((j)>=trial_end_index):
+#                             continue;					
+#                         elif (isnan(t.lookedAtNeutral[j]) & isnan(t.lookedAtAlcohol[j]) & isnan(t.lookedAtCigarette[j])):
+#                             #at this point, there was a nan inserted because the participant did not look at each item
+#                             #when there are no items looked at, include a 0
+#                             gaze_data[iterator] = 0;
+#                         elif (t.lookedAtAlcohol[j]==1):
+#                             gaze_data[iterator] = 1;
+#                         elif (t.lookedAtCigarette[j]==1):						
+#                             gaze_data[iterator] = 2;						
+#                         elif (t.lookedAtNeutral[j]==1):	
+#                             gaze_data[iterator] = 3;
+#                         iterator+=1;
+#                         
+#                     #for ease of the regression computation, get the selected item into a numerical representation, same mapping as with item looked at
+#                     if t.preferred_category=='alcohol':
+#                         selected_item = 1;
+#                     elif t.preferred_category=='cigarette':
+#                         selected_item = 2;
+#                     elif t.preferred_category=='neutral':
+#                         selected_item = 3;                                  
+#                         
+#                     #at this point have collected data for gaze profile together
+#                     #get all data points together for ease of incorporating into the dataFrame
+#                     this_trials_data = concatenate([[subj_nr, ttype, selected_item, t.block_nr, t.trial_nr, first_sac_onset_latency, first_sac_item_identity, last_sac_item_identity, \
+#                                                      total_nr_dwells, prev_last_dwelled_item, previous_trial_type, previous_choice],gaze_data]); #each trial variable, then each timepoint data   int(subj_nr+1)
+# 
+# 					
+#                     #now translate this to the dataframe for this participant
+#                     data.loc[trial_index_counter] = this_trials_data;
+# 			
+#                     trial_index_counter += 1; #1/0; #index for next trial
+#                     
+# 	print "completed subject %s.. \n\n"%subj_nr	
+# 
+# 	#save the database
+#     data.to_csv(savepath+'/stim_locked/'+'%s_trialdata_STIMLOCKED.csv'%name,index=False); 
+# 	#data.to_csv(savepath+'/stim_locked/'+'%s_trialdata.csv'%name,index=False); #previous iteration of this was to align to the onset of the stimulus
+# 	# ends here                    
+#                     
+# 
+# 
+# def collectTemporalGazeProfileTrialsRawTimecourse(blocks, ttype, eyed = 'agg'):
+# 	#collects each participants' trial data where they didn't blink or look down
+# 	#this collects trial with respect to the onset of the first saccade
+#     #this collects time points according to their raw time course, rather than normalized to 100 equally spaced time points
+# 	
+# 	#loop through and get all the trials for each subject
+#     trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
+# 	
+# 	#collect which trial type to run this analysis for
+# 	#ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
+# 	
+#     name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
+# 	
+#     data = pd.DataFrame(columns = concatenate([['subject_nr', 'trial_type', 'selected_item','block_nr','trial_nr','first_sac_latency','first_sac_item','last_sac_item','nr_dwells','prev_trial_last_dwelled_loc','prev_trial_type','prev_choice'] \
+#         ,['t_%s'%(t) for t in linspace(1,10000,10000)]])); #add all participants together to the same dataFrame for simplicty
+#     #maximum length of trial across all participants is ~9.5 seconds, so adding up to 100000 data points to include all time points        
+# 	#SCORING FOR ITEM (entry at t_XX): 0 = not looked at any item, 1 = looked at alcohol, 2 = looked at cigarette, 3 = looked at neutral, nan = timepoint didn't exist in the trial
+#     trial_index_counter = 0;
+# 	
+#     for subj_nr,subj in zip(ids, trial_matrix):    #enumerate(trial_matrix):
+# 
+#         for i,t in enumerate(subj):
+# 			#conditional to differentiate between trials that should be skipped for this trial type, etc.
+#             if((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.trial_type == ttype)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5)):
+#                 
+#                 if (t.nr_saccades > 0):  #this conditional is used to ensure that no trials without saccades sneak through
+#                 
+#                     #0. first, get first saccade latency, first saccade item identity, nr of dwells on current trial
+#                     #need the first saccade latency before collecting the gaze data, otherwise I can't align the data according to the first saccade onset
+# 
+#                     #this code gets the first saccade latency
+#                     sac_start_time = 0;
+#                     sac_start_pos = array([]);						
+#                     sac_end_time = 0;
+#                     sac_end_pos = array([]);
+#                     
+#                     #Below here goes through each trial and pulls out the first saccde
+#                     # the while loop below runs through until a saccade is found (saccade_counter = 1) or
+#                     # we get to the end of the trial
+#                     
+#                     saccade_counter = 0;
+#                     
+#                     for ii,xx,yy,issac in zip(range(len(t.sample_times)),
+#                                                          t.eyeX, t.eyeY, t.isSaccade):
+#                         #if no saccade has been made yet, keep running through the isSaccade array
+#                         # issac < 1 will be zero at all non-saccading time points, including the start
+#                         if issac == 0:
+#                             #if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+#                             if (t.isSaccade[ii-1]==True)&(ii>0):
+#                                 sac_end_time = t.sample_times[ii];
+#                                 sac_end_pos = array([xx,yy]);
+#                                 saccade_counter+=1;
+#                                 break; #once I get the first saccade, end it here
+#                             
+# 
+#                                 
+#                         elif issac == 1:
+#                             #get the starting point for this saccade as well as the time
+#                             #the first transition between 0 and 1 will be the first saccade start
+#                             if (t.isSaccade[ii-1]==False)&(ii>0)&(saccade_counter==0):
+#                                 sac_start_time = t.sample_times[ii];
+#                                 sac_start_pos = array([xx,yy]);       
+#                     
+#                     #calculate the first saccade latency
+#                     first_sac_onset_latency = sac_start_time; 
+# 
+#                     #get the first item looked at			
+#                     if t.firstCategoryLookedAt=='alcohol':
+#                         first_sac_item_identity = 1;
+#                     elif t.firstCategoryLookedAt=='cigarette':
+#                         first_sac_item_identity = 2;
+#                     elif t.firstCategoryLookedAt=='neutral':
+#                         first_sac_item_identity = 3;
+# 
+#                     #get the last item looked at
+#                     if t.lastCategoryLookedAt=='alcohol':
+#                         last_sac_item_identity = 1;
+#                     elif t.lastCategoryLookedAt=='cigarette':
+#                         last_sac_item_identity = 2;
+#                     elif t.lastCategoryLookedAt=='neutral':
+#                         last_sac_item_identity = 3;						
+# 
+#                     #now here collect the total number of dwells
+#                     rexp_pattern = re.compile(r'01'); #this regular expression pattern looks for strings with a 1 or anything continuous run of 1s
+# 					#In the computation of the lookedAtXX arrays during trial pre-processing, I include NaNs at times when no itm
+# 					#was looked at... e.g., when the participant was fixating the center of the screen.
+# 					#In order to ensure that I capture the change from not looking at one item to looking at any item (like the first dwell),
+# 					#I need to convert those NaNs to 0's for calculation using the string-based method below. However, I want the original
+# 					#lookedAtXX arrays to maintain the Nan, 0, 1 coding scheme, so I'll create holder arrays for each trial to use for the nr of dwell
+# 					#calculations here
+# 					
+#                     looked_at_alcohol = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtAlcohol]);
+#                     looked_at_cigarette = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtCigarette]);
+#                     looked_at_neutral = array([r if ((r==0)|(r==1)) else 0 for r in t.lookedAtNeutral]);
+# 					
+#                     total_holder = 0;
+# 					
+#                     str_alc = ''.join(str(int(g)) for g in looked_at_alcohol if not(isnan(g))); #first get the array into a string
+#                     run_lengths_alc = [len(f) for f in rexp_pattern.findall(str_alc)];
+# 					#line above, then use the regular expression pattern, looking for 1s, to parse an array of the continuous runs of 1s in the string from above and get length
+#                     nr_fixs = sum([1 for r in run_lengths_alc]);
+# 					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp.
+# 					#this will only be the case if they weren't looking at anything to start (e.g., there were nan's to start, then the first item was looked at)
+# 					#notice that because I have included NaNs in the t.lookedAtXX arrays for when items are not being looked at, the subsequent str_alc array
+# 					#represents sequences of 1s and 0 s corresponding runs of looking at items, squished into the array; This means str_alc does not include
+# 					#any information about samples where the eye was not on an item, which means this method cannot be used to understand differences in time between
+# 					#dwells when that time is not being spent on an item. This is important to keep in mind
+#                     if str_alc[0]=='1':
+#                         nr_fixs +=1;
+# 				
+#                     total_holder+=nr_fixs; #add the nr of dwells from looking at alc to this holder variable
+# 					
+#                     str_cig = ''.join(str(int(g)) for g in looked_at_cigarette if not(isnan(g))); #parse cigarette
+#                     run_lengths_cig = [len(f) for f in rexp_pattern.findall(str_cig)];
+#                     nr_fixs = sum([1 for r in run_lengths_cig]);
+# 					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+#                     if str_cig[0]=='1':
+#                         nr_fixs +=1;
+# 
+#                     total_holder+=nr_fixs; #add the nr of dwells from looking at cig to this holder variable
+# 
+#                     str_neu = ''.join(str(int(g)) for g in looked_at_neutral if not(isnan(g))); #do the parsing for neutral..
+#                     run_lengths_neu = [len(f) for f in rexp_pattern.findall(str_neu)];
+#                     nr_fixs = sum([1 for r in run_lengths_neu]);
+# 					#check if the first item is a 1... if so, the array started with looking at the item and it wouldnt be caught by the regexp. need to correcy
+#                     if str_neu[0]=='1':
+#                         nr_fixs +=1;
+# 
+#                     total_holder+=nr_fixs; #add the nr of dwells from looking at neu to this holder variable
+# 					
+#                     total_nr_dwells = total_holder; #this is the variable for collecting total nr of dwells on this trial               
+#                     
+# 
+#                     #1. get the previous trial last dwelled location and previous trial type
+#                     #conditional here is to only compute these values if this was not the first trial in a block. If it was, add nan's to these values
+#                     
+#                     if t.trial_nr > 1:
+#                         #this code below finds the location of the last dwell on trial N-1 a
+# 						prev_looked_at_up = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedUp]);
+# 						prev_looked_at_left = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedLeft]);
+# 						prev_looked_at_right = array([r if ((r==0)|(r==1)) else 0 for r in subj[i-1].lookedRight]);			
+#         
+# 						str_up = ''.join(str(int(g)) for g in prev_looked_at_up if not(isnan(g))); #first get the array into a string
+#         
+#                         #get last instane of the '1' in this array. if never loooked at, will return a -1
+# 						up_indices = str_up.rfind('1'); #rfind searches the string from right to left
+#                         
+# 						if isinstance(up_indices, int):
+# 							up_last_index_lookedat = up_indices;
+# 						else:
+# 							up_last_index_lookedat = up_indices[0];
+#                             
+# 						str_left = ''.join(str(int(g)) for g in prev_looked_at_left if not(isnan(g))); #parse cigarette
+# 						left_indices = str_left.rfind('1');		
+# 						if isinstance(left_indices, int):
+# 							left_last_index_lookedat = left_indices;
+# 						else:
+# 							left_last_index_lookedat = left_indices[0];
+#         
+# 						str_right = ''.join(str(int(g)) for g in prev_looked_at_right if not(isnan(g))); #do the parsing for neutral..
+# 						right_indices = str_right.rfind('1');		
+# 						if isinstance(right_indices, int):
+# 							right_last_index_lookedat = right_indices;
+# 						else:
+# 							right_last_index_lookedat = right_indices[0];
+#                         
+# 						last_instances =  array([up_last_index_lookedat, left_last_index_lookedat, right_last_index_lookedat]); #always keep it up, left, right
+# 						last_item_index = where(last_instances == max(last_instances))[0][0];		
+#         
+#                         #conditonal to find the last item that was looked at accoridng to the index corresponding to the item 
+# 						if last_item_index==0:
+# 							prev_last_dwelled_item = 'up';
+# 						elif last_item_index==1:
+# 							prev_last_dwelled_item = 'left';
+# 						elif last_item_index== 2:
+# 							prev_last_dwelled_item = 'right';
+#                             
+# 						previous_trial_type = subj[i-1].trial_type; #get the previous trial type
+# 						
+# 						if subj[i-1].preferred_category=='alcohol':
+# 							previous_choice = 1;
+# 						elif subj[i-1].preferred_category=='cigarette':
+# 							previous_choice = 2;
+# 						elif subj[i-1].preferred_category=='neutral':
+# 							previous_choice = 3;    						                       
+#                     else:
+#                         prev_last_dwelled_item = nan;
+#                         previous_trial_type = nan;
+#                         previous_choice = nan;
+# 
+#                     #2. now finally get the gaze position information, aligning trials to the offset of the first saccade
+#                     #keep the start of the array nans until the timepoint when the trial has data for it
+#                     gaze_data = [nan for ja in range(10000)]; #this will be length 5000 and include each item looked at at each time point (or 0/NaN otherwise); pre-allocate with nans                    
+#                     trial_end_index = len(t.lookedAtNeutral); #get the duration of the trial (e.g., how many samples, corresponding to how many milliseconds)
+#     
+#                     #trials longer than 5000 ms will be trimmed to 5000 ms
+#                     if trial_end_index > 10000:
+#                         trial_end_index = 10000;
+#                     
+#                     iterator = 0; first_sac_offset = sac_end_time; #here, use the saccade end time to ofset the iterator through the gaze data array
+#                     #now go through for the 5000 time points prior to decision and score whether the paricipants was looking at 
+#                     for j in (arange(10000)):
+#                         if ((j+first_sac_offset)>=trial_end_index):
+#                             continue;					
+#                         elif (isnan(t.lookedAtNeutral[j+first_sac_offset]) & isnan(t.lookedAtAlcohol[j+first_sac_offset]) & isnan(t.lookedAtCigarette[j+first_sac_offset])):
+#                             #at this point, there was a nan inserted because the participant did not look at each item
+#                             #when there are no items looked at, include a 0
+#                             gaze_data[iterator] = 0;
+#                         elif (t.lookedAtAlcohol[j+first_sac_offset]==1):
+#                             gaze_data[iterator] = 1;
+#                         elif (t.lookedAtCigarette[j+first_sac_offset]==1):						
+#                             gaze_data[iterator] = 2;						
+#                         elif (t.lookedAtNeutral[j+first_sac_offset]==1):	
+#                             gaze_data[iterator] = 3;
+#                         iterator+=1;
+#                         
+#                     #if t.sub_id == ids[-1]: #stop at the subject who had very long RTS   
+#                     #    1/0; #check the first saccade offset is working as expected, and check if the appropriate thing to do in the first confitional cheking for trial_end_index is appropriate to use the first_sac_offset
+#                         
+#                     #for ease of the regression computation, get the selected item into a numerical representation, same mapping as with item looked at
+#                     if t.preferred_category=='alcohol':
+#                         selected_item = 1;
+#                     elif t.preferred_category=='cigarette':
+#                         selected_item = 2;
+#                     elif t.preferred_category=='neutral':
+#                         selected_item = 3;                                  
+#                         
+#                     #at this point have collected data for gaze profile together
+#                     #get all data points together for ease of incorporating into the dataFrame
+#                     this_trials_data = concatenate([[subj_nr, ttype, selected_item, t.block_nr, t.trial_nr, first_sac_onset_latency, first_sac_item_identity, last_sac_item_identity, \
+#                                                      total_nr_dwells, prev_last_dwelled_item, previous_trial_type, previous_choice],gaze_data]); #each trial variable, then each timepoint data   int(subj_nr+1)
+# 
+# 					
+#                     #now translate this to the dataframe for this participant
+#                     data.loc[trial_index_counter] = this_trials_data;
+# 			
+#                     trial_index_counter += 1; #1/0; #index for next trial
+# 					
+# 				
+# 	print "completed subject %s.. \n\n"%subj_nr	
+# 
+# 	#save the database
+#     data.to_csv(savepath+'%s_trialdata.csv'%name,index=False); #+'first_sac_locked/'
+# 	#data.to_csv(savepath+'/stim_locked/'+'%s_trialdata.csv'%name,index=False); #previous iteration of this was to align to the onset of the stimulus
+# 	# ends here
 
 
 ### These next 4 methods compute the 4 specific dependent measures required for the correlative analysis with cue-reactivity paradigm, per meeting with Rachel 6/14/18 ###
@@ -2589,6 +2589,7 @@ def computeProportionLookingTimes(blocks, eyed = 'agg'):
 
 
 #this function will compute the average proportion of trials data for each participant, aggregating across all trial types
+#LEGACY: THIS DOES NOT EXCLUDE TRIALS WHERE A PARTICIPANTS WASNT LOOKING AT THE CENTER OF SCREEN OR SKIPEPD TRIALS
 
 def computeAllTrialTypesAggregatedProportionLookingTimes(blocks, eyed = 'agg'):
 	db = subject_data;
@@ -3325,8 +3326,7 @@ def computeMedianSplitLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed
 	[d.to_csv(savepath+'%s_STIMLOCKED_FAST_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (i)),index=False) for d,i in zip(fast_data, arange(2000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);
 	[d.to_csv(savepath+'%s_STIMLOCKED_SLOW_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (i)),index=False) for d,i in zip(slow_data, arange(2000))];
 	# ends here			
-			
-			
+						
 
 def computeLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 	#performs the temporal gaze profile analysis from function below, but does ot for the STIMULUS-LOCKED data
@@ -3624,9 +3624,200 @@ def computeLongTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 	[d.to_csv(savepath+'%s_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (1999-i)),index=False) for d,i in zip(data, arange(2000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);
 	# ends here
 	
+
+
+def collectTemporalGazeWRTFirstSaccadeOffset(blocks, ttype, eyed = 'agg'):
+	#collects each participants' trial data where they didn't blink or look down
+	#allign these to the offset of the first saccade
+	
+                    # #get the indexes corresponding to the onset of the first saccade and the end of the trial
+                    # trial_start_index = where(t.isSaccade)[0][0];
+                    # trial_end_index = len(t.lookedAtNeutral);
+                    # 
+                    # #trials longer than 2000 ms will be trimmed to 2000 ms
+                    # if trial_end_index > (2000 + trial_start_index):
+                    #     trial_end_index = (2000 + trial_start_index);
+                    # 
+                    # iterator = 0;
+                    # 
+                    # #now go through for the 2000 time points prior to decision and score whether the paricipants was looking at 
+                    # for i in (linspace(trial_start_index,(2000+trial_start_index), ((2000+trial_start_index)-trial_start_index)+1)):
+                    #     if (i>=trial_end_index):
+                    #         continue;
+                    #     elif (isnan(t.lookedAtNeutral[i]) & isnan(t.lookedAtAlcohol[i]) & isnan(t.lookedAtCigarette[i])):
+                    #     #at this point, there was a nan inserted because the participant did not look at each item
+                    #     #when there are no items looked at, include a 0
+                    #         gaze_data[iterator] = 0;
+                    #     elif (t.lookedAtAlcohol[i]==1):
+                    #         gaze_data[iterator] = 1;
+                    #     elif (t.lookedAtCigarette[i]==1):						
+                    #         gaze_data[iterator] = 2;						
+                    #     elif (t.lookedAtNeutral[i]==1):	
+                    #         gaze_data[iterator] = 3;
+                    #     iterator+=1;
+
+
+    index_counter = 0; #for database calculation
+	
+    time_bin_spacing = 0.001;
+    time_duration = 2.0;
+	
+	#loop through and get all the trials for each subject
+    trial_matrix = [[tee for b in bl for tee in b.trials if (tee.skip==0)] for bl in blocks];
+	
+	#collect which trial type to run this analysis for
+	#ttype = int(raw_input('Which trial type? 1 = HighC/HighA, 2 = HighC/LowA, 3 = LowC/HighA, 4 = LowC/LowA: '));
+	
+    name = ['high_pref', 'highC_lowA','lowC_highA','lowC_lowA'][ttype-1];
+
+	#create 2000 dataframe objects that will correspond to each time point
+    data = [pd.DataFrame(columns = ['sub_id','trial_type','selected_item','looked_at_item','timepoint','nr_trials','nr_trials_used_for_likelihood','mean_fix_likelihood']) for i in arange(2000)];
+	#nr of trials used is the total number of trials used for tht time point (a trial where at least one item was looked at)
+	#nr_trials_used_for_likelihood is the nr of trials where that specific item was looked at, at the given timepoint
+	
+    for selected_item in ['cigarette','alcohol','neutral']:
+		
+		fig = figure(); ax1 = gca();
+		ax1.set_ylim(0.0, 1.0); ax1.set_yticks(arange(0,1.01,0.1)); ax1.set_xlim([0,2000]);
+		ax1.set_ylabel('Likelihood of fixating',size=18); ax1.set_xlabel('Time with respect to decision, ms',size=18,labelpad=11);
+		ax1.set_xticks([0,500, 1000, 1500, 2000]);
+		ax1.set_xticklabels(['-2000', '-1500', '-1000', '-500', '0']);
+		colors = ['red','blue', 'green']; alphas = [1.0, 1.0, 1.0]; legend_lines = [];		count = 0;
+		
+		
+		#define arrays for the neutral, alcohol and cigarette items
+		neu_gaze_array = zeros(time_duration/time_bin_spacing);
+		neu_counts = zeros(shape(neu_gaze_array));
+		neu_subject_means_array = [[] for i in range(2000)]; #use this to store each individual subjects' mean for each time point
+		neu_subject_agg_counts = []; 
+		alc_gaze_array = zeros(time_duration/time_bin_spacing);
+		alc_counts = zeros(shape(alc_gaze_array));
+		alc_subject_means_array = [[] for i in range(2000)];
+		alc_subject_agg_counts = []; 
+		cig_cue_gaze_array = zeros(time_duration/time_bin_spacing);
+		cig_cue_counts = zeros(shape(cig_cue_gaze_array));
+		cig_cue_subject_means_array = [[] for i in range(2000)];
+		cig_subject_agg_counts = []; 
+	
+		for subj_nr,subj in enumerate(trial_matrix):
+			neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+			neu_individ_subject_counts = zeros(time_duration/time_bin_spacing);
+			neu_individ_subject_nrusedtrials = zeros(time_duration/time_bin_spacing);
+			alc_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+			alc_individ_subject_counts = zeros(time_duration/time_bin_spacing);
+			alc_individ_subject_nrusedtrials = zeros(time_duration/time_bin_spacing);			
+			cig_cue_individ_subject_sum = zeros(time_duration/time_bin_spacing);
+			cig_cue_individ_subject_counts = zeros(time_duration/time_bin_spacing);
+			cig_individ_subject_nrusedtrials = zeros(time_duration/time_bin_spacing);
+			
+			for t in subj:
+				#conditional to differentiate between not-cue trials when selecteing the non-cue or not
+				#the second conditional include nuetral trials that were preferred only
+				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
+                    &(t.trial_type == ttype)&(t.preferred_category == selected_item)&(t.nr_saccades > 0)):
+
+					#get trial start (offset of first saccade) and end index
+					
+					for ii,xx,yy,issac in zip(range(len(t.sample_times)),t.eyeX, t.eyeY, t.isSaccade):
+						#if no saccade has been made yet, keep running through the isSaccade array
+						# issac < 1 will be zero at all non-saccading time points, including the start
+						if issac == 0:
+							#if the previous sample was saccading and now it isn't, the first saccade is complete and we can grab the data
+							if (t.isSaccade[ii-1]==True)&(ii>0):
+								trial_start_index = ii;
+								break; 
+
+					trial_end_index = len(t.lookedAtNeutral);
+                    # #trials longer than 2000 ms will be trimmed to 2000 ms
+					if trial_end_index > (2000 + trial_start_index):
+						trial_end_index = (2000 + trial_start_index);					
+
+					for i in (linspace(trial_start_index,(2000+trial_start_index), ((2000+trial_start_index)-trial_start_index)+1)):
+						if (i>=trial_end_index):
+							continue;
+						elif (isnan(t.lookedAtNeutral[i])):
+							continue; #nan means they weren't looking at anything at this timepoint
+						neu_gaze_array[i-trial_start_index] += t.lookedAtNeutral[i];
+						neu_counts[i-trial_start_index] += 1;
+						#put the individual subject data together
+						neu_individ_subject_sum[i-trial_start_index] += t.lookedAtNeutral[i];
+						neu_individ_subject_counts[i-trial_start_index] += 1;
+						neu_individ_subject_nrusedtrials[i-trial_start_index] += t.lookedAtNeutral[i];
+
+					for i in (linspace(trial_start_index,(2000+trial_start_index), ((2000+trial_start_index)-trial_start_index)+1)):
+						if (i>=trial_end_index):
+							continue;
+						elif (isnan(t.lookedAtAlcohol[i])):
+							continue;
+						#store the alcohol gaze patterns as the cue item
+						alc_gaze_array[i-trial_start_index] += t.lookedAtAlcohol[i];
+						alc_counts[i-trial_start_index] += 1;
+						#put the individual subject data together
+						alc_individ_subject_sum[i-trial_start_index] += t.lookedAtAlcohol[i];
+						alc_individ_subject_counts[i-trial_start_index] += 1;
+						alc_individ_subject_nrusedtrials[i-trial_start_index] += t.lookedAtAlcohol[i];
+						
+					for i in (linspace(trial_start_index,(2000+trial_start_index), ((2000+trial_start_index)-trial_start_index)+1)):
+						if (i>=trial_end_index):
+							continue;
+						elif (isnan(t.lookedAtCigarette[i])):
+							continue;							
+						#store the cigarette items as the not_cue item
+						cig_cue_gaze_array[i-trial_start_index] += t.lookedAtCigarette[i];
+						cig_cue_counts[i-trial_start_index] += 1;
+						#put the individual subject data together
+						cig_cue_individ_subject_sum[i-trial_start_index] += t.lookedAtCigarette[i];
+						cig_cue_individ_subject_counts[i-trial_start_index] += 1;
+						cig_individ_subject_nrusedtrials[i-trial_start_index] += t.lookedAtCigarette[i];
+						
+			neu_individ_subject_mean = neu_individ_subject_sum/neu_individ_subject_counts; #calculate the mean for this subject at each time point
+			[neu_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),neu_individ_subject_mean)]; #append this to the array for each subject
+			[neu_subject_agg_counts.append(ct) for ct in neu_individ_subject_counts]; #store number of trials here		
+			alc_individ_subject_mean = alc_individ_subject_sum/alc_individ_subject_counts; #calculate the mean for this subject at each time point
+			[alc_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),alc_individ_subject_mean)]; #append this to the array for each subject
+			[alc_subject_agg_counts.append(ct) for ct in alc_individ_subject_counts];
+			cig_cue_individ_subject_mean = cig_cue_individ_subject_sum/cig_cue_individ_subject_counts; #calculate the mean for this subject at each time point
+			[cig_cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),cig_cue_individ_subject_mean)]; #append this to the array for each subject
+			[cig_subject_agg_counts.append(ct) for ct in cig_cue_individ_subject_counts];						
+						
+			for index in arange(2000):
+				#make sure to reverse the time point from index...
+				data[index].loc[index_counter] = [int(subj_nr+1),int(ttype),selected_item,'alcohol', (index), alc_individ_subject_counts[index], alc_individ_subject_nrusedtrials[index], alc_individ_subject_mean[index]];
+				data[index].loc[index_counter+1] = [int(subj_nr+1),int(ttype),selected_item,'cigarette', (index), cig_cue_individ_subject_counts[index], cig_individ_subject_nrusedtrials[index], cig_cue_individ_subject_mean[index]];
+				data[index].loc[index_counter+2] = [int(subj_nr+1),int(ttype),selected_item,'neutral', (index), neu_individ_subject_counts[index], neu_individ_subject_nrusedtrials[index], neu_individ_subject_mean[index]];
+			index_counter+=3;
+						
+			print "completed subject %s.. \n\n"%subj_nr							
+
+		#plot each likelihood looking at items				
+		for  subj_ms, cue_name, c, a in zip([alc_subject_means_array, cig_cue_subject_means_array, neu_subject_means_array], ['alcohol','cigarette','neutral'], colors, alphas):							
+			mews = array([nanmean(subj) for subj in subj_ms]); # gaze_array/counts
+			sems = array([compute_BS_SEM(subj) for subj in subj_ms]);
+			ax1.plot(linspace(0,2000,2000), mews, lw = 4.0, color = c, alpha = a);
+			#plot the errorbars
+			#for x,m,s in zip(linspace(0,1000,1000),mews,sems):
+			ax1.fill_between(linspace(0,2000,2000), mews-sems, mews+sems, color = c, alpha = a*0.4);
+			legend_lines.append(mlines.Line2D([],[],color=c,lw=6,alpha = a, label='likelihood(looking at %s) '%cue_name));
+		#plot the sum of each for a sanity emasure to ensure they equate to one
+		#agg = [(nanmean(a)+nanmean(b)+nanmean(c)) for a,b,c in zip(alc_subject_means_array, cig_cue_subject_means_array, neu_subject_means_array)];
+		#ax1.plot(linspace(0,1000,1000),agg,color = 'gray', lw = 3.0);
+		#legend_lines.append(mlines.Line2D([],[],color='gray',lw=4, alpha = 1.0, label='sum of all'));
+		ax1.plot(linspace(0,2000,2000),linspace(0.33,0.333,2000),color = 'gray', lw = 3.0, ls='dashed');
+		legend_lines.append(mlines.Line2D([],[],color='gray',lw=4, alpha = 1.0, ls = 'dashed', label='random'));	
+		ax1.spines['right'].set_visible(False); ax1.spines['top'].set_visible(False);
+		ax1.spines['bottom'].set_linewidth(2.0); ax1.spines['left'].set_linewidth(2.0);
+		ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
+		ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2], legend_lines[3]],loc = 2,ncol=1,fontsize = 11); # legend_lines[4]]
+		title('First Sac LOCKED %s Average Temporal Gaze Profile, \n Chose %s Trials'%(name, selected_item), fontsize = 22);
+
+	#save the databases
+    [d.to_csv(savepath+'FIRSTSACOFFLOCKED_%s_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (i)),index=False) for d,i in zip(data, arange(2000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);
+	# ends here
+
+    print "\n\ncompleted trial type %s.. \n\n\n\n"%name
 	
 	
-def collectTemporalGazeWRTFirstSaccade(blocks, ttype, eyed = 'agg'):
+def collectTemporalGazeWRTFirstSaccadeOnset(blocks, ttype, eyed = 'agg'):
 	#collects each participants' trial data where they didn't blink or look down
 	#do this for the STIMULUS-LOCKED data
 	#allign these to the offset of the first saccade
@@ -3695,7 +3886,7 @@ def collectTemporalGazeWRTFirstSaccade(blocks, ttype, eyed = 'agg'):
 		print "completed subject %s.. \n\n"%subj_nr		
 
 	#save the database
-	data.to_csv(savepath+'/stim_locked/'+'%s_WRTFirstSaccade_trialdata.csv'%name,index=False); 
+	data.to_csv(savepath+'/stim_locked/'+'%s_WRTFirstSaccadeOnset_trialdata.csv'%name,index=False); 
 	# ends here	
 	
 	

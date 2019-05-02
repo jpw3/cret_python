@@ -1862,7 +1862,7 @@ def computeLongStimulusLockedTemporalGazeProfilesSelfReportedFavorite(blocks, tt
 	
 	
 	
-def computeLongStimulusTemporalGazeProfilesMedianSplitCigDependance():
+def computeLongStimulusTemporalGazeProfilesMedianSplitCigDependance(blocks, ttype, eyed = 'agg'):
 	#this function computes the stimulus locked TGP separately for individuals who were above or below the median score for tobacco dependance
 	index_counter = 0; #for database calculation
 	
@@ -1929,7 +1929,7 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitCigDependance():
 				#conditional to differentiate between not-cue trials when selecteing the non-cue or not
 				#the second conditional include nuetral trials that were preferred only
 				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
-                    &(t.trial_type == ttype)&((subj_ftnd>=median_FTND))==is_above_median):
+                    &(t.trial_type == ttype)&(not(isnan(subj_ftnd)))&((subj_ftnd>=median_FTND))==is_above_median):
 					
 					#cycle through each time point, aggregating the data accordingly
 					
@@ -1981,6 +1981,8 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitCigDependance():
 			[cig_cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),cig_cue_individ_subject_mean)]; #append this to the array for each subject
 			[cig_subject_agg_counts.append(ct) for ct in cig_cue_individ_subject_counts];						
 						
+			1/0			
+						
 			for index in arange(2000):
 				#make sure to reverse the time point from index...
 				data[index].loc[index_counter] = [int(subj_nr+1),int(ttype),name_FTND,'alcohol', (index), alc_individ_subject_counts[index], alc_individ_subject_nrusedtrials[index], alc_individ_subject_mean[index]];
@@ -2019,7 +2021,7 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitCigDependance():
 							
 							
 
-def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance():
+def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttype, eyed = 'agg'):
 	#this function computes the stimulus locked TGP separately for individuals who were above or below the median score for tobacco dependance
 	index_counter = 0; #for database calculation
 	
@@ -2086,7 +2088,7 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance():
 				#conditional to differentiate between not-cue trials when selecteing the non-cue or not
 				#the second conditional include nuetral trials that were preferred only
 				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
-                    &(t.trial_type == ttype)&((subj_ads>=median_ADS))==is_above_median):
+                    &(t.trial_type == ttype)&(not(isnan(subj_ads)))&((subj_ads>=median_ADS))==is_above_median):
 					
 					#cycle through each time point, aggregating the data accordingly
 					

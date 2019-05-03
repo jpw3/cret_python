@@ -2036,7 +2036,7 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitCigDependance(blocks, ttyp
 
 	print "\n\ncompleted trial type %s.. \n\n\n\n"%name
 	
-	return [dat_below, trial_bools_below,  dat_above, trial_bools_above];
+	#return [dat_below, trial_bools_below,  dat_above, trial_bools_above];
 							
 		
 		
@@ -2213,7 +2213,8 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttyp
 	# ends here
 
 	print "\n\ncompleted trial type %s.. \n\n\n\n"%name								
-							
+
+	#return [dat_below, trial_bools_below,  dat_above, trial_bools_above];							
 							
 
 def computeLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):

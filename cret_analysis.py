@@ -1885,6 +1885,9 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitCigDependance(blocks, ttyp
 	#here, collect all of the scores for the Fagerstrom Nicotine Dependance scale (FTND) and find the median
 	FTNDS = [r for r in CR_data['FTND']];
 	median_FTND = nanmedian(FTNDS); #use this to determine which participants are above/below the median 
+	print 'Median FTND score: %s \n\n\n'%median_FTND;
+	
+	trial_bools = []; #add the boolean value of the condition to get to trials. should all be 1s
 	
 	for name_FTND,is_above_median in zip(['BELOW','ABOVE'],[0,1]):
 		
@@ -1915,6 +1918,9 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitCigDependance(blocks, ttyp
 			indx = where(CR_data['ID'] == subject_id)[0][0]; #get the index row location for this participant in CR_data
 			subj_ftnd = CR_data.iloc[indx]['FTND']; #get the subjects' FTND score
 			
+			print 'Subject FTND score: %s \n\n\n'%subj_ftnd;
+			print 'Boolean isAboveMedianFTND: %r \n\n\n'%(subj_ftnd>=median_FTND);
+			
 			neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
 			neu_individ_subject_counts = zeros(time_duration/time_bin_spacing);
 			neu_individ_subject_nrusedtrials = zeros(time_duration/time_bin_spacing);
@@ -1929,7 +1935,11 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitCigDependance(blocks, ttyp
 				#conditional to differentiate between not-cue trials when selecteing the non-cue or not
 				#the second conditional include nuetral trials that were preferred only
 				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
-                    &(t.trial_type == ttype)&(not(isnan(subj_ftnd)))&((subj_ftnd>=median_FTND))==is_above_median):
+                    &(t.trial_type == ttype)&(not(isnan(subj_ftnd)))&((subj_ftnd>=median_FTND)==is_above_median)):
+					
+					trial_bools.append(((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
+                    &(t.trial_type == ttype)&(not(isnan(subj_ftnd)))&((subj_ftnd>=median_FTND)==is_above_median)));
+					
 					
 					#cycle through each time point, aggregating the data accordingly
 					
@@ -1980,8 +1990,7 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitCigDependance(blocks, ttyp
 			cig_cue_individ_subject_mean = cig_cue_individ_subject_sum/cig_cue_individ_subject_counts; #calculate the mean for this subject at each time point
 			[cig_cue_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),cig_cue_individ_subject_mean)]; #append this to the array for each subject
 			[cig_subject_agg_counts.append(ct) for ct in cig_cue_individ_subject_counts];						
-						
-			1/0			
+							
 						
 			for index in arange(2000):
 				#make sure to reverse the time point from index...
@@ -2012,14 +2021,26 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitCigDependance(blocks, ttyp
 		ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
 		ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2], legend_lines[3]],loc = 2,ncol=1,fontsize = 11); # legend_lines[4]]
 		title('STIMULUS LOCKED %s Median FTND Average Temporal Gaze Profile, \n Condition %s Trials'%(name_FTND, name), fontsize = 22);
+		
+		#save the data for both above and below medians for debugging what's going on
+		if name_FTND=='BELOW':
+			dat_below = data;
+			trial_bools_below = trial_bools;
+		elif name_FTND=='ABOVE':
+			dat_above  = data;
+			trial_bools_above = trial_bools;
 
 	#save the databases
 	[d.to_csv(savepath+'STIMLOCKED_MEDIANCIGDEPEND_%s_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (i)),index=False) for d,i in zip(data, arange(2000))]; 
 	# ends here
 
-	print "\n\ncompleted trial type %s.. \n\n\n\n"%name	
+	print "\n\ncompleted trial type %s.. \n\n\n\n"%name
+	
+	return [dat_below, trial_bools_below,  dat_above, trial_bools_above];
 							
-							
+		
+		
+#make sure the median splitting code is the same as the cig depdnance function above once it's been confirmed/debugged that works correctly!							
 
 def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttype, eyed = 'agg'):
 	#this function computes the stimulus locked TGP separately for individuals who were above or below the median score for tobacco dependance
@@ -2044,6 +2065,9 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttyp
 	#here, collect all of the scores for the Fagerstrom Nicotine Dependance scale (FTND) and find the median
 	ADSS = [r for r in CR_data['ADS']];
 	median_ADS = nanmedian(ADSS); #use this to determine which participants are above/below the median 
+	print 'Median ADS score: %s \n\n\n'%median_ADS;
+	
+	trial_bools = []; #add the boolean value of the condition to get to trials. should all be 1s
 	
 	for name_ADS,is_above_median in zip(['BELOW','ABOVE'],[0,1]):
 		
@@ -2073,6 +2097,9 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttyp
 			subject_id = subj[0].sub_id;
 			indx = where(CR_data['ID'] == subject_id)[0][0]; #get the index row location for this participant in CR_data
 			subj_ads = CR_data.iloc[indx]['ADS']; #get the subjects' FTND score
+
+			print 'Subject ADS score: %s \n\n\n'%subj_ads;
+			print 'Boolean isAboveMedianADS: %r \n\n\n'%(subj_ftnd>=median_ads);
 			
 			neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
 			neu_individ_subject_counts = zeros(time_duration/time_bin_spacing);
@@ -2089,6 +2116,9 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttyp
 				#the second conditional include nuetral trials that were preferred only
 				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
                     &(t.trial_type == ttype)&(not(isnan(subj_ads)))&((subj_ads>=median_ADS))==is_above_median):
+
+					trial_bools.append(((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
+                    &(t.trial_type == ttype)&(not(isnan(subj_ads)))&((subj_ads>=median_FTND)==is_above_median)));
 					
 					#cycle through each time point, aggregating the data accordingly
 					
@@ -2170,6 +2200,14 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttyp
 		ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2], legend_lines[3]],loc = 2,ncol=1,fontsize = 11); # legend_lines[4]]
 		title('STIMULUS LOCKED %s Median ADS Average Temporal Gaze Profile, \n Condition %s Trials'%(name_ADS, name), fontsize = 22);
 
+		#save the data for both above and below medians for debugging what's going on
+		if name_ADS=='BELOW':
+			dat_below = data;
+			trial_bools_below = trial_bools;
+		elif name_ADS=='ABOVE':
+			dat_above  = data;
+			trial_bools_above = trial_bools;
+
 	#save the databases
 	[d.to_csv(savepath+'STIMLOCKED_MEDIANALCDEPEND_%s_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (i)),index=False) for d,i in zip(data, arange(2000))]; 
 	# ends here
@@ -2222,7 +2260,10 @@ def computeLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 		cig_cue_gaze_array = zeros(time_duration/time_bin_spacing);
 		cig_cue_counts = zeros(shape(cig_cue_gaze_array));
 		cig_cue_subject_means_array = [[] for i in range(2000)];
-		cig_subject_agg_counts = []; 	
+		cig_subject_agg_counts = [];
+		
+		#for each selected item and ttype breakdown, let's get the RTs together. We want a measure of median and between-subjects SE RTs
+		subj_RTs = [[] for nrofsubj in trial_matrix]; RT_indexer = 0;
 	
 		for subj_nr,subj in enumerate(trial_matrix):
 			neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
@@ -2280,6 +2321,11 @@ def computeLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 						cig_cue_individ_subject_counts[i] += 1;
 						cig_individ_subject_nrusedtrials[i] += t.lookedAtCigarette[i];
 						
+					#get RT information for each trial and store in appropriate holder
+					this_trials_rt = t.response_time;						
+					subj_RTs[RT_indexer].append(this_trials_rt);
+					1/0
+						
 			neu_individ_subject_mean = neu_individ_subject_sum/neu_individ_subject_counts; #calculate the mean for this subject at each time point
 			[neu_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),neu_individ_subject_mean)]; #append this to the array for each subject
 			[neu_subject_agg_counts.append(ct) for ct in neu_individ_subject_counts]; #store number of trials here		
@@ -2297,7 +2343,9 @@ def computeLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 				data[index].loc[index_counter+2] = [int(subj_nr+1),int(ttype),selected_item,'neutral', (index), neu_individ_subject_counts[index], neu_individ_subject_nrusedtrials[index], neu_individ_subject_mean[index]];
 			index_counter+=3;
 						
-			print "completed subject %s.. \n\n"%subj_nr							
+			print "completed subject %s.. \n\n"%subj_nr
+			
+			RT_indexer += 1; #index
 
 		#plot each likelihood looking at items				
 		for  subj_ms, cue_name, c, a in zip([alc_subject_means_array, cig_cue_subject_means_array, neu_subject_means_array], ['alcohol','cigarette','neutral'], colors, alphas):							
@@ -2319,9 +2367,19 @@ def computeLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):
 		ax1.yaxis.set_ticks_position('left'); ax1.xaxis.set_ticks_position('bottom');
 		ax1.legend(handles=[legend_lines[0],legend_lines[1], legend_lines[2], legend_lines[3]],loc = 2,ncol=1,fontsize = 11); # legend_lines[4]]
 		title('STIMULUS LOCKED %s Average Temporal Gaze Profile, \n Chose %s Trials'%(name, selected_item), fontsize = 22);
-
+		
+		#print the RT information:
+		all_rts = [y for f in subj_RTs for y in f]; subj_mew_rts = [nanmean(f) for f in subj_RTs]; subj_med_rts = [nanmedian(f) for f in subj_RTs];
+		print '#######Trial type %s and selected item %s #######\n\n\n'%(name, selected_item);
+		print 'Median of all trial (put together) RTs: %s \n\n'%nanmedian(all_rts);
+		print 'Mean of all trial (put together) RTs: %s \n\n'%nanmean(all_rts);
+		print 'Median of subject medians RTs: %s \n\n'%nanmedian(subj_med_rts);
+		print 'Mean of subject means RTs: %s \n\n'%nanmean(subj_mew_rts);
+		print 'BE SEMs subject means RTs: %s \n\n\n\n\n'%compute_BS_SEM(subj_mew_rts);
+		
+		
 	#save the databases
-	[d.to_csv(savepath+'STIMLOCKED_%s_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (i)),index=False) for d,i in zip(data, arange(2000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);
+	#[d.to_csv(savepath+'STIMLOCKED_%s_timepoint_%s_temporal_gaze_profile_LONG.csv'%(name, (i)),index=False) for d,i in zip(data, arange(2000))]; #data.to_csv(savepath+'%s_temporal_gaze_profile.csv'%name,index=False);
 	# ends here
 
 	print "\n\ncompleted trial type %s.. \n\n\n\n"%name

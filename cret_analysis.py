@@ -2099,7 +2099,7 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttyp
 			subj_ads = CR_data.iloc[indx]['ADS']; #get the subjects' FTND score
 
 			print 'Subject ADS score: %s \n\n\n'%subj_ads;
-			print 'Boolean isAboveMedianADS: %r \n\n\n'%(subj_ftnd>=median_ads);
+			print 'Boolean isAboveMedianADS: %r \n\n\n'%(subj_ads>=median_ADS);
 			
 			neu_individ_subject_sum = zeros(time_duration/time_bin_spacing);
 			neu_individ_subject_counts = zeros(time_duration/time_bin_spacing);
@@ -2116,9 +2116,11 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttyp
 				#the second conditional include nuetral trials that were preferred only
 				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
                     &(t.trial_type == ttype)&(not(isnan(subj_ads)))&((subj_ads>=median_ADS))==is_above_median):
+					
+					1/0
 
 					trial_bools.append(((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
-                    &(t.trial_type == ttype)&(not(isnan(subj_ads)))&((subj_ads>=median_FTND)==is_above_median)));
+                    &(t.trial_type == ttype)&(not(isnan(subj_ads)))&((subj_ads>=median_ADS)==is_above_median)));
 					
 					#cycle through each time point, aggregating the data accordingly
 					
@@ -2159,7 +2161,9 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttyp
 						cig_cue_individ_subject_sum[i] += t.lookedAtCigarette[i];
 						cig_cue_individ_subject_counts[i] += 1;
 						cig_individ_subject_nrusedtrials[i] += t.lookedAtCigarette[i];
-						
+			
+			1/0
+			
 			neu_individ_subject_mean = neu_individ_subject_sum/neu_individ_subject_counts; #calculate the mean for this subject at each time point
 			[neu_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),neu_individ_subject_mean)]; #append this to the array for each subject
 			[neu_subject_agg_counts.append(ct) for ct in neu_individ_subject_counts]; #store number of trials here		
@@ -2213,8 +2217,8 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttyp
 	# ends here
 
 	print "\n\ncompleted trial type %s.. \n\n\n\n"%name								
-
-	#return [dat_below, trial_bools_below,  dat_above, trial_bools_above];							
+	
+	return [dat_below, trial_bools_below,  dat_above, trial_bools_above];							
 							
 
 def computeLongStimulusLockedTemporalGazeProfiles(blocks, ttype, eyed = 'agg'):

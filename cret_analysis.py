@@ -2115,9 +2115,7 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttyp
 				#conditional to differentiate between not-cue trials when selecteing the non-cue or not
 				#the second conditional include nuetral trials that were preferred only
 				if ((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
-                    &(t.trial_type == ttype)&(not(isnan(subj_ads)))&((subj_ads>=median_ADS))==is_above_median):
-					
-					1/0
+                    &(t.trial_type == ttype)&(not(isnan(subj_ads)))&((subj_ads>=median_ADS)==is_above_median)):
 
 					trial_bools.append(((t.dropped_sample == 0)&(t.didntLookAtAnyItems == 0)&(t.skip == 0)&(sqrt(t.eyeX[0]**2 + t.eyeY[0]**2) < 2.5) \
                     &(t.trial_type == ttype)&(not(isnan(subj_ads)))&((subj_ads>=median_ADS)==is_above_median)));
@@ -2161,8 +2159,6 @@ def computeLongStimulusTemporalGazeProfilesMedianSplitAlcDependance(blocks, ttyp
 						cig_cue_individ_subject_sum[i] += t.lookedAtCigarette[i];
 						cig_cue_individ_subject_counts[i] += 1;
 						cig_individ_subject_nrusedtrials[i] += t.lookedAtCigarette[i];
-			
-			1/0
 			
 			neu_individ_subject_mean = neu_individ_subject_sum/neu_individ_subject_counts; #calculate the mean for this subject at each time point
 			[neu_subject_means_array[index].append(ind_mew) for index,ind_mew in zip(arange(2000),neu_individ_subject_mean)]; #append this to the array for each subject
